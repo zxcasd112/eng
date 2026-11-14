@@ -1,0 +1,2714 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LEXICON — Умная платформа для изучения английского языка</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'soot-canvas': '#050303',
+            'bone-white': '#ffffff',
+            'nest-crimson': '#ea2845',
+            'garnet-sweep': '#780f20',
+            'graphite-slab': '#181818',
+            'carbon-panel': '#0b0b0b',
+            'ash-seam': '#1e1c1c',
+            'smoke-outline': '#373535',
+            'pewter-text': '#9b9a9a',
+            'iron-gray': '#4e4e4e',
+            'coral-keyword': '#ff7b72',
+            'amber-string': '#ffa657',
+            'frost-identifier': '#a5d6ff'
+          },
+          fontFamily: {
+            manrope: ['Manrope', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+            mono: ['"Geist Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace']
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    :root {
+      --color-soot-canvas: #050303;
+      --color-bone-white: #ffffff;
+      --color-nest-crimson: #ea2845;
+      --color-garnet-sweep: #780f20;
+      --color-graphite-slab: #181818;
+      --color-carbon-panel: #0b0b0b;
+      --color-ash-seam: #1e1c1c;
+      --color-smoke-outline: #373535;
+      --color-pewter-text: #9b9a9a;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      background-color: var(--color-soot-canvas);
+      color: var(--color-bone-white);
+      font-family: 'Manrope', sans-serif;
+    }
+
+    body {
+      background-color: var(--color-soot-canvas);
+      overflow-x: hidden;
+      margin: 0;
+    }
+
+    .glow-banner {
+      background:
+        radial-gradient(850px circle at 12% 10%, rgba(234, 40, 69, 0.52) 0%, rgba(120, 15, 32, 0.34) 45%, rgba(11, 11, 11, 0.96) 85%),
+        linear-gradient(135deg, #181818 0%, #050303 100%);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .card-surface {
+      background-color: #0b0b0b;
+      border: 1px solid #373535;
+      border-radius: 24px;
+    }
+
+    .slab-surface {
+      background-color: #181818;
+      border: 1px solid #373535;
+      border-radius: 20px;
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #050303;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #373535;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #ea2845;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-soot-canvas text-bone-white selection:bg-nest-crimson selection:text-bone-white">
+
+  <!-- Уведомление (Toast) -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 hidden items-center gap-3 rounded-[20px] border border-smoke-outline bg-graphite-slab px-5 py-3.5 text-sm text-bone-white shadow-2xl transition-all duration-300">
+    <span class="h-2.5 w-2.5 rounded-full bg-nest-crimson"></span>
+    <span id="toast-msg" class="font-manrope font-medium">Готово</span>
+  </div>
+
+  <!-- Модальное окно: Telegram-синхронизация и импорт слов -->
+  <div id="modal-overlay" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+    <div class="card-surface w-full max-w-lg p-6 sm:p-8">
+      <div class="flex items-center justify-between border-b border-ash-seam pb-4 mb-5">
+        <h3 id="modal-title" class="font-manrope text-xl font-semibold text-bone-white">Синхронизация с Telegram-ботом</h3>
+        <button id="btn-close-modal" class="rounded-full bg-ash-seam p-2 text-pewter-text hover:text-bone-white">✕</button>
+      </div>
+      <div id="modal-body" class="space-y-4">
+        <!-- Заполняется динамически -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ВЕРХНЯЯ НАВИГАЦИЯ -->
+  <header class="sticky top-0 z-40 border-b border-white/10 bg-soot-canvas/85 backdrop-blur-md">
+    <div class="mx-auto flex max-w-[1280px] flex-wrap items-center justify-between gap-3 px-4 py-3.5 sm:px-8">
+      <!-- Логотип -->
+      <div class="flex items-center gap-3">
+        <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-nest-crimson to-garnet-sweep text-bone-white font-manrope font-bold text-lg">
+          L
+        </div>
+        <div>
+          <span class="font-manrope text-lg font-semibold tracking-tight text-bone-white">Lexicon</span>
+          <span class="hidden xl:inline-block ml-2 rounded-full bg-ash-seam border border-smoke-outline px-2.5 py-0.5 font-mono text-[11px] text-pewter-text">English AI</span>
+        </div>
+      </div>
+
+      <!-- Вкладки разделов приложения (включая Vocabulary и Grammar) -->
+      <nav class="flex flex-wrap items-center gap-1 rounded-full border border-smoke-outline bg-carbon-panel p-1">
+        <button data-nav="learn" class="app-nav-btn rounded-full bg-bone-white px-3.5 py-1.5 font-manrope text-xs sm:text-sm font-semibold text-soot-canvas transition-all">
+          Тренировка
+        </button>
+        <button data-nav="vocabulary" class="app-nav-btn rounded-full px-3.5 py-1.5 font-manrope text-xs sm:text-sm font-medium text-pewter-text hover:text-bone-white transition-all">
+          Vocabulary
+        </button>
+        <button data-nav="grammar" class="app-nav-btn rounded-full px-3.5 py-1.5 font-manrope text-xs sm:text-sm font-medium text-pewter-text hover:text-bone-white transition-all">
+          Grammar
+        </button>
+        <button data-nav="skills" class="app-nav-btn rounded-full px-3.5 py-1.5 font-manrope text-xs sm:text-sm font-medium text-pewter-text hover:text-bone-white transition-all">
+          Практика (4 навыка)
+        </button>
+        <button data-nav="deck" class="app-nav-btn rounded-full px-3.5 py-1.5 font-manrope text-xs sm:text-sm font-medium text-pewter-text hover:text-bone-white transition-all">
+          Словарь и колоды
+        </button>
+        <button data-nav="stats" class="app-nav-btn rounded-full px-3.5 py-1.5 font-manrope text-xs sm:text-sm font-medium text-pewter-text hover:text-bone-white transition-all">
+          Прогресс и тест
+        </button>
+      </nav>
+
+      <!-- Статус ученика: Уровень, Стрик, XP, Telegram -->
+      <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1.5 rounded-full border border-smoke-outline bg-graphite-slab px-3 py-1.5 font-mono text-xs text-bone-white" title="Дней подряд без пропусков">
+          <span class="text-nest-crimson">🔥</span>
+          <span id="header-streak">12 дн.</span>
+        </div>
+        <div class="hidden sm:flex items-center gap-1.5 rounded-full border border-smoke-outline bg-graphite-slab px-3 py-1.5 font-mono text-xs text-frost-identifier" title="Очки опыта">
+          <span>★</span>
+          <span id="header-xp">1,450 XP</span>
+        </div>
+        <select id="user-cefr-select" aria-label="Уровень английского" class="rounded-full border border-smoke-outline bg-graphite-slab px-3 py-1.5 font-mono text-xs text-bone-white focus:outline-none cursor-pointer">
+          <option value="A1">Уровень A1</option>
+          <option value="A2">Уровень A2</option>
+          <option value="B1">Уровень B1</option>
+          <option value="B2" selected>Уровень B2</option>
+          <option value="C1">Уровень C1</option>
+          <option value="C2">Уровень C2</option>
+        </select>
+        <button id="btn-tg-sync" class="rounded-full bg-ash-seam border border-smoke-outline px-3 py-1.5 font-manrope text-xs font-semibold text-bone-white hover:bg-smoke-outline transition-colors">
+          Telegram-бот
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ОСНОВНОЙ КОНТЕНТ -->
+  <main class="mx-auto max-w-[1280px] px-4 py-8 sm:px-8">
+
+    <!-- ========================================== -->
+    <!-- ВКЛАДКА 1: ТРЕНИРОВКА И ДОБАВЛЕНИЕ СЛОВ     -->
+    <!-- ========================================== -->
+    <section id="view-learn" class="space-y-8">
+      
+      <!-- Приветственный баннер с прогрессом на сегодня -->
+      <div class="glow-banner rounded-[28px] p-6 sm:p-8 lg:p-10">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+          <div class="lg:col-span-7">
+            <div class="inline-flex items-center gap-2 rounded-full bg-black/50 border border-white/15 px-3.5 py-1 font-mono text-xs text-amber-string mb-4">
+              <span>Ежедневная цель · Адаптивный план</span>
+            </div>
+            <h1 class="font-manrope text-3xl sm:text-5xl font-medium text-bone-white leading-[1.1] mb-4">
+              Учите английский в живом контексте, а не списком.
+            </h1>
+            <p class="font-mono text-sm text-bone-white/80 leading-relaxed max-w-2xl mb-6">
+              Отправьте незнакомое слово или вставьте абзац из книги — нейросеть мгновенно разберёт лексику под ваш уровень, подберёт примеры с озвучкой и напомнит повторить именно тогда, когда вы начнёте забывать.
+            </p>
+            <div class="flex flex-wrap gap-3">
+              <button id="btn-hero-start-review" class="rounded-[18px] bg-bone-white px-6 py-3.5 font-manrope text-sm font-bold text-soot-canvas hover:bg-bone-white/90 transition-all">
+                Повторить карточки (<span id="due-count-badge">6</span>)
+              </button>
+              <button id="btn-hero-go-vocab" class="rounded-[18px] bg-ash-seam/90 border border-white/15 px-5 py-3.5 font-manrope text-sm font-semibold text-bone-white hover:bg-smoke-outline transition-all">
+                Vocabulary
+              </button>
+              <button id="btn-hero-go-grammar" class="rounded-[18px] bg-ash-seam/90 border border-white/15 px-5 py-3.5 font-manrope text-sm font-semibold text-bone-white hover:bg-smoke-outline transition-all">
+                Grammar
+              </button>
+              <button id="btn-hero-go-skills" class="rounded-[18px] bg-ash-seam/90 border border-white/15 px-5 py-3.5 font-manrope text-sm font-semibold text-bone-white hover:bg-smoke-outline transition-all">
+                Тренировать Reading &amp; Speaking
+              </button>
+            </div>
+          </div>
+
+          <!-- Виджет дневной цели -->
+          <div class="lg:col-span-5 rounded-[24px] bg-soot-canvas/85 border border-white/15 p-6 space-y-4">
+            <div class="flex items-center justify-between">
+              <span class="font-manrope text-base font-semibold text-bone-white">План на сегодня</span>
+              <span id="daily-goal-pct" class="font-mono text-xs text-frost-identifier">65% выполнено</span>
+            </div>
+            <div class="h-2 w-full rounded-full bg-ash-seam overflow-hidden">
+              <div id="daily-goal-bar" class="h-full rounded-full bg-nest-crimson transition-all duration-300" style="width: 65%"></div>
+            </div>
+            <div class="grid grid-cols-3 gap-3 pt-2 text-center">
+              <div class="rounded-2xl bg-graphite-slab border border-smoke-outline p-3">
+                <div class="font-mono text-[11px] text-pewter-text">Повторено</div>
+                <div id="stat-reviewed-today" class="font-manrope text-xl font-semibold text-bone-white mt-0.5">14 слов</div>
+              </div>
+              <div class="rounded-2xl bg-graphite-slab border border-smoke-outline p-3">
+                <div class="font-mono text-[11px] text-pewter-text">Точность</div>
+                <div id="stat-retention-rate" class="font-manrope text-xl font-semibold text-frost-identifier mt-0.5">92%</div>
+              </div>
+              <div class="rounded-2xl bg-graphite-slab border border-smoke-outline p-3">
+                <div class="font-mono text-[11px] text-pewter-text">В колоде</div>
+                <div id="stat-total-deck" class="font-manrope text-xl font-semibold text-amber-string mt-0.5">6 слов</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Две колонки: 1) Умное добавление слов из текста/бота 2) Карточки интервального повторения -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+        <!-- ЛЕВАЯ КОЛОНКА: Быстрый разбор слова или предложения -->
+        <div class="lg:col-span-5 card-surface p-6 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between border-b border-ash-seam pb-4 mb-4">
+              <div>
+                <h2 class="font-manrope text-lg font-semibold text-bone-white">Умный сбор слов</h2>
+                <p class="font-mono text-xs text-pewter-text">Слово, фраза или предложение из книги/статьи</p>
+              </div>
+              <span class="rounded-full bg-graphite-slab border border-smoke-outline px-3 py-1 font-mono text-[11px] text-frost-identifier">AI Разбор</span>
+            </div>
+
+            <!-- Быстрые пресеты для проверки -->
+            <div class="mb-4">
+              <div class="font-mono text-xs text-pewter-text mb-2">Попробуйте разобрать в один клик:</div>
+              <div class="flex flex-wrap gap-2">
+                <button data-quick="relentless" class="quick-extract-btn rounded-full border border-smoke-outline bg-graphite-slab px-3 py-1 font-mono text-xs text-bone-white hover:border-bone-white transition-colors">
+                  relentless
+                </button>
+                <button data-quick="cut corners" class="quick-extract-btn rounded-full border border-smoke-outline bg-graphite-slab px-3 py-1 font-mono text-xs text-bone-white hover:border-bone-white transition-colors">
+                  cut corners (идиома)
+                </button>
+                <button data-quick="She demonstrated remarkable resilience when the negotiations reached a stalemate." class="quick-extract-btn rounded-full border border-smoke-outline bg-graphite-slab px-3 py-1 font-mono text-xs text-amber-string hover:border-bone-white transition-colors">
+                  Предложение из книги (выделить слова)
+                </button>
+              </div>
+            </div>
+
+            <!-- Поле ввода -->
+            <div class="space-y-3 mb-5">
+              <textarea
+                id="extractor-input"
+                rows="3"
+                placeholder="Введите английское слово, фразу или вставьте целое предложение из статьи..."
+                class="w-full rounded-[18px] border border-smoke-outline bg-graphite-slab p-4 font-mono text-sm text-bone-white placeholder:text-pewter-text focus:border-bone-white focus:outline-none"
+              ></textarea>
+              <button
+                id="btn-extract-word"
+                class="w-full rounded-[18px] bg-bone-white py-3 font-manrope text-sm font-bold text-soot-canvas hover:bg-bone-white/90 transition-all"
+              >
+                Разобрать и добавить в изучение
+              </button>
+            </div>
+
+            <!-- Результат разбора -->
+            <div id="extractor-result-box" class="space-y-3">
+              <!-- Отрисовывается через JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- ПРАВАЯ КОЛОНКА: Тренажёр карточек (Active Recall + Чередование форматов) -->
+        <div class="lg:col-span-7 card-surface p-6">
+          <!-- Шапка тренажёра с переключателем режимов -->
+          <div class="flex flex-wrap items-center justify-between gap-3 border-b border-ash-seam pb-4 mb-5">
+            <div>
+              <h2 class="font-manrope text-lg font-semibold text-bone-white">Тренировка памяти</h2>
+              <p class="font-mono text-xs text-pewter-text">Слово всегда тренируется внутри живого предложения</p>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-1 rounded-full bg-graphite-slab p-1 border border-smoke-outline">
+              <button data-mode="mix" class="review-mode-btn rounded-full bg-bone-white px-3 py-1 font-mono text-xs font-medium text-soot-canvas transition-all">Чередование</button>
+              <button data-mode="cloze" class="review-mode-btn rounded-full px-3 py-1 font-mono text-xs text-pewter-text hover:text-bone-white transition-all">Пропуск (Cloze)</button>
+              <button data-mode="en-ru" class="review-mode-btn rounded-full px-3 py-1 font-mono text-xs text-pewter-text hover:text-bone-white transition-all">EN→RU</button>
+              <button data-mode="ru-en" class="review-mode-btn rounded-full px-3 py-1 font-mono text-xs text-pewter-text hover:text-bone-white transition-all">RU→EN</button>
+              <button data-mode="audio" class="review-mode-btn rounded-full px-3 py-1 font-mono text-xs text-pewter-text hover:text-bone-white transition-all">На слух</button>
+              <button data-mode="quiz" class="review-mode-btn rounded-full px-3 py-1 font-mono text-xs text-pewter-text hover:text-bone-white transition-all">Тест</button>
+            </div>
+          </div>
+
+          <!-- Тело карточки -->
+          <div id="flashcard-stage" class="slab-surface p-6 min-h-[290px] flex flex-col justify-between">
+            <!-- Заполняется динамически -->
+          </div>
+
+          <!-- Кнопки управления карточкой -->
+          <div class="mt-5">
+            <div id="fc-reveal-bar">
+              <button id="btn-fc-reveal" class="w-full h-[54px] rounded-[18px] bg-bone-white font-manrope text-base font-bold text-soot-canvas hover:bg-bone-white/90 transition-all">
+                Показать ответ
+              </button>
+            </div>
+
+            <div id="fc-grade-bar" class="hidden grid-cols-3 gap-3">
+              <button data-grade="again" class="fc-grade-btn rounded-[18px] border border-coral-keyword/40 bg-soot-canvas py-3.5 px-4 text-center hover:bg-ash-seam transition-colors">
+                <span class="block font-manrope text-sm font-bold text-coral-keyword">Не знаю</span>
+                <span class="block font-mono text-[11px] text-pewter-text mt-0.5">Повторить через 10 мин</span>
+              </button>
+              <button data-grade="hard" class="fc-grade-btn rounded-[18px] border border-amber-string/40 bg-soot-canvas py-3.5 px-4 text-center hover:bg-ash-seam transition-colors">
+                <span class="block font-manrope text-sm font-bold text-amber-string">Сложно</span>
+                <span id="grade-hard-days" class="block font-mono text-[11px] text-pewter-text mt-0.5">Через 2 дня</span>
+              </button>
+              <button data-grade="good" class="fc-grade-btn rounded-[18px] bg-bone-white py-3.5 px-4 text-center hover:bg-bone-white/90 transition-colors">
+                <span class="block font-manrope text-sm font-bold text-soot-canvas">Знаю</span>
+                <span id="grade-good-days" class="block font-mono text-[11px] text-soot-canvas/75 mt-0.5">Через 7 дней</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- ВКЛАДКА 2: VOCABULARY (ЛЕКСИКА И КОЛЛОКАЦИИ) -->
+    <!-- ========================================== -->
+    <section id="view-vocabulary" class="hidden space-y-8">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 class="font-manrope text-2xl sm:text-4xl font-medium text-bone-white">Vocabulary — Лексика, коллокации и синонимы</h1>
+          <p class="font-mono text-xs sm:text-sm text-pewter-text mt-1">Учите не изолированные слова, а устойчивые словосочетания, фразовые глаголы и оттенки значений по уровням CEFR</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button data-vcat="collocations" class="vocab-cat-btn rounded-[16px] bg-bone-white px-4 py-2 font-manrope text-xs sm:text-sm font-bold text-soot-canvas transition-all">
+            Устойчивые коллокации
+          </button>
+          <button data-vcat="phrasal" class="vocab-cat-btn rounded-[16px] bg-graphite-slab border border-smoke-outline px-4 py-2 font-manrope text-xs sm:text-sm font-semibold text-pewter-text hover:text-bone-white transition-all">
+            Фразовые глаголы
+          </button>
+          <button data-vcat="synonyms" class="vocab-cat-btn rounded-[16px] bg-graphite-slab border border-smoke-outline px-4 py-2 font-manrope text-xs sm:text-sm font-semibold text-pewter-text hover:text-bone-white transition-all">
+            Нюансы синонимов (B1→C1)
+          </button>
+          <button data-vcat="wordfamily" class="vocab-cat-btn rounded-[16px] bg-graphite-slab border border-smoke-outline px-4 py-2 font-manrope text-xs sm:text-sm font-semibold text-pewter-text hover:text-bone-white transition-all">
+            Словообразование
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <!-- Левая часть: Интерактивные карточки выбранного раздела лексики -->
+        <div id="vocab-showcase-list" class="lg:col-span-7 space-y-4">
+          <!-- Отрисовывается через JS -->
+        </div>
+
+        <!-- Правая часть: Практический тренажёр Vocabulary (Подбор пар и точность коллокаций) -->
+        <div class="lg:col-span-5 space-y-6">
+          <!-- Тренажёр 1: Подбор пар (Word Matching) -->
+          <div class="card-surface p-6">
+            <div class="flex items-center justify-between border-b border-ash-seam pb-3 mb-4">
+              <div>
+                <h2 class="font-manrope text-lg font-semibold text-bone-white">Тренажёр: Подбор пары</h2>
+                <p class="font-mono text-xs text-pewter-text">Соедините английское выражение с точным значением</p>
+              </div>
+              <button id="btn-reset-matching" class="font-mono text-xs text-frost-identifier hover:underline">Обновить</button>
+            </div>
+            <div id="vocab-matching-board" class="space-y-4">
+              <!-- Отрисовывается через JS -->
+            </div>
+          </div>
+
+          <!-- Тренажёр 2: Выбери правильную коллокацию (Make vs Do / Take vs Have / Strong Collocations) -->
+          <div class="card-surface p-6">
+            <div class="border-b border-ash-seam pb-3 mb-4">
+              <h2 class="font-manrope text-lg font-semibold text-bone-white">Блиц по коллокациям</h2>
+              <p class="font-mono text-xs text-pewter-text">Выберите глагол, который носители используют в этом контексте</p>
+            </div>
+            <div id="vocab-collocation-drill" class="space-y-4">
+              <!-- Отрисовывается через JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- ВКЛАДКА 3: GRAMMAR (ГРАММАТИКА И КОНСТРУКТОР) -->
+    <!-- ========================================== -->
+    <section id="view-grammar" class="hidden space-y-8">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 class="font-manrope text-2xl sm:text-4xl font-medium text-bone-white">Grammar — Живая грамматика в контексте</h1>
+          <p class="font-mono text-xs sm:text-sm text-pewter-text mt-1">Понятные правила с формулами, разбор частых ловушек и интерактивный конструктор предложений</p>
+        </div>
+
+        <!-- Фильтр тем по уровням -->
+        <div class="flex flex-wrap gap-2">
+          <button data-gtopic="conditionals" class="grammar-topic-btn rounded-[16px] bg-bone-white px-4 py-2 font-manrope text-xs sm:text-sm font-bold text-soot-canvas transition-all">
+            Conditionals &amp; Regrets (B2)
+          </button>
+          <button data-gtopic="perfect" class="grammar-topic-btn rounded-[16px] bg-graphite-slab border border-smoke-outline px-4 py-2 font-manrope text-xs sm:text-sm font-semibold text-pewter-text hover:text-bone-white transition-all">
+            Present Perfect vs Past Simple (B1)
+          </button>
+          <button data-gtopic="inversion" class="grammar-topic-btn rounded-[16px] bg-graphite-slab border border-smoke-outline px-4 py-2 font-manrope text-xs sm:text-sm font-semibold text-pewter-text hover:text-bone-white transition-all">
+            Inversion &amp; Emphasis (C1)
+          </button>
+          <button data-gtopic="modals" class="grammar-topic-btn rounded-[16px] bg-graphite-slab border border-smoke-outline px-4 py-2 font-manrope text-xs sm:text-sm font-semibold text-pewter-text hover:text-bone-white transition-all">
+            Modals of Deduction (B2)
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <!-- Левая колонка: Наглядное правило, формула и типичные ошибки -->
+        <div id="grammar-theory-panel" class="lg:col-span-6 card-surface p-6 space-y-5">
+          <!-- Отрисовывается через JS -->
+        </div>
+
+        <!-- Правая колонка: 1) Сборка предложения из слов (Sentence Scramble) + 2) Тренажёр контекстного выбора -->
+        <div class="lg:col-span-6 space-y-6">
+          <!-- Конструктор предложения -->
+          <div class="card-surface p-6">
+            <div class="flex items-center justify-between border-b border-ash-seam pb-3 mb-4">
+              <div>
+                <h2 class="font-manrope text-lg font-semibold text-bone-white">Конструктор предложения</h2>
+                <p class="font-mono text-xs text-pewter-text">Соберите грамматически верную фразу, нажимая на слова по порядку</p>
+              </div>
+              <button id="btn-reset-builder" class="font-mono text-xs text-frost-identifier hover:underline">Сбросить</button>
+            </div>
+            <div id="grammar-builder-box" class="space-y-4">
+              <!-- Отрисовывается через JS -->
+            </div>
+          </div>
+
+          <!-- Практика выбора грамматической формы -->
+          <div class="card-surface p-6">
+            <div class="border-b border-ash-seam pb-3 mb-4">
+              <h2 class="font-manrope text-lg font-semibold text-bone-white">Проверка понимания правила</h2>
+              <p class="font-mono text-xs text-pewter-text">Выберите правильную форму и получите мгновенное объяснение</p>
+            </div>
+            <div id="grammar-quiz-box" class="space-y-4">
+              <!-- Отрисовывается через JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- ВКЛАДКА 4: ПРАКТИКА 4 НАВЫКОВ               -->
+    <!-- ========================================== -->
+    <section id="view-skills" class="hidden space-y-8">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 class="font-manrope text-2xl sm:text-4xl font-medium text-bone-white">Практика 4 языковых навыков</h1>
+          <p class="font-mono text-xs sm:text-sm text-pewter-text mt-1">Чтение с переводом по клику, проверка писем, аудио-диктовки и ролевые диалоги с ИИ</p>
+        </div>
+
+        <!-- Переключатель 4 навыков -->
+        <div class="flex flex-wrap gap-2">
+          <button data-skill="reading" class="skill-switch-btn rounded-[16px] bg-bone-white px-4 py-2 font-manrope text-xs sm:text-sm font-bold text-soot-canvas transition-all">
+            📖 Reading (Чтение)
+          </button>
+          <button data-skill="writing" class="skill-switch-btn rounded-[16px] bg-graphite-slab border border-smoke-outline px-4 py-2 font-manrope text-xs sm:text-sm font-semibold text-pewter-text hover:text-bone-white transition-all">
+            ✍️ Writing (Письмо)
+          </button>
+          <button data-skill="listening" class="skill-switch-btn rounded-[16px] bg-graphite-slab border border-smoke-outline px-4 py-2 font-manrope text-xs sm:text-sm font-semibold text-pewter-text hover:text-bone-white transition-all">
+            🎧 Listening (Аудирование)
+          </button>
+          <button data-skill="speaking" class="skill-switch-btn rounded-[16px] bg-graphite-slab border border-smoke-outline px-4 py-2 font-manrope text-xs sm:text-sm font-semibold text-pewter-text hover:text-bone-white transition-all">
+            🎙️ Speaking (Говорение)
+          </button>
+        </div>
+      </div>
+
+      <!-- Динамическая рабочая область выбранного навыка -->
+      <div id="skill-workspace">
+        <!-- Заполняется через JS -->
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- ВКЛАДКА 5: МОИ КОЛОДЫ И ИМПОРТ              -->
+    <!-- ========================================== -->
+    <section id="view-deck" class="hidden space-y-8">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 class="font-manrope text-2xl sm:text-4xl font-medium text-bone-white">Личный словарь и колоды</h1>
+          <p class="font-mono text-xs sm:text-sm text-pewter-text mt-1">Все слова из Telegram-бота, разделов Vocabulary, чтения и загруженных колод синхронизированы</p>
+        </div>
+        <div class="flex flex-wrap gap-3">
+          <button id="btn-open-import" class="rounded-[18px] bg-bone-white px-5 py-2.5 font-manrope text-xs sm:text-sm font-bold text-soot-canvas hover:bg-bone-white/90">
+            Импорт из Anki / Quizlet / CSV
+          </button>
+        </div>
+      </div>
+
+      <!-- Фильтр и поиск по словарю -->
+      <div class="flex flex-wrap items-center justify-between gap-4 card-surface p-4">
+        <input
+          id="deck-search-input"
+          type="text"
+          placeholder="Поиск по английскому слову или переводу..."
+          class="flex-1 min-w-[240px] rounded-[14px] border border-smoke-outline bg-graphite-slab px-4 py-2.5 font-mono text-xs sm:text-sm text-bone-white placeholder:text-pewter-text focus:outline-none"
+        />
+        <div class="flex items-center gap-2 font-mono text-xs">
+          <button data-cefr-filter="ALL" class="cefr-filter-btn rounded-xl bg-bone-white px-3 py-1.5 text-soot-canvas font-bold">Все</button>
+          <button data-cefr-filter="B1" class="cefr-filter-btn rounded-xl bg-graphite-slab border border-smoke-outline px-3 py-1.5 text-pewter-text hover:text-bone-white">B1</button>
+          <button data-cefr-filter="B2" class="cefr-filter-btn rounded-xl bg-graphite-slab border border-smoke-outline px-3 py-1.5 text-pewter-text hover:text-bone-white">B2</button>
+          <button data-cefr-filter="C1" class="cefr-filter-btn rounded-xl bg-graphite-slab border border-smoke-outline px-3 py-1.5 text-pewter-text hover:text-bone-white">C1</button>
+        </div>
+      </div>
+
+      <!-- Список слов пользователя -->
+      <div id="user-deck-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Заполняется через JS -->
+      </div>
+
+      <!-- Публичные тематические колоды -->
+      <div class="pt-6">
+        <h2 class="font-manrope text-xl sm:text-2xl font-medium text-bone-white mb-4">Публичные колоды сообщества</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="card-surface p-5 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between font-mono text-xs text-pewter-text mb-2">
+                <span>Уровень B2–C1</span>
+                <span class="text-frost-identifier">3 слова в демо-паке</span>
+              </div>
+              <h3 class="font-manrope text-lg font-semibold text-bone-white mb-1">Tech &amp; Product Interviews</h3>
+              <p class="font-mono text-xs text-pewter-text mb-4">Лексика для прохождения собеседований, обсуждения архитектуры и переговоров в международных командах.</p>
+            </div>
+            <button data-pack="tech" class="add-public-deck-btn w-full rounded-[16px] bg-ash-seam border border-smoke-outline py-2.5 font-manrope text-xs font-bold text-bone-white hover:bg-smoke-outline transition-colors">
+              + Добавить колоду к себе
+            </button>
+          </div>
+
+          <div class="card-surface p-5 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between font-mono text-xs text-pewter-text mb-2">
+                <span>Уровень B1–B2</span>
+                <span class="text-amber-string">3 слова в демо-паке</span>
+              </div>
+              <h3 class="font-manrope text-lg font-semibold text-bone-white mb-1">Everyday Idioms &amp; Phrasal Verbs</h3>
+              <p class="font-mono text-xs text-pewter-text mb-4">Живые фразовые глаголы и идиомы из сериалов и подкастов, которые носители используют каждый день.</p>
+            </div>
+            <button data-pack="idioms" class="add-public-deck-btn w-full rounded-[16px] bg-ash-seam border border-smoke-outline py-2.5 font-manrope text-xs font-bold text-bone-white hover:bg-smoke-outline transition-colors">
+              + Добавить колоду к себе
+            </button>
+          </div>
+
+          <div class="card-surface p-5 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between font-mono text-xs text-pewter-text mb-2">
+                <span>Уровень C1</span>
+                <span class="text-coral-keyword">3 слова в демо-паке</span>
+              </div>
+              <h3 class="font-manrope text-lg font-semibold text-bone-white mb-1">Academic &amp; Essay Connectors</h3>
+              <p class="font-mono text-xs text-pewter-text mb-4">Слова-связки и академическая лексика для эссе IELTS/TOEFL, аналитических статей и презентаций.</p>
+            </div>
+            <button data-pack="academic" class="add-public-deck-btn w-full rounded-[16px] bg-ash-seam border border-smoke-outline py-2.5 font-manrope text-xs font-bold text-bone-white hover:bg-smoke-outline transition-colors">
+              + Добавить колоду к себе
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- ВКЛАДКА 6: ПРОГРЕСС, АНАЛИТИКА И ТЕСТ УРОВНЯ -->
+    <!-- ========================================== -->
+    <section id="view-stats" class="hidden space-y-8">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 class="font-manrope text-2xl sm:text-4xl font-medium text-bone-white">Аналитика памяти и определение уровня</h1>
+          <p class="font-mono text-xs sm:text-sm text-pewter-text mt-1">Кривая удержания слов в памяти, баланс навыков и экспресс-тест CEFR</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <!-- График кривой забывания и баланс навыков -->
+        <div class="lg:col-span-7 card-surface p-6 space-y-6">
+          <div>
+            <h2 class="font-manrope text-lg font-semibold text-bone-white mb-1">Кривая сохранения в памяти (Retention Curve)</h2>
+            <p class="font-mono text-xs text-pewter-text mb-4">Как интервальные повторения удерживают знания выше порога 90%</p>
+            <div class="slab-surface p-4">
+              <svg viewBox="0 0 600 210" class="w-full h-auto">
+                <line x1="45" y1="25" x2="575" y2="25" stroke="#1e1c1c" stroke-width="1" />
+                <line x1="45" y1="80" x2="575" y2="80" stroke="#373535" stroke-dasharray="4 4" stroke-width="1" />
+                <line x1="45" y1="140" x2="575" y2="140" stroke="#1e1c1c" stroke-width="1" />
+                <line x1="45" y1="180" x2="575" y2="180" stroke="#373535" stroke-width="1" />
+
+                <text x="10" y="30" fill="#9b9a9a" font-size="11" font-family="Geist Mono">100%</text>
+                <text x="14" y="84" fill="#a5d6ff" font-size="11" font-family="Geist Mono">90%</text>
+                <text x="14" y="144" fill="#9b9a9a" font-size="11" font-family="Geist Mono">60%</text>
+                <text x="52" y="198" fill="#9b9a9a" font-size="11" font-family="Geist Mono">День 1</text>
+                <text x="190" y="198" fill="#9b9a9a" font-size="11" font-family="Geist Mono">День 3</text>
+                <text x="350" y="198" fill="#9b9a9a" font-size="11" font-family="Geist Mono">День 7</text>
+                <text x="515" y="198" fill="#9b9a9a" font-size="11" font-family="Geist Mono">День 21</text>
+
+                <path d="M 55 28 Q 140 135, 560 172" fill="none" stroke="#4e4e4e" stroke-width="2" stroke-dasharray="5 5" />
+                <text x="395" y="162" fill="#9b9a9a" font-size="11" font-family="Geist Mono">Без повторений (32%)</text>
+
+                <path d="M 55 28 Q 130 75, 195 78 L 195 28 Q 280 65, 360 72 L 360 28 Q 460 52, 560 58" fill="none" stroke="#ea2845" stroke-width="3" />
+                <circle cx="195" cy="28" r="4" fill="#ffffff" />
+                <circle cx="360" cy="28" r="4" fill="#ffffff" />
+                <circle cx="560" cy="58" r="4" fill="#ea2845" />
+                <text x="380" y="45" fill="#ffffff" font-size="11" font-family="Geist Mono">С интервалами Lexicon (92%)</text>
+              </svg>
+            </div>
+          </div>
+
+          <!-- Диагностика навыков -->
+          <div>
+            <h3 class="font-manrope text-base font-semibold text-bone-white mb-3">Баланс развития навыков</h3>
+            <div class="space-y-3 font-mono text-xs">
+              <div>
+                <div class="flex justify-between mb-1">
+                  <span class="text-bone-white">Vocabulary &amp; Collocations (Словарный запас и идиомы)</span>
+                  <span class="text-frost-identifier">84% · Стабильный рост</span>
+                </div>
+                <div class="h-2 w-full rounded-full bg-ash-seam"><div class="h-full rounded-full bg-frost-identifier" style="width: 84%"></div></div>
+              </div>
+              <div>
+                <div class="flex justify-between mb-1">
+                  <span class="text-bone-white">Grammar Accuracy (Точность грамматических конструкций)</span>
+                  <span class="text-bone-white">76% · Уверенный уровень</span>
+                </div>
+                <div class="h-2 w-full rounded-full bg-ash-seam"><div class="h-full rounded-full bg-bone-white" style="width: 76%"></div></div>
+              </div>
+              <div>
+                <div class="flex justify-between mb-1">
+                  <span class="text-bone-white">Reading &amp; Writing (Понимание текста и эссе)</span>
+                  <span class="text-amber-string">70% · Рекомендуем 1 эссе в неделю</span>
+                </div>
+                <div class="h-2 w-full rounded-full bg-ash-seam"><div class="h-full rounded-full bg-amber-string" style="width: 70%"></div></div>
+              </div>
+              <div>
+                <div class="flex justify-between mb-1">
+                  <span class="text-bone-white">Speaking &amp; Listening (Восприятие на слух и беглость)</span>
+                  <span class="text-coral-keyword">61% · Зона роста (добавлено в план на завтра)</span>
+                </div>
+                <div class="h-2 w-full rounded-full bg-ash-seam"><div class="h-full rounded-full bg-nest-crimson" style="width: 61%"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Экспресс-тест на уровень (Placement Test) -->
+        <div class="lg:col-span-5 card-surface p-6">
+          <div class="flex items-center justify-between border-b border-ash-seam pb-4 mb-4">
+            <div>
+              <h2 class="font-manrope text-lg font-semibold text-bone-white">Калибровка уровня (Placement Test)</h2>
+              <p class="font-mono text-xs text-pewter-text">Ответьте на 3 вопроса, чтобы точнее подобрать лексику и грамматику</p>
+            </div>
+            <span class="rounded-full bg-graphite-slab border border-smoke-outline px-3 py-1 font-mono text-xs text-amber-string">CEFR</span>
+          </div>
+
+          <div id="placement-test-box" class="space-y-4">
+            <!-- Отрисовывается через JS -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ПОДВАЛ САЙТА -->
+  <footer class="mt-16 border-t border-ash-seam bg-carbon-panel py-8">
+    <div class="mx-auto flex max-w-[1280px] flex-wrap items-center justify-between gap-4 px-4 sm:px-8 font-mono text-xs text-pewter-text">
+      <div>Lexicon — Персональная среда изучения английского языка (Vocabulary, Grammar &amp; 4 Skills)</div>
+      <div class="flex items-center gap-4">
+        <span>Синхронизация: Web PWA + Telegram</span>
+        <span class="text-bone-white">Уровень: <strong id="footer-level-label">B2</strong></span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ЛОГИКА ПРИЛОЖЕНИЯ -->
+  <script>
+    const appState = {
+      activeNav: 'learn',
+      userLevel: 'B2',
+      streak: 12,
+      xp: 1450,
+      reviewedToday: 14,
+      reviewMode: 'mix',
+      currentCardIdx: 0,
+      isCardRevealed: false,
+      deckFilterCefr: 'ALL',
+      deckSearchQuery: '',
+      activeSkill: 'reading',
+      activeArticleIdx: 0,
+      activeRoleplayScenario: 'interview',
+      placementStep: 0,
+      placementScore: 0,
+
+      // Состояние вкладки Vocabulary
+      activeVocabCategory: 'collocations',
+      selectedMatchLeft: null,
+      matchedPairsIds: [],
+      activeCollocationDrillIdx: 0,
+
+      // Состояние вкладки Grammar
+      activeGrammarTopic: 'conditionals',
+      builderChosenWords: [],
+      activeGrammarQuizIdx: 0,
+
+      deck: [
+        {
+          id: 'w1',
+          word: 'resilience',
+          ipa: '/rɪˈzɪliəns/',
+          ru: 'устойчивость, способность быстро восстанавливаться после трудностей',
+          cefr: 'B2',
+          sentence: 'She demonstrated remarkable resilience when the negotiations reached a stalemate.',
+          collocations: ['remarkable resilience', 'emotional resilience', 'build resilience'],
+          synonyms: ['grit', 'toughness', 'adaptability'],
+          grammar: 'Неисчисляемое существительное (uncountable noun).',
+          intervalDays: 4,
+          source: 'Из статьи'
+        },
+        {
+          id: 'w2',
+          word: 'stalemate',
+          ipa: '/ˈsteɪl.meɪt/',
+          ru: 'тупик, патовая ситуация в переговорах',
+          cefr: 'C1',
+          sentence: 'After six hours of talks, the committee reached a complete stalemate.',
+          collocations: ['reach a stalemate', 'break the stalemate', 'political stalemate'],
+          synonyms: ['deadlock', 'impasse', 'standstill'],
+          grammar: 'Исчисляемое существительное, часто с глаголами reach или break.',
+          intervalDays: 2,
+          source: 'Telegram-бот'
+        },
+        {
+          id: 'w3',
+          word: 'relentless',
+          ipa: '/rɪˈlent.ləs/',
+          ru: 'неустанный, непрекращающийся, неослабевающий',
+          cefr: 'B2',
+          sentence: 'Their relentless focus on user experience helped the product grow organically.',
+          collocations: ['relentless focus', 'relentless pace', 'relentless pursuit'],
+          synonyms: ['persistent', 'unyielding', 'non-stop'],
+          grammar: 'Прилагательное; наречие — relentlessly.',
+          intervalDays: 6,
+          source: 'Чтение (Reading)'
+        },
+        {
+          id: 'w4',
+          word: 'cut corners',
+          ipa: '/kʌt ˈkɔː.nəz/',
+          ru: 'экономить в ущерб качеству, делать на скорую руку',
+          cefr: 'B2',
+          sentence: 'If you cut corners during the foundation phase, you will pay twice later.',
+          collocations: ['never cut corners', 'tempted to cut corners'],
+          synonyms: ['skimp on quality', 'take shortcuts'],
+          grammar: 'Устойчивая идиома (idiom).',
+          intervalDays: 3,
+          source: 'Telegram-бот'
+        },
+        {
+          id: 'w5',
+          word: 'ubiquitous',
+          ipa: '/juːˈbɪk.wɪ.təs/',
+          ru: 'вездесущий, повсеместный',
+          cefr: 'C1',
+          sentence: 'Smartphones have become ubiquitous in modern classrooms and offices.',
+          collocations: ['become ubiquitous', 'ubiquitous presence'],
+          synonyms: ['omnipresent', 'pervasive', 'everywhere'],
+          grammar: 'Прилагательное книжного и делового стиля.',
+          intervalDays: 5,
+          source: 'Из книги'
+        },
+        {
+          id: 'w6',
+          word: 'mitigate',
+          ipa: '/ˈmɪt.ɪ.ɡeɪt/',
+          ru: 'смягчать, снижать (риски или негативные последствия)',
+          cefr: 'C1',
+          sentence: 'Daily short reviews mitigate the natural forgetting curve significantly.',
+          collocations: ['mitigate risks', 'mitigate the impact', 'mitigate damage'],
+          synonyms: ['alleviate', 'reduce', 'lessen'],
+          grammar: 'Переходный глагол (mitigate something).',
+          intervalDays: 7,
+          source: 'Колода Tech'
+        }
+      ],
+
+      // ДАННЫЕ ДЛЯ РАЗДЕЛА VOCABULARY
+      vocabCatalog: {
+        collocations: [
+          {
+            word: 'meet a deadline',
+            ipa: '/miːt ə ˈded.laɪn/',
+            ru: 'уложиться в срок, сдать работу вовремя',
+            cefr: 'B1',
+            wrongNote: 'Частая ошибка: сказать "do a deadline" или "close a deadline"',
+            sentence: 'We had to prioritize core features in order to meet the Friday deadline.',
+            collocations: ['tight deadline', 'meet a deadline', 'miss a deadline'],
+            synonyms: ['deliver on time', 'stay on schedule']
+          },
+          {
+            word: 'make a breakthrough',
+            ipa: '/meɪk ə ˈbreɪk.θruː/',
+            ru: 'совершить прорыв, добиться резкого прогресса',
+            cefr: 'B2',
+            wrongNote: 'Используется с глаголом make или achieve (не do)',
+            sentence: 'Researchers finally made a major breakthrough in real-time speech translation.',
+            collocations: ['major breakthrough', 'scientific breakthrough', 'achieve a breakthrough'],
+            synonyms: ['leap forward', 'milestone discovery']
+          },
+          {
+            word: 'jump to conclusions',
+            ipa: '/dʒʌmp tə kənˈkluː.ʒənz/',
+            ru: 'делать поспешные выводы без достаточных фактов',
+            cefr: 'B2',
+            wrongNote: 'Устойчивое сочетание с глаголом jump или leap и предлогом to',
+            sentence: 'Let us wait for the full data report instead of jumping to conclusions.',
+            collocations: ['don’t jump to conclusions', 'rush to conclusions'],
+            synonyms: ['prejudge', 'make hasty assumptions']
+          },
+          {
+            word: 'strike a balance',
+            ipa: '/straɪk ə ˈbæl.əns/',
+            ru: 'найти золотую середину, удержать баланс между чем-то',
+            cefr: 'C1',
+            wrongNote: 'Носители говорят "strike a balance between A and B" вместо "find a balance"',
+            sentence: 'It is vital to strike a healthy balance between intensive grammar study and free reading.',
+            collocations: ['strike a delicate balance', 'balance between work and life'],
+            synonyms: ['find middle ground', 'equilibrate']
+          }
+        ],
+        phrasal: [
+          {
+            word: 'brush up on',
+            ipa: '/brʌʃ ʌp ɒn/',
+            ru: 'освежить в памяти, подтянуть подзабытый навык',
+            cefr: 'B2',
+            wrongNote: 'Неразделимый фразовый глагол с двумя предлогами (up + on)',
+            sentence: 'I need to brush up on my conditional sentences before the interview tomorrow.',
+            collocations: ['brush up on English', 'brush up on grammar'],
+            synonyms: ['review', 'refresh knowledge', 'polish']
+          },
+          {
+            word: 'come across',
+            ipa: '/kʌm əˈkrɒs/',
+            ru: 'случайно наткнуться на что-то (слово, статью, идею)',
+            cefr: 'B1',
+            wrongNote: 'Не используется в пассивном залоге',
+            sentence: 'Whenever I come across an unfamiliar idiom in a book, I send it to the bot.',
+            collocations: ['come across a word', 'come across as confident'],
+            synonyms: ['stumble upon', 'encounter by chance']
+          },
+          {
+            word: 'narrow down',
+            ipa: '/ˈnær.əʊ daʊn/',
+            ru: 'сузить круг вариантов, отсеять лишнее',
+            cefr: 'B2',
+            wrongNote: 'Разделимый глагол: narrow the list down / narrow down the list',
+            sentence: 'We narrowed down the candidate list to three strong engineers.',
+            collocations: ['narrow down options', 'narrow down the cause'],
+            synonyms: ['filter', 'reduce choices']
+          }
+        ],
+        synonyms: [
+          {
+            word: 'lucid (vs. clear)',
+            ipa: '/ˈluː.sɪd/',
+            ru: 'ясный, доходчивый, прозрачный для понимания (о стиле или объяснении)',
+            cefr: 'C1',
+            wrongNote: 'B1: clear explanation → B2: coherent explanation → C1: lucid explanation',
+            sentence: 'The professor gave a remarkably lucid explanation of how memory intervals work.',
+            collocations: ['lucid explanation', 'lucid prose', 'lucid argument'],
+            synonyms: ['crystal-clear', 'intelligible', 'coherent']
+          },
+          {
+            word: 'meticulous (vs. careful)',
+            ipa: '/məˈtɪk.jə.ləs/',
+            ru: 'дотошный, скрупулёзный, внимательный к мельчайшим деталям',
+            cefr: 'C1',
+            wrongNote: 'B1: careful worker → B2: thorough worker → C1: meticulous attention to detail',
+            sentence: 'Crafting a high-retention vocabulary deck requires meticulous attention to context.',
+            collocations: ['meticulous planning', 'meticulous research'],
+            synonyms: ['scrupulous', 'thorough', 'painstaking']
+          },
+          {
+            word: 'pivotal (vs. important)',
+            ipa: '/ˈpɪv.ə.təl/',
+            ru: 'ключевой, переломный, определяющий дальнейший ход событий',
+            cefr: 'C1',
+            wrongNote: 'B1: important role → B2: crucial role → C1: pivotal role / moment',
+            sentence: 'Daily active recall plays a pivotal role in moving words from passive to active memory.',
+            collocations: ['play a pivotal role', 'pivotal moment', 'pivotal decision'],
+            synonyms: ['decisive', 'crucial', 'vital']
+          }
+        ],
+        wordfamily: [
+          {
+            word: 'comprehend → comprehensible → comprehension',
+            ipa: '/ˌkɒm.prɪˈhen.sə.bəl/',
+            ru: 'понимать (гл.) → понятный/доступный (прил.) → понимание (сущ.)',
+            cefr: 'B2',
+            wrongNote: 'Не путайте: comprehensible (понятный для чтения) vs. comprehensive (всесторонний, полный)',
+            sentence: 'Reading comprehensible texts every morning steadily improves your listening comprehension.',
+            collocations: ['comprehensible input', 'reading comprehension', 'comprehensive guide'],
+            synonyms: ['understandable', 'graspable']
+          },
+          {
+            word: 'persist → persistent → persistence',
+            ipa: '/pəˈsɪs.təns/',
+            ru: 'упорствовать (гл.) → настойчивый (прил.) → упорство, постоянство (сущ.)',
+            cefr: 'B2',
+            wrongNote: 'Суффикс -ence для существительного, -ent для прилагательного',
+            sentence: 'Language fluency is the direct result of daily persistence rather than talent.',
+            collocations: ['quiet persistence', 'persistent effort', 'persist in learning'],
+            synonyms: ['perseverance', 'tenacity', 'determination']
+          }
+        ]
+      },
+
+      vocabMatchingPairs: [
+        { id: 'm1', en: 'brush up on', ru: 'освежить знания в памяти' },
+        { id: 'm2', en: 'strike a balance', ru: 'найти золотую середину' },
+        { id: 'm3', en: 'cut corners', ru: 'экономить в ущерб качеству' },
+        { id: 'm4', en: 'jump to conclusions', ru: 'делать поспешные выводы' }
+      ],
+
+      collocationDrills: [
+        {
+          sentence: 'To finish the release on time, we cannot afford to ___ any more mistakes.',
+          options: ['make', 'do', 'take'],
+          correct: 'make',
+          explanation: 'С существительным mistake всегда используется глагол make (make a mistake).'
+        },
+        {
+          sentence: 'After months of testing, the team finally ___ a major breakthrough.',
+          options: ['made', 'did', 'got'],
+          correct: 'made',
+          explanation: 'Устойчивая коллокация: make / achieve a breakthrough (совершить прорыв).'
+        },
+        {
+          sentence: 'Consistent practice ___ a pivotal role in building speaking confidence.',
+          options: ['plays', 'makes', 'gives'],
+          correct: 'plays',
+          explanation: 'Устойчивое выражение: play a pivotal / crucial role in something.'
+        }
+      ],
+
+      // ДАННЫЕ ДЛЯ РАЗДЕЛА GRAMMAR
+      grammarCatalog: {
+        conditionals: {
+          title: 'Third & Mixed Conditionals (Условные предложения и сожаления о прошлом)',
+          level: 'CEFR B2–C1',
+          summary: 'Используется, когда мы размышляем о прошлом, которое уже нельзя изменить, и о том, как оно повлияло на настоящий момент.',
+          formula: 'If + Past Perfect (had + V3), ... would have + V3 (или would + V1 для результата сейчас)',
+          examples: [
+            {
+              en: 'If I had written down that phrase yesterday, I would remember it now.',
+              ru: 'Если бы я записал ту фразу вчера (в прошлом), я бы помнил её сейчас (Mixed Conditional).'
+            },
+            {
+              en: 'Had we tested the feature earlier, we would have avoided the outage.',
+              ru: 'Если бы мы протестировали функцию раньше, мы бы избежали сбоя (инверсия без If).'
+            }
+          ],
+          mistakeBad: 'If I would have known about the meeting, I would have joined.',
+          mistakeGood: 'If I had known about the meeting, I would have joined.',
+          mistakeRule: 'В части предложения с условием (после If) никогда не ставится would have — используйте только Past Perfect (had + V3).',
+          builderTarget: ['If', 'I', 'had', 'known', 'earlier,', 'I', 'would', 'have', 'helped'],
+          builderRu: 'Если бы я знал раньше, я бы помог.',
+          quizzes: [
+            {
+              q: 'Выберите грамматически безупречный вариант: "If she ___ the instructions carefully, she wouldn’t have made that error."',
+              opts: ['had read', 'would have read', 'has read'],
+              correct: 'had read',
+              why: 'В придаточном условия (If-clause) для нереального прошлого требуется Past Perfect: had read.'
+            },
+            {
+              q: 'Mixed Conditional (прошлое → настоящее): "If I had taken that job in London, I ___ there right now."',
+              opts: ['would be living', 'would have lived', 'will live'],
+              correct: 'would be living',
+              why: 'Маркер "right now" указывает на результат в настоящем, поэтому используем would + V1 / would be + V-ing.'
+            }
+          ]
+        },
+        perfect: {
+          title: 'Present Perfect vs. Past Simple (Связь с настоящим или завершённый факт)',
+          level: 'CEFR B1–B2',
+          summary: 'Past Simple называет действие в закрытом периоде прошлого (yesterday, in 2024). Present Perfect связывает действие с настоящим результатом или незавершённым периодом (so far, this week, already).',
+          formula: 'Have / Has + V3 (результат сейчас)  VS.  V2 / -ed (точка в прошлом)',
+          examples: [
+            {
+              en: 'I have learned 18 new collocations this week.',
+              ru: 'На этой неделе я выучил 18 новых словосочетаний (неделя ещё продолжается → Present Perfect).'
+            },
+            {
+              en: 'I learned 5 new words on the subway yesterday morning.',
+              ru: 'Вчера утром в метро я выучил 5 новых слов (точное время в прошлом → Past Simple).'
+            }
+          ],
+          mistakeBad: 'I have seen that documentary last Friday.',
+          mistakeGood: 'I saw that documentary last Friday.',
+          mistakeRule: 'С точными указателями завершённого времени (last Friday, two days ago, in 2022) Present Perfect не употребляется.',
+          builderTarget: ['We', 'have', 'achieved', 'great', 'results', 'so', 'far'],
+          builderRu: 'К настоящему моменту мы добились отличных результатов.',
+          quizzes: [
+            {
+              q: 'Выберите правильную форму: "Our team ___ three product updates since the beginning of the month."',
+              opts: ['has released', 'released', 'was releasing'],
+              correct: 'has released',
+              why: 'Предлог since связывает точку в прошлом с настоящим моментом, поэтому нужен Present Perfect.'
+            }
+          ]
+        },
+        inversion: {
+          title: 'Negative Inversion (Инверсия для выразительности речи и эссе)',
+          level: 'CEFR C1–C2',
+          summary: 'Когда предложение начинается с отрицательного или ограничительного наречия (Never, Seldom, Rarely, Not only, Little), порядок слов меняется как в вопросе: вспомогательный глагол идёт перед подлежащим.',
+          formula: 'Not only / Seldom / Never + Auxiliary Verb + Subject + Main Verb',
+          examples: [
+            {
+              en: 'Not only does context improve memory, but it also makes reading enjoyable.',
+              ru: 'Контекст не только улучшает память, но и делает чтение увлекательным.'
+            },
+            {
+              en: 'Rarely have we seen such rapid progress in speaking fluency.',
+              ru: 'Редко нам доводилось видеть столь быстрый прогресс в беглости речи.'
+            }
+          ],
+          mistakeBad: 'Not only he speaks fluent English, but he also writes clear documentation.',
+          mistakeGood: 'Not only does he speak fluent English, but he also writes clear documentation.',
+          mistakeRule: 'После вынесенного в начало "Not only" обязателен вспомогательный глагол (does/did/has/can) перед подлежащим.',
+          builderTarget: ['Rarely', 'do', 'we', 'encounter', 'such', 'clear', 'examples'],
+          builderRu: 'Редко мы встречаем настолько понятные примеры.',
+          quizzes: [
+            {
+              q: 'Выберите верный порядок слов после отрицательного наречия: "Little ___ how quickly the habit would stick."',
+              opts: ['did he realize', 'he realized', 'was he realize'],
+              correct: 'did he realize',
+              why: 'После "Little" в начале предложения используется инверсия в Past Simple: did + subject + V1.'
+            }
+          ]
+        },
+        modals: {
+          title: 'Modals of Deduction (Модальные глаголы вероятности в прошлом и настоящем)',
+          level: 'CEFR B2',
+          summary: 'Позволяют выразить степень уверенности: must (почти 100% уверен, что да), might/could (возможно, 50%), can’t (не может быть, почти 100% уверен, что нет).',
+          formula: 'must / might / can’t + have + V3 (для выводов о прошлом)',
+          examples: [
+            {
+              en: 'He must have practiced a lot — his pronunciation sounds effortless.',
+              ru: 'Должно быть, он много тренировался — его произношение звучит непринуждённо.'
+            },
+            {
+              en: 'She can’t have forgotten about the call; she sent the agenda ten minutes ago.',
+              ru: 'Не может быть, чтобы она забыла про звонок: она прислала повестку десять минут назад.'
+            }
+          ],
+          mistakeBad: 'He mustn’t have seen my message yesterday.',
+          mistakeGood: 'He can’t have seen my message yesterday.',
+          mistakeRule: 'Для отрицательного вывода («не может быть, чтобы он видел») используется can’t have + V3, а не mustn’t have.',
+          builderTarget: ['They', 'must', 'have', 'missed', 'the', 'morning', 'train'],
+          builderRu: 'Должно быть, они опоздали на утренний поезд.',
+          quizzes: [
+            {
+              q: 'Вы видите, что коллега не отвечает, а его телефон выключен: "His battery ___ died on the way home."',
+              opts: ['might have', 'must to', 'can have'],
+              correct: 'might have',
+              why: 'Для предположения о прошлом (50% уверенности) используется конструкция might / could + have + V3.'
+            }
+          ]
+        }
+      },
+
+      articles: [
+        {
+          title: 'Why Short Daily Sessions Beat Weekend Marathons',
+          level: 'B2 · Понятный вход (i+1)',
+          tokens: [
+            { text: 'Many language learners try to ' },
+            { word: 'compensate', ru: 'компенсировать, возмещать', ipa: '/ˈkɒm.pən.seɪt/', cefr: 'B2', sentence: 'Many language learners try to compensate for busy weekdays with long Sunday study marathons.' },
+            { text: ' for busy weekdays with four-hour Sunday marathons. However, cognitive science shows that memory consolidation depends on consistent ' },
+            { word: 'exposure', ru: 'контакт, погружение, воздействие', ipa: '/ɪkˈspəʊ.ʒər/', cefr: 'B2', sentence: 'Memory consolidation depends on consistent exposure rather than exhausting cramming.' },
+            { text: ' rather than exhausting ' },
+            { word: 'cramming', ru: 'зубрёжка в последний момент', ipa: '/ˈkræm.ɪŋ/', cefr: 'B2', sentence: 'Spaced recall is far more effective than last-minute cramming.' },
+            { text: '. When you encounter a word inside a meaningful story that is slightly above your current comfort zone, your brain naturally infers nuances and builds durable ' },
+            { word: 'associations', ru: 'ассоциации, нейронные связи', ipa: '/əˌsəʊ.siˈeɪ.ʃənz/', cefr: 'B2', sentence: 'Reading in context builds durable associations without rote memorization.' },
+            { text: '.' }
+          ],
+          question: 'Почему короткие ежедневные занятия эффективнее редких марафонов по выходным?',
+          options: [
+            { text: 'Потому что мозг лучше закрепляет связи при регулярном контакте с контекстом во сне и между сессиями', correct: true },
+            { text: 'Потому что грамматику не нужно учить вообще', correct: false },
+            { text: 'Потому что длинные слова встречаются только по будням', correct: false }
+          ]
+        },
+        {
+          title: 'The Art of Asking Clear Questions in Global Teams',
+          level: 'B2–C1 · Деловой английский',
+          tokens: [
+            { text: 'In remote engineering teams, ' },
+            { word: 'ambiguous', ru: 'двусмысленный, неоднозначный', ipa: '/æmˈbɪɡ.ju.əs/', cefr: 'C1', sentence: 'In remote engineering teams, ambiguous messages often delay releases.' },
+            { text: ' messages often delay product releases by days. Instead of sending a brief "It does not work", experienced colleagues provide a ' },
+            { word: 'concise', ru: 'краткий, лаконичный и ёмкий', ipa: '/kənˈsaɪs/', cefr: 'B2', sentence: 'Experienced colleagues provide a concise summary of the problem and expected outcome.' },
+            { text: ' summary of the context, what they have already tried, and what ' },
+            { word: 'outcome', ru: 'результат, итог', ipa: '/ˈaʊt.kʌm/', cefr: 'B2', sentence: 'Always specify the expected outcome when asking for feedback.' },
+            { text: ' they expect.' }
+          ],
+          question: 'Что помогает избежать задержек при общении в распределённой команде?',
+          options: [
+            { text: 'Лаконичное описание контекста, уже предпринятых шагов и ожидаемого результата', correct: true },
+            { text: 'Отправка коротких сообщений без деталей', correct: false },
+            { text: 'Отказ от письменного общения в пользу редких созвонов', correct: false }
+          ]
+        }
+      ],
+      dictations: [
+        {
+          en: 'Consistent practice in real context builds lasting fluency',
+          ru: 'Регулярная практика в реальном контексте формирует устойчивую беглость речи',
+          hint: 'Consistent practice in real...'
+        },
+        {
+          en: 'Could you clarify the main priority for this week',
+          ru: 'Не могли бы вы уточнить главный приоритет на эту неделю',
+          hint: 'Could you clarify the...'
+        },
+        {
+          en: 'Reading books slightly above your level accelerates vocabulary growth',
+          ru: 'Чтение книг чуть выше вашего уровня ускоряет рост словарного запаса',
+          hint: 'Reading books slightly above...'
+        }
+      ],
+      activeDictationIdx: 0,
+      roleplayLogs: {
+        interview: [
+          { sender: 'ai', text: "Hi! Welcome to the interview. Could you tell me about a challenging project where you had to adapt quickly?" }
+        ],
+        cafe: [
+          { sender: 'ai', text: "Good morning! Welcome to Roasted Bean. What can I get started for you today?" }
+        ],
+        doctor: [
+          { sender: 'ai', text: "Hello, please have a seat. What brings you to the clinic today, and how long have you had these symptoms?" }
+        ]
+      },
+      placementQuestions: [
+        {
+          q: '1. Выберите наиболее естественное продолжение: "Had I known about the traffic jam earlier, I ___ an earlier train."',
+          options: [
+            { label: 'would have taken (Уровень B2–C1)', score: 2 },
+            { label: 'will take (Уровень A2)', score: 0 },
+            { label: 'took (Уровень B1)', score: 1 }
+          ]
+        },
+        {
+          q: '2. Какое слово точнее всего подходит в деловом письме: "We need to ___ the financial risks before launching in a new region."',
+          options: [
+            { label: 'mitigate (Уровень C1)', score: 2 },
+            { label: 'make smaller (Уровень A2–B1)', score: 1 },
+            { label: 'forget (Уровень A1)', score: 0 }
+          ]
+        },
+        {
+          q: '3. Что означает идиома "to cut corners" в предложении "They never cut corners on security"?',
+          options: [
+            { label: 'Экономить или делать что-то поспешно в ущерб качеству', score: 2 },
+            { label: 'Поворачивать за угол здания', score: 0 },
+            { label: 'Сокращать текст презентации', score: 1 }
+          ]
+        }
+      ]
+    };
+
+    // --- TOAST ---
+    let toastTimeout = null;
+    function showToast(msgText) {
+      const t = document.getElementById('toast');
+      const m = document.getElementById('toast-msg');
+      m.textContent = msgText;
+      t.classList.remove('hidden');
+      t.classList.add('flex');
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        t.classList.add('hidden');
+        t.classList.remove('flex');
+      }, 2800);
+    }
+
+    // --- ОЗВУЧКА СЛОВ И ФРАЗ (Web Speech API) ---
+    function speakText(text) {
+      if ('speechSynthesis' in window) {
+        try {
+          window.speechSynthesis.cancel();
+          const u = new SpeechSynthesisUtterance(text);
+          u.lang = 'en-US';
+          u.rate = 0.94;
+          window.speechSynthesis.speak(u);
+          showToast('🔊 Озвучивание: ' + text.slice(0, 38) + (text.length > 38 ? '...' : ''));
+        } catch (e) {
+          showToast('🔊 Озвучивание запущено');
+        }
+      } else {
+        showToast('🔊 ' + text);
+      }
+    }
+
+    // --- ОБНОВЛЕНИЕ ШАПКИ И МЕТРИК ---
+    function updateHeaderMetrics() {
+      document.getElementById('header-streak').textContent = `${appState.streak} дн.`;
+      document.getElementById('header-xp').textContent = `${appState.xp.toLocaleString('ru-RU')} XP`;
+      document.getElementById('stat-reviewed-today').textContent = `${appState.reviewedToday} слов`;
+      document.getElementById('stat-total-deck').textContent = `${appState.deck.length} слов`;
+      document.getElementById('due-count-badge').textContent = appState.deck.length;
+      document.getElementById('footer-level-label').textContent = appState.userLevel;
+
+      const pct = Math.min(100, Math.round((appState.reviewedToday / 20) * 100));
+      document.getElementById('daily-goal-pct').textContent = `${pct}% выполнено`;
+      document.getElementById('daily-goal-bar').style.width = `${pct}%`;
+    }
+
+    // --- НАВИГАЦИЯ ПО ВКЛАДКАМ ---
+    function switchTab(tabId) {
+      appState.activeNav = tabId;
+      ['learn', 'vocabulary', 'grammar', 'skills', 'deck', 'stats'].forEach(id => {
+        const el = document.getElementById(`view-${id}`);
+        if (el) {
+          if (id === tabId) {
+            el.classList.remove('hidden');
+          } else {
+            el.classList.add('hidden');
+          }
+        }
+      });
+
+      document.querySelectorAll('.app-nav-btn').forEach(btn => {
+        const active = btn.getAttribute('data-nav') === tabId;
+        btn.className = active
+          ? 'app-nav-btn rounded-full bg-bone-white px-3.5 py-1.5 font-manrope text-xs sm:text-sm font-semibold text-soot-canvas transition-all'
+          : 'app-nav-btn rounded-full px-3.5 py-1.5 font-manrope text-xs sm:text-sm font-medium text-pewter-text hover:text-bone-white transition-all';
+      });
+
+      if (tabId === 'vocabulary') renderVocabularyView();
+      if (tabId === 'grammar') renderGrammarView();
+      if (tabId === 'deck') renderDeckGrid();
+      if (tabId === 'skills') renderSkillWorkspace();
+      if (tabId === 'stats') renderPlacementTest();
+    }
+
+    // --- РАЗДЕЛ VOCABULARY (ЛЕКСИКА, КОЛЛОКАЦИИ, ПОДБОР ПАР) ---
+    function renderVocabularyView() {
+      const listContainer = document.getElementById('vocab-showcase-list');
+      const items = appState.vocabCatalog[appState.activeVocabCategory] || [];
+
+      listContainer.innerHTML = items.map((item, idx) => {
+        const inDeck = appState.deck.some(d => d.word.toLowerCase() === item.word.toLowerCase());
+        return `
+          <div class="card-surface p-6 space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="flex items-center gap-3">
+                <h3 class="font-manrope text-xl font-bold text-bone-white">${item.word}</h3>
+                <span class="font-mono text-xs text-pewter-text">${item.ipa}</span>
+                <span class="rounded-full bg-graphite-slab border border-smoke-outline px-2.5 py-0.5 font-mono text-[11px] text-frost-identifier">${item.cefr}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <button data-vocab-speak="${item.word}. ${item.sentence}" class="vocab-speak-btn rounded-full bg-ash-seam border border-smoke-outline px-3 py-1.5 font-mono text-xs text-bone-white hover:bg-smoke-outline">
+                  🔊 Озвучить
+                </button>
+                <button data-vocab-idx="${idx}" class="vocab-add-deck-btn rounded-full px-3.5 py-1.5 font-manrope text-xs font-bold transition-all ${
+                  inDeck
+                    ? 'bg-graphite-slab border border-smoke-outline text-frost-identifier'
+                    : 'bg-bone-white text-soot-canvas hover:bg-bone-white/90'
+                }">
+                  ${inDeck ? '✓ В вашей колоде' : '+ В колоду'}
+                </button>
+              </div>
+            </div>
+
+            <div class="font-manrope text-base text-bone-white">${item.ru}</div>
+
+            <div class="slab-surface p-3.5 font-mono text-xs text-amber-string italic">
+              "${item.sentence}"
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 font-mono text-xs">
+              <div class="text-pewter-text">
+                Связки: <span class="text-bone-white">${item.collocations.join(' · ')}</span>
+              </div>
+              <div class="text-pewter-text">
+                Нюанс: <span class="text-coral-keyword">${item.wrongNote}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      listContainer.querySelectorAll('.vocab-speak-btn').forEach(btn => {
+        btn.addEventListener('click', () => speakText(btn.getAttribute('data-vocab-speak')));
+      });
+
+      listContainer.querySelectorAll('.vocab-add-deck-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const idx = parseInt(btn.getAttribute('data-vocab-idx'), 10);
+          const item = items[idx];
+          if (!appState.deck.some(d => d.word.toLowerCase() === item.word.toLowerCase())) {
+            appState.deck.unshift({
+              id: 'w_voc_' + Date.now(),
+              word: item.word,
+              ipa: item.ipa,
+              ru: item.ru,
+              cefr: item.cefr,
+              sentence: item.sentence,
+              collocations: item.collocations,
+              synonyms: item.synonyms,
+              grammar: item.wrongNote,
+              intervalDays: 2,
+              source: 'Раздел Vocabulary'
+            });
+            appState.xp += 15;
+            updateHeaderMetrics();
+            renderVocabularyView();
+            showToast(`"${item.word}" добавлено в карточки для повторения (+15 XP)`);
+          } else {
+            showToast('Это выражение уже есть в вашей колоде');
+          }
+        });
+      });
+
+      renderVocabMatching();
+      renderVocabCollocationDrill();
+    }
+
+    function renderVocabMatching() {
+      const board = document.getElementById('vocab-matching-board');
+      const pairs = appState.vocabMatchingPairs;
+      const rightShuffled = [...pairs].sort((a, b) => a.ru.localeCompare(b.ru));
+
+      board.innerHTML = `
+        <div class="grid grid-cols-2 gap-3 font-mono text-xs">
+          <div class="space-y-2">
+            <div class="text-pewter-text text-[11px] uppercase mb-1">Выражение (EN)</div>
+            ${pairs.map(p => {
+              const isMatched = appState.matchedPairsIds.includes(p.id);
+              const isSelected = appState.selectedMatchLeft === p.id;
+              return `
+                <button
+                  data-mleft="${p.id}"
+                  ${isMatched ? 'disabled' : ''}
+                  class="match-left-btn w-full text-left rounded-xl border p-3 transition-all ${
+                    isMatched
+                      ? 'border-frost-identifier/40 bg-soot-canvas text-frost-identifier line-through opacity-60'
+                      : isSelected
+                      ? 'border-bone-white bg-bone-white text-soot-canvas font-bold'
+                      : 'border-smoke-outline bg-graphite-slab text-bone-white hover:border-bone-white'
+                  }"
+                >
+                  ${p.en}
+                </button>
+              `;
+            }).join('')}
+          </div>
+          <div class="space-y-2">
+            <div class="text-pewter-text text-[11px] uppercase mb-1">Значение (RU)</div>
+            ${rightShuffled.map(p => {
+              const isMatched = appState.matchedPairsIds.includes(p.id);
+              return `
+                <button
+                  data-mright="${p.id}"
+                  ${isMatched ? 'disabled' : ''}
+                  class="match-right-btn w-full text-left rounded-xl border p-3 transition-all ${
+                    isMatched
+                      ? 'border-frost-identifier/40 bg-soot-canvas text-frost-identifier line-through opacity-60'
+                      : 'border-smoke-outline bg-graphite-slab text-bone-white hover:border-bone-white'
+                  }"
+                >
+                  ${p.ru}
+                </button>
+              `;
+            }).join('')}
+          </div>
+        </div>
+        <div class="font-mono text-xs text-pewter-text pt-1">
+          Соединено пар: <strong class="text-bone-white">${appState.matchedPairsIds.length} / ${pairs.length}</strong>
+        </div>
+      `;
+
+      board.querySelectorAll('.match-left-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          appState.selectedMatchLeft = btn.getAttribute('data-mleft');
+          renderVocabMatching();
+        });
+      });
+
+      board.querySelectorAll('.match-right-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const rightId = btn.getAttribute('data-mright');
+          if (!appState.selectedMatchLeft) {
+            showToast('Сначала выберите английское выражение в левом столбце');
+            return;
+          }
+          if (appState.selectedMatchLeft === rightId) {
+            appState.matchedPairsIds.push(rightId);
+            appState.selectedMatchLeft = null;
+            appState.xp += 10;
+            updateHeaderMetrics();
+            renderVocabMatching();
+            showToast('✓ Пара найдена верно (+10 XP)');
+          } else {
+            appState.selectedMatchLeft = null;
+            renderVocabMatching();
+            showToast('Не совпало — попробуйте ещё раз');
+          }
+        });
+      });
+    }
+
+    function renderVocabCollocationDrill() {
+      const box = document.getElementById('vocab-collocation-drill');
+      const item = appState.collocationDrills[appState.activeCollocationDrillIdx];
+
+      box.innerHTML = `
+        <div class="font-manrope text-base text-bone-white leading-snug">
+          "${item.sentence}"
+        </div>
+        <div class="grid grid-cols-3 gap-2.5 font-mono text-xs">
+          ${item.options.map(opt => `
+            <button data-cd-opt="${opt}" class="cd-opt-btn rounded-xl border border-smoke-outline bg-graphite-slab py-2.5 px-3 text-bone-white font-semibold hover:border-bone-white transition-all">
+              ${opt}
+            </button>
+          `).join('')}
+        </div>
+        <div id="cd-feedback" class="font-mono text-xs text-pewter-text">
+          Вопрос ${appState.activeCollocationDrillIdx + 1} из ${appState.collocationDrills.length}
+        </div>
+      `;
+
+      box.querySelectorAll('.cd-opt-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const picked = btn.getAttribute('data-cd-opt');
+          const fb = document.getElementById('cd-feedback');
+          if (picked === item.correct) {
+            appState.xp += 10;
+            updateHeaderMetrics();
+            fb.innerHTML = `<span class="text-frost-identifier">✓ Верно! ${item.explanation}</span> <button id="btn-next-cd" class="ml-2 underline text-bone-white">Следующий →</button>`;
+            const nextBtn = document.getElementById('btn-next-cd');
+            if (nextBtn) {
+              nextBtn.addEventListener('click', () => {
+                appState.activeCollocationDrillIdx = (appState.activeCollocationDrillIdx + 1) % appState.collocationDrills.length;
+                renderVocabCollocationDrill();
+              });
+            }
+          } else {
+            fb.innerHTML = `<span class="text-coral-keyword">✗ Не совсем. ${item.explanation}</span>`;
+          }
+        });
+      });
+    }
+
+    // --- РАЗДЕЛ GRAMMAR (ТЕОРИЯ, ФОРМУЛА, КОНСТРУКТОР ПРЕДЛОЖЕНИЯ И КВИЗ) ---
+    function renderGrammarView() {
+      const topic = appState.grammarCatalog[appState.activeGrammarTopic];
+      const theoryPanel = document.getElementById('grammar-theory-panel');
+
+      theoryPanel.innerHTML = `
+        <div class="flex items-center justify-between border-b border-ash-seam pb-4">
+          <div>
+            <span class="font-mono text-xs text-frost-identifier">${topic.level}</span>
+            <h2 class="font-manrope text-xl font-bold text-bone-white mt-0.5">${topic.title}</h2>
+          </div>
+        </div>
+
+        <p class="font-manrope text-sm sm:text-base text-bone-white/90 leading-relaxed">
+          ${topic.summary}
+        </p>
+
+        <div class="slab-surface p-4">
+          <div class="font-mono text-[11px] uppercase text-pewter-text mb-1">Формула конструкции:</div>
+          <div class="font-mono text-xs sm:text-sm text-amber-string font-semibold">${topic.formula}</div>
+        </div>
+
+        <div class="space-y-2.5">
+          <div class="font-mono text-xs text-pewter-text">Живые примеры с озвучкой:</div>
+          ${topic.examples.map(ex => `
+            <div class="slab-surface p-3.5 flex items-start justify-between gap-3">
+              <div>
+                <div class="font-manrope text-sm font-semibold text-bone-white">"${ex.en}"</div>
+                <div class="font-mono text-xs text-pewter-text mt-1">${ex.ru}</div>
+              </div>
+              <button data-g-speak="${ex.en}" class="grammar-speak-btn rounded-full bg-ash-seam border border-smoke-outline px-2.5 py-1 font-mono text-xs text-bone-white hover:bg-smoke-outline shrink-0">
+                🔊
+              </button>
+            </div>
+          `).join('')}
+        </div>
+
+        <div class="rounded-2xl border border-coral-keyword/30 bg-soot-canvas p-4 font-mono text-xs space-y-1.5">
+          <div class="text-pewter-text uppercase text-[11px]">Частая ловушка:</div>
+          <div class="text-coral-keyword line-through">✗ ${topic.mistakeBad}</div>
+          <div class="text-frost-identifier font-semibold">✓ ${topic.mistakeGood}</div>
+          <div class="text-pewter-text pt-1">${topic.mistakeRule}</div>
+        </div>
+      `;
+
+      theoryPanel.querySelectorAll('.grammar-speak-btn').forEach(btn => {
+        btn.addEventListener('click', () => speakText(btn.getAttribute('data-g-speak')));
+      });
+
+      renderGrammarSentenceBuilder(topic);
+      renderGrammarTopicQuiz(topic);
+    }
+
+    function renderGrammarSentenceBuilder(topic) {
+      const box = document.getElementById('grammar-builder-box');
+      const targetTokens = topic.builderTarget;
+
+      // Определяем оставшиеся доступные слова
+      const remainingPool = [...targetTokens];
+      appState.builderChosenWords.forEach(chosen => {
+        const i = remainingPool.indexOf(chosen);
+        if (i !== -1) remainingPool.splice(i, 1);
+      });
+      // Перемешиваем пул детерминированно по длине/алфавиту
+      remainingPool.sort((a, b) => a.localeCompare(b));
+
+      const assembledText = appState.builderChosenWords.join(' ');
+      const targetText = targetTokens.join(' ');
+      const isComplete = appState.builderChosenWords.length === targetTokens.length;
+      const isCorrect = isComplete && assembledText === targetText;
+
+      box.innerHTML = `
+        <div class="font-mono text-xs text-amber-string">Переведите по правилу: «${topic.builderRu}»</div>
+
+        <div class="min-h-[54px] rounded-2xl border border-smoke-outline bg-soot-canvas p-3 flex flex-wrap items-center gap-2">
+          ${appState.builderChosenWords.length === 0
+            ? '<span class="font-mono text-xs text-pewter-text">Нажимайте на слова ниже, чтобы собрать предложение...</span>'
+            : appState.builderChosenWords.map((w, idx) => `
+                <button data-remove-idx="${idx}" class="builder-chosen-chip rounded-xl bg-bone-white px-3 py-1 font-mono text-xs font-bold text-soot-canvas hover:bg-coral-keyword hover:text-bone-white transition-colors">
+                  ${w}
+                </button>
+              `).join('')
+          }
+        </div>
+
+        <div class="flex flex-wrap gap-2">
+          ${remainingPool.map(w => `
+            <button data-add-word="${w}" class="builder-pool-chip rounded-xl border border-smoke-outline bg-graphite-slab px-3 py-1.5 font-mono text-xs text-bone-white hover:border-bone-white transition-colors">
+              + ${w}
+            </button>
+          `).join('')}
+        </div>
+
+        <div class="font-mono text-xs">
+          ${isCorrect
+            ? `<span class="text-frost-identifier font-semibold">✓ Отлично! Предложение собрано без единой ошибки: "${targetText}"</span>`
+            : isComplete
+            ? `<span class="text-coral-keyword">✗ Порядок слов нарушен. Нажмите на слово в строке выше, чтобы убрать его, или нажмите «Сбросить».</span>`
+            : `<span class="text-pewter-text">Собрано слов: ${appState.builderChosenWords.length} из ${targetTokens.length}</span>`
+          }
+        </div>
+      `;
+
+      box.querySelectorAll('.builder-pool-chip').forEach(btn => {
+        btn.addEventListener('click', () => {
+          appState.builderChosenWords.push(btn.getAttribute('data-add-word'));
+          if (appState.builderChosenWords.join(' ') === targetTokens.join(' ')) {
+            appState.xp += 20;
+            updateHeaderMetrics();
+            speakText(targetTokens.join(' '));
+          }
+          renderGrammarSentenceBuilder(topic);
+        });
+      });
+
+      box.querySelectorAll('.builder-chosen-chip').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const rmIdx = parseInt(btn.getAttribute('data-remove-idx'), 10);
+          appState.builderChosenWords.splice(rmIdx, 1);
+          renderGrammarSentenceBuilder(topic);
+        });
+      });
+    }
+
+    function renderGrammarTopicQuiz(topic) {
+      const box = document.getElementById('grammar-quiz-box');
+      const qList = topic.quizzes || [];
+      const currentQ = qList[appState.activeGrammarQuizIdx % qList.length];
+
+      box.innerHTML = `
+        <div class="font-manrope text-base text-bone-white leading-snug">${currentQ.q}</div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 font-mono text-xs">
+          ${currentQ.opts.map(opt => `
+            <button data-gq-opt="${opt}" class="gq-opt-btn rounded-xl border border-smoke-outline bg-graphite-slab p-3 text-left text-bone-white font-semibold hover:border-bone-white transition-all">
+              ${opt}
+            </button>
+          `).join('')}
+        </div>
+        <div id="gq-feedback" class="font-mono text-xs text-pewter-text"></div>
+      `;
+
+      box.querySelectorAll('.gq-opt-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const picked = btn.getAttribute('data-gq-opt');
+          const fb = document.getElementById('gq-feedback');
+          if (picked === currentQ.correct) {
+            appState.xp += 15;
+            updateHeaderMetrics();
+            fb.innerHTML = `<span class="text-frost-identifier">✓ Верно! ${currentQ.why}</span>`;
+          } else {
+            fb.innerHTML = `<span class="text-coral-keyword">✗ Правильный ответ: <strong>${currentQ.correct}</strong>. ${currentQ.why}</span>`;
+          }
+        });
+      });
+    }
+
+    // --- ЛЕВАЯ КОЛОНКА ГЛАВНОЙ: РАЗБОР СЛОВА ИЛИ ПРЕДЛОЖЕНИЯ ---
+    function renderExtractorPreview(wordObj, extractedList) {
+      const box = document.getElementById('extractor-result-box');
+      if (!wordObj) {
+        box.innerHTML = '';
+        return;
+      }
+
+      const extraPills = (extractedList && extractedList.length > 1)
+        ? `<div class="mb-2 font-mono text-xs text-pewter-text">Найдены полезные слова в предложении: ${extractedList.map(w => `<span class="text-frost-identifier font-medium">${w}</span>`).join(', ')}</div>`
+        : '';
+
+      box.innerHTML = `
+        <div class="slab-surface p-4 space-y-2.5">
+          ${extraPills}
+          <div class="flex items-center justify-between gap-2">
+            <div>
+              <span class="font-manrope text-lg font-bold text-bone-white">${wordObj.word}</span>
+              <span class="font-mono text-xs text-pewter-text ml-2">${wordObj.ipa}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="rounded-full bg-soot-canvas border border-smoke-outline px-2.5 py-0.5 font-mono text-[11px] text-amber-string">${wordObj.cefr}</span>
+              <button data-speak-word="${wordObj.word}. ${wordObj.sentence}" class="extractor-tts-btn rounded-full bg-ash-seam border border-smoke-outline px-2.5 py-1 font-mono text-xs text-bone-white hover:bg-smoke-outline">
+                🔊
+              </button>
+            </div>
+          </div>
+          <div class="font-manrope text-sm text-bone-white">${wordObj.ru}</div>
+          <div class="font-mono text-xs text-amber-string italic">"${wordObj.sentence}"</div>
+          <div class="pt-2 border-t border-ash-seam font-mono text-[11px] text-pewter-text flex flex-wrap justify-between gap-2">
+            <span>Коллокации: <strong class="text-bone-white">${wordObj.collocations.join(' · ')}</strong></span>
+            <span class="text-frost-identifier">✓ В вашей колоде</span>
+          </div>
+        </div>
+      `;
+
+      box.querySelectorAll('.extractor-tts-btn').forEach(b => {
+        b.addEventListener('click', () => speakText(b.getAttribute('data-speak-word')));
+      });
+    }
+
+    function analyzeAndAddInput(rawText) {
+      const cleaned = (rawText || '').trim();
+      if (!cleaned) {
+        showToast('Введите слово или предложение для разбора');
+        return;
+      }
+
+      const builtInDictionary = {
+        relentless: {
+          word: 'relentless',
+          ipa: '/rɪˈlent.ləs/',
+          ru: 'неустанный, непрекращающийся, упорный',
+          cefr: appState.userLevel,
+          sentence: 'Their relentless focus on user experience helped the product grow organically.',
+          collocations: ['relentless focus', 'relentless pursuit', 'relentless pace'],
+          synonyms: ['persistent', 'unyielding', 'non-stop'],
+          grammar: 'Прилагательное; наречие — relentlessly.'
+        },
+        'cut corners': {
+          word: 'cut corners',
+          ipa: '/kʌt ˈkɔː.nəz/',
+          ru: 'экономить в ущерб качеству, делать на скорую руку',
+          cefr: appState.userLevel,
+          sentence: 'Never cut corners when practicing pronunciation and active recall.',
+          collocations: ['tempted to cut corners', 'refuse to cut corners'],
+          synonyms: ['take shortcuts', 'skimp'],
+          grammar: 'Разговорная и деловая идиома.'
+        },
+        resilience: {
+          word: 'resilience',
+          ipa: '/rɪˈzɪliəns/',
+          ru: 'устойчивость, способность справляться с нагрузкой',
+          cefr: 'B2',
+          sentence: 'She demonstrated remarkable resilience when the negotiations reached a stalemate.',
+          collocations: ['remarkable resilience', 'build resilience'],
+          synonyms: ['toughness', 'grit', 'adaptability'],
+          grammar: 'Неисчисляемое существительное.'
+        },
+        stalemate: {
+          word: 'stalemate',
+          ipa: '/ˈsteɪl.meɪt/',
+          ru: 'тупик, патовая ситуация в переговорах',
+          cefr: 'C1',
+          sentence: 'She demonstrated remarkable resilience when the negotiations reached a stalemate.',
+          collocations: ['reach a stalemate', 'break the stalemate'],
+          synonyms: ['deadlock', 'impasse'],
+          grammar: 'Исчисляемое существительное.'
+        }
+      };
+
+      const lower = cleaned.toLowerCase();
+      let targetEntry = builtInDictionary[lower];
+      let extractedList = [];
+
+      if (!targetEntry) {
+        const tokens = cleaned.replace(/[^a-zA-Z\s'-]/g, '').split(/\s+/).filter(Boolean);
+        if (tokens.length > 3) {
+          const sorted = [...tokens].sort((a, b) => b.length - a.length);
+          extractedList = sorted.slice(0, 2).map(w => w.toLowerCase());
+          const mainWord = extractedList[0] || tokens[0].toLowerCase();
+          targetEntry = builtInDictionary[mainWord] || {
+            word: mainWord,
+            ipa: `/${mainWord.slice(0, 9)}/`,
+            ru: `контекстное значение слова «${mainWord}» в предложении`,
+            cefr: appState.userLevel,
+            sentence: cleaned,
+            collocations: [`use ${mainWord}`, `${mainWord} in context`],
+            synonyms: ['key term', 'contextual expression'],
+            grammar: `Выделено из вашего текста под уровень ${appState.userLevel}.`
+          };
+        } else {
+          targetEntry = {
+            word: cleaned,
+            ipa: `/${cleaned.toLowerCase().slice(0, 9)}/`,
+            ru: `перевод и употребление «${cleaned}»`,
+            cefr: appState.userLevel,
+            sentence: `Using "${cleaned}" in everyday conversation makes your English sound natural at level ${appState.userLevel}.`,
+            collocations: [`${cleaned} naturally`, `apply ${cleaned}`],
+            synonyms: ['expression', 'active vocabulary'],
+            grammar: `Адаптировано под ваш уровень ${appState.userLevel}.`
+          };
+        }
+      }
+
+      const existingIdx = appState.deck.findIndex(item => item.word.toLowerCase() === targetEntry.word.toLowerCase());
+      const newCard = {
+        id: 'w_' + Date.now(),
+        ...targetEntry,
+        intervalDays: 1,
+        source: 'Добавлено вручную'
+      };
+
+      if (existingIdx === -1) {
+        appState.deck.unshift(newCard);
+        appState.currentCardIdx = 0;
+        appState.xp += 15;
+      } else {
+        appState.currentCardIdx = existingIdx;
+      }
+
+      appState.isCardRevealed = false;
+      renderExtractorPreview(newCard, extractedList);
+      renderFlashcard();
+      updateHeaderMetrics();
+      showToast(`Слово "${targetEntry.word}" готово к тренировке!`);
+    }
+
+    // --- ПРАВАЯ КОЛОНКА ГЛАВНОЙ: КАРТОЧКИ АКТИВНОГО ВОСПОМИНАНИЯ ---
+    function getEffectiveCardMode() {
+      if (appState.reviewMode !== 'mix') return appState.reviewMode;
+      const modes = ['cloze', 'en-ru', 'ru-en', 'audio', 'quiz'];
+      return modes[appState.currentCardIdx % modes.length];
+    }
+
+    function maskWordInSentence(sentence, word) {
+      const regex = new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+      if (regex.test(sentence)) {
+        return sentence.replace(regex, ' [ ... ] ');
+      }
+      return sentence + ' [ ... ]';
+    }
+
+    function renderFlashcard() {
+      const stage = document.getElementById('flashcard-stage');
+      const revealBar = document.getElementById('fc-reveal-bar');
+      const gradeBar = document.getElementById('fc-grade-bar');
+
+      const card = appState.deck[appState.currentCardIdx] || appState.deck[0];
+      const mode = getEffectiveCardMode();
+      const maskedSentence = maskWordInSentence(card.sentence, card.word);
+
+      document.getElementById('grade-hard-days').textContent = `Через ${Math.max(1, card.intervalDays)} дн.`;
+      document.getElementById('grade-good-days').textContent = `Через ${Math.max(3, card.intervalDays * 2)} дн.`;
+
+      const modeLabels = {
+        'cloze': 'Пропуск в предложении (Cloze)',
+        'en-ru': 'Вспомните перевод по контексту (EN → RU)',
+        'ru-en': 'Активный перевод на английский (RU → EN)',
+        'audio': 'Аудиокарточка (Услышал → Написал)',
+        'quiz': 'Множественный выбор в контексте'
+      };
+
+      let questionHtml = '';
+
+      if (mode === 'cloze') {
+        const displaySentence = appState.isCardRevealed
+          ? card.sentence.replace(new RegExp(card.word, 'gi'), `<span class="text-nest-crimson underline font-semibold">${card.word}</span>`)
+          : maskedSentence;
+        questionHtml = `
+          <div class="font-manrope text-xl sm:text-2xl text-bone-white leading-snug mb-3">
+            "${displaySentence}"
+          </div>
+          <div class="font-mono text-xs text-amber-string">Значение: ${card.ru}</div>
+        `;
+      } else if (mode === 'en-ru') {
+        questionHtml = `
+          <div class="flex items-center gap-3 mb-2">
+            <span class="font-manrope text-2xl sm:text-3xl font-bold text-bone-white">${card.word}</span>
+            <span class="font-mono text-sm text-pewter-text">${card.ipa}</span>
+            <button id="fc-audio-inline" class="rounded-full bg-ash-seam border border-smoke-outline px-3 py-1 font-mono text-xs text-bone-white hover:bg-smoke-outline">🔊 Озвучить</button>
+          </div>
+          <div class="font-mono text-xs sm:text-sm text-pewter-text italic">"${card.sentence}"</div>
+        `;
+      } else if (mode === 'ru-en') {
+        questionHtml = `
+          <div class="font-manrope text-xl sm:text-2xl font-semibold text-bone-white mb-2">${card.ru}</div>
+          <div class="font-mono text-xs text-pewter-text">Предложение с пропуском: "${maskedSentence}"</div>
+        `;
+      } else if (mode === 'audio') {
+        questionHtml = `
+          <div class="space-y-3">
+            <button id="fc-audio-inline" class="inline-flex items-center gap-2 rounded-[16px] bg-soot-canvas border border-smoke-outline px-5 py-3 font-manrope text-sm font-bold text-bone-white hover:border-bone-white">
+              🔊 Прослушать слово и пример (${card.ipa})
+            </button>
+            <div class="flex gap-2">
+              <input id="fc-audio-spell-input" type="text" placeholder="Напишите услышанное английское слово..." class="flex-1 rounded-xl border border-smoke-outline bg-soot-canvas px-3.5 py-2 font-mono text-xs text-bone-white focus:outline-none" />
+              <button id="fc-audio-check-btn" class="rounded-xl bg-ash-seam border border-smoke-outline px-4 py-2 font-mono text-xs text-bone-white hover:bg-smoke-outline">Проверить</button>
+            </div>
+            <div id="fc-audio-spell-feedback" class="font-mono text-xs text-pewter-text"></div>
+          </div>
+        `;
+      } else if (mode === 'quiz') {
+        const distractors = appState.deck.filter(d => d.word !== card.word).slice(0, 2);
+        const options = [card, ...distractors].sort((a, b) => a.word.localeCompare(b.word));
+        questionHtml = `
+          <div class="font-manrope text-base sm:text-lg text-bone-white mb-3">"${maskedSentence}"</div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 font-mono text-xs">
+            ${options.map(opt => `
+              <button data-quiz-word="${opt.word}" class="fc-quiz-opt rounded-xl border border-smoke-outline bg-soot-canvas p-3 text-left text-bone-white hover:border-bone-white">
+                <span class="font-semibold block">${opt.word}</span>
+                <span class="text-[11px] text-pewter-text">${opt.cefr}</span>
+              </button>
+            `).join('')}
+          </div>
+        `;
+      }
+
+      const answerBlockHtml = appState.isCardRevealed
+        ? `
+          <div class="mt-5 pt-4 border-t border-smoke-outline space-y-2 font-mono text-xs">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <span class="text-bone-white font-semibold text-sm">${card.word} ${card.ipa} — ${card.ru}</span>
+              <button id="fc-answer-tts" class="rounded-full bg-soot-canvas border border-smoke-outline px-3 py-1 text-bone-white hover:border-bone-white">🔊 Произношение</button>
+            </div>
+            <div class="text-pewter-text">Словосочетания: <span class="text-frost-identifier">${card.collocations.join(' · ')}</span></div>
+            <div class="text-pewter-text">Синонимы: <span class="text-amber-string">${card.synonyms.join(', ')}</span> · ${card.grammar}</div>
+          </div>
+        `
+        : `
+          <div class="mt-5 pt-4 border-t border-ash-seam flex items-center justify-between font-mono text-xs text-pewter-text">
+            <span>Карточка ${appState.currentCardIdx + 1} из ${appState.deck.length}</span>
+            <button id="btn-flag-translation" class="hover:text-coral-keyword underline">Сообщить о неточности перевода</button>
+          </div>
+        `;
+
+      stage.innerHTML = `
+        <div>
+          <div class="flex items-center justify-between font-mono text-xs text-pewter-text mb-3">
+            <span>${modeLabels[mode]}</span>
+            <span class="rounded-full bg-soot-canvas border border-smoke-outline px-2.5 py-0.5 text-frost-identifier">${card.cefr}</span>
+          </div>
+          ${questionHtml}
+        </div>
+        ${answerBlockHtml}
+      `;
+
+      if (appState.isCardRevealed) {
+        revealBar.classList.add('hidden');
+        gradeBar.classList.remove('hidden');
+        gradeBar.classList.add('grid');
+      } else {
+        revealBar.classList.remove('hidden');
+        gradeBar.classList.add('hidden');
+        gradeBar.classList.remove('grid');
+      }
+
+      const inlineAudio = document.getElementById('fc-audio-inline');
+      if (inlineAudio) {
+        inlineAudio.addEventListener('click', () => speakText(`${card.word}. ${card.sentence}`));
+      }
+      const answerTts = document.getElementById('fc-answer-tts');
+      if (answerTts) {
+        answerTts.addEventListener('click', () => speakText(`${card.word}. ${card.sentence}`));
+      }
+      const flagBtn = document.getElementById('btn-flag-translation');
+      if (flagBtn) {
+        flagBtn.addEventListener('click', () => showToast(`Отзыв по карточке "${card.word}" отправлен на проверку`));
+      }
+      const spellCheckBtn = document.getElementById('fc-audio-check-btn');
+      if (spellCheckBtn) {
+        spellCheckBtn.addEventListener('click', () => {
+          const val = (document.getElementById('fc-audio-spell-input').value || '').trim().toLowerCase();
+          const fb = document.getElementById('fc-audio-spell-feedback');
+          if (val === card.word.toLowerCase()) {
+            fb.innerHTML = '<span class="text-frost-identifier">✓ Безупречно! Написание полностью совпадает.</span>';
+            appState.isCardRevealed = true;
+            renderFlashcard();
+          } else {
+            fb.innerHTML = `<span class="text-amber-string">Почти! Правильное написание: <strong>${card.word}</strong></span>`;
+          }
+        });
+      }
+      document.querySelectorAll('.fc-quiz-opt').forEach(optBtn => {
+        optBtn.addEventListener('click', () => {
+          const picked = optBtn.getAttribute('data-quiz-word');
+          if (picked === card.word) {
+            showToast('✓ Верно! Контекст угадан правильно (+10 XP)');
+            appState.xp += 10;
+          } else {
+            showToast(`Правильный ответ в этом контексте: ${card.word}`);
+          }
+          appState.isCardRevealed = true;
+          updateHeaderMetrics();
+          renderFlashcard();
+        });
+      });
+    }
+
+    // --- ВКЛАДКА МОИ КОЛОДЫ ---
+    function renderDeckGrid() {
+      const grid = document.getElementById('user-deck-grid');
+      const q = appState.deckSearchQuery.toLowerCase();
+
+      const filtered = appState.deck.filter(item => {
+        const matchesCefr = appState.deckFilterCefr === 'ALL' || item.cefr === appState.deckFilterCefr;
+        const matchesText = !q || item.word.toLowerCase().includes(q) || item.ru.toLowerCase().includes(q);
+        return matchesCefr && matchesText;
+      });
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `<div class="col-span-2 card-surface p-8 text-center font-mono text-sm text-pewter-text">Слова по вашему запросу не найдены. Добавьте новое слово во вкладке «Тренировка» или «Vocabulary».</div>`;
+        return;
+      }
+
+      grid.innerHTML = filtered.map(item => `
+        <div class="card-surface p-5 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between gap-2 mb-2">
+              <div class="flex items-center gap-2">
+                <span class="font-manrope text-lg font-bold text-bone-white">${item.word}</span>
+                <span class="font-mono text-xs text-pewter-text">${item.ipa}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="rounded-full bg-graphite-slab border border-smoke-outline px-2.5 py-0.5 font-mono text-[11px] text-frost-identifier">${item.cefr}</span>
+                <button data-deck-speak="${item.word}. ${item.sentence}" class="deck-speak-btn rounded-full bg-ash-seam border border-smoke-outline px-2.5 py-1 font-mono text-xs text-bone-white hover:bg-smoke-outline">🔊</button>
+              </div>
+            </div>
+            <div class="font-manrope text-sm text-bone-white mb-2">${item.ru}</div>
+            <div class="font-mono text-xs text-amber-string italic mb-3">"${item.sentence}"</div>
+          </div>
+          <div class="pt-3 border-t border-ash-seam flex items-center justify-between font-mono text-[11px] text-pewter-text">
+            <span>Источник: ${item.source}</span>
+            <span>След. повтор: через ${item.intervalDays} дн.</span>
+          </div>
+        </div>
+      `).join('');
+
+      grid.querySelectorAll('.deck-speak-btn').forEach(btn => {
+        btn.addEventListener('click', () => speakText(btn.getAttribute('data-deck-speak')));
+      });
+    }
+
+    // --- ВКЛАДКА 4 НАВЫКА ---
+    function renderSkillWorkspace() {
+      const container = document.getElementById('skill-workspace');
+
+      if (appState.activeSkill === 'reading') {
+        const art = appState.articles[appState.activeArticleIdx];
+        container.innerHTML = `
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            <div class="lg:col-span-7 card-surface p-6">
+              <div class="flex flex-wrap items-center justify-between gap-2 border-b border-ash-seam pb-4 mb-5">
+                <div>
+                  <span class="font-mono text-xs text-frost-identifier">${art.level}</span>
+                  <h2 class="font-manrope text-xl font-semibold text-bone-white mt-0.5">${art.title}</h2>
+                </div>
+                <button id="btn-next-article" class="rounded-full bg-ash-seam border border-smoke-outline px-3.5 py-1.5 font-mono text-xs text-bone-white hover:bg-smoke-outline">
+                  Следующий текст →
+                </button>
+              </div>
+
+              <div class="font-manrope text-lg sm:text-xl text-bone-white leading-relaxed mb-6">
+                ${art.tokens.map((tok, i) => {
+                  if (!tok.word) return `<span>${tok.text}</span>`;
+                  return `<button data-tok-idx="${i}" class="reading-clickable-word border-b border-dashed border-nest-crimson text-amber-string hover:text-bone-white font-medium transition-colors">${tok.word}</button>`;
+                }).join('')}
+              </div>
+
+              <div id="reading-word-popup" class="slab-surface p-4 font-mono text-xs text-pewter-text">
+                💡 Нажмите на любое подсвеченное слово в тексте — вы увидите его перевод и оно автоматически сохранится в ваш словарь для повторения.
+              </div>
+            </div>
+
+            <div class="lg:col-span-5 card-surface p-6">
+              <h3 class="font-manrope text-base font-semibold text-bone-white mb-2">Проверка понимания текста</h3>
+              <p class="font-mono text-xs text-pewter-text mb-4">${art.question}</p>
+              <div class="space-y-2.5 font-mono text-xs">
+                ${art.options.map((opt, idx) => `
+                  <button data-opt-correct="${opt.correct}" class="reading-comp-btn w-full text-left rounded-2xl border border-smoke-outline bg-graphite-slab p-3.5 text-bone-white hover:border-bone-white transition-all">
+                    ${idx + 1}. ${opt.text}
+                  </button>
+                `).join('')}
+              </div>
+              <div id="reading-comp-feedback" class="mt-4 font-mono text-xs"></div>
+            </div>
+          </div>
+        `;
+
+        document.getElementById('btn-next-article').addEventListener('click', () => {
+          appState.activeArticleIdx = (appState.activeArticleIdx + 1) % appState.articles.length;
+          renderSkillWorkspace();
+        });
+
+        container.querySelectorAll('.reading-clickable-word').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const idx = parseInt(btn.getAttribute('data-tok-idx'), 10);
+            const tok = art.tokens[idx];
+            const popup = document.getElementById('reading-word-popup');
+            popup.innerHTML = `
+              <div class="flex items-center justify-between">
+                <span class="text-bone-white font-semibold text-sm">${tok.word} <span class="text-pewter-text">${tok.ipa}</span> — ${tok.ru}</span>
+                <span class="text-frost-identifier">✓ Добавлено в вашу колоду</span>
+              </div>
+              <div class="text-pewter-text mt-1">"${tok.sentence}"</div>
+            `;
+            speakText(tok.word);
+            if (!appState.deck.some(d => d.word.toLowerCase() === tok.word.toLowerCase())) {
+              appState.deck.unshift({
+                id: 'w_read_' + Date.now(),
+                word: tok.word,
+                ipa: tok.ipa,
+                ru: tok.ru,
+                cefr: tok.cefr,
+                sentence: tok.sentence,
+                collocations: [`${tok.word} in context`],
+                synonyms: ['active word'],
+                grammar: 'Добавлено из модуля чтения (Reading i+1).',
+                intervalDays: 2,
+                source: 'Из текста Reading'
+              });
+              appState.xp += 10;
+              updateHeaderMetrics();
+            }
+          });
+        });
+
+        container.querySelectorAll('.reading-comp-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const isCorrect = btn.getAttribute('data-opt-correct') === 'true';
+            const fb = document.getElementById('reading-comp-feedback');
+            if (isCorrect) {
+              fb.innerHTML = '<span class="text-frost-identifier">✓ Верно! Отличное понимание текста (+20 XP).</span>';
+              appState.xp += 20;
+              updateHeaderMetrics();
+            } else {
+              fb.innerHTML = '<span class="text-coral-keyword">✗ Попробуйте другой вариант, перечитав ключевую мысль абзаца.</span>';
+            }
+          });
+        });
+
+      } else if (appState.activeSkill === 'writing') {
+        container.innerHTML = `
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            <div class="lg:col-span-6 card-surface p-6">
+              <div class="flex items-center justify-between mb-3">
+                <h2 class="font-manrope text-lg font-semibold text-bone-white">Тренажёр письма и эссе</h2>
+                <span class="font-mono text-xs text-amber-string">Тема: Удалённая работа и продуктивность</span>
+              </div>
+              <p class="font-mono text-xs text-pewter-text mb-4">
+                Напишите 2–4 предложения на английском. ИИ подсветит грамматические неточности с объяснением правила и оценит текст по 4 критериям.
+              </p>
+              <textarea id="writing-essay-input" rows="5" class="w-full rounded-[18px] border border-smoke-outline bg-graphite-slab p-4 font-mono text-xs sm:text-sm text-bone-white focus:outline-none">Despite of the distractions at home, remote work allow people to save time on commuting and focus more deeper on complex tasks.</textarea>
+              <div class="mt-4 flex flex-wrap gap-3">
+                <button id="btn-evaluate-essay" class="rounded-[16px] bg-bone-white px-5 py-2.5 font-manrope text-xs sm:text-sm font-bold text-soot-canvas hover:bg-bone-white/90">
+                  Проверить текст и объяснить ошибки
+                </button>
+                <button id="btn-insert-clean-essay" class="rounded-[16px] bg-ash-seam border border-smoke-outline px-4 py-2.5 font-manrope text-xs font-semibold text-bone-white hover:bg-smoke-outline">
+                  Применить исправления
+                </button>
+              </div>
+            </div>
+
+            <div id="writing-rubric-panel" class="lg:col-span-6 card-surface p-6 space-y-4">
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center font-mono text-xs">
+                <div class="slab-surface p-3">
+                  <div class="text-pewter-text">Грамматика</div>
+                  <div id="score-grammar" class="font-manrope text-xl font-bold text-amber-string mt-1">7.0 / 10</div>
+                </div>
+                <div class="slab-surface p-3">
+                  <div class="text-pewter-text">Лексика</div>
+                  <div id="score-vocab" class="font-manrope text-xl font-bold text-frost-identifier mt-1">8.5 / 10</div>
+                </div>
+                <div class="slab-surface p-3">
+                  <div class="text-pewter-text">Связность</div>
+                  <div id="score-coherence" class="font-manrope text-xl font-bold text-bone-white mt-1">9.0 / 10</div>
+                </div>
+                <div class="slab-surface p-3">
+                  <div class="text-pewter-text">Стиль</div>
+                  <div id="score-style" class="font-manrope text-xl font-bold text-bone-white mt-1">8.5 / 10</div>
+                </div>
+              </div>
+
+              <div id="writing-corrections-list" class="space-y-2.5 font-mono text-xs">
+                <div class="slab-surface p-3.5">
+                  <span class="text-coral-keyword line-through">Despite of</span> → <span class="text-frost-identifier font-semibold">Despite / In spite of</span>
+                  <div class="text-pewter-text mt-1">После предлога <em>despite</em> никогда не ставится <em>of</em>. Используйте либо <em>Despite the distractions</em>, либо <em>In spite of the distractions</em>.</div>
+                </div>
+                <div class="slab-surface p-3.5">
+                  <span class="text-coral-keyword line-through">remote work allow</span> → <span class="text-frost-identifier font-semibold">remote work allows</span>
+                  <div class="text-pewter-text mt-1">Существительное <em>work</em> — неисчисляемое (3-е лицо ед. ч.), поэтому глагол в Present Simple требует окончания <em>-s</em>.</div>
+                </div>
+                <div class="slab-surface p-3.5">
+                  <span class="text-coral-keyword line-through">focus more deeper</span> → <span class="text-frost-identifier font-semibold">focus more deeply</span>
+                  <div class="text-pewter-text mt-1">Двойная сравнительная степень (<em>more + -er</em>) является ошибкой, а для описания глагола <em>focus</em> нужно наречие <em>deeply</em>.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+
+        document.getElementById('btn-evaluate-essay').addEventListener('click', () => {
+          appState.xp += 25;
+          updateHeaderMetrics();
+          showToast('✓ Текст проверен по рубрике (+25 XP)');
+        });
+
+        document.getElementById('btn-insert-clean-essay').addEventListener('click', () => {
+          document.getElementById('writing-essay-input').value =
+            'Despite the distractions at home, remote work allows people to save time on commuting and focus more deeply on complex tasks.';
+          document.getElementById('score-grammar').textContent = '9.8 / 10';
+          document.getElementById('score-grammar').className = 'font-manrope text-xl font-bold text-frost-identifier mt-1';
+          showToast('Все исправления применены к вашему тексту');
+        });
+
+      } else if (appState.activeSkill === 'listening') {
+        const dic = appState.dictations[appState.activeDictationIdx];
+        container.innerHTML = `
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            <div class="lg:col-span-7 card-surface p-6 space-y-4">
+              <div class="flex items-center justify-between">
+                <div>
+                  <h2 class="font-manrope text-lg font-semibold text-bone-white">Аудио-диктовка и тренировка восприятия</h2>
+                  <p class="font-mono text-xs text-pewter-text">Прослушайте фразу и напечатайте её без подглядывания</p>
+                </div>
+                <button id="btn-next-dictation" class="rounded-full bg-ash-seam border border-smoke-outline px-3.5 py-1.5 font-mono text-xs text-bone-white hover:bg-smoke-outline">
+                  Следующая фраза (${appState.activeDictationIdx + 1}/${appState.dictations.length}) →
+                </button>
+              </div>
+
+              <div class="flex flex-wrap gap-3">
+                <button id="btn-listen-normal" class="rounded-[16px] bg-bone-white px-5 py-3 font-manrope text-xs sm:text-sm font-bold text-soot-canvas hover:bg-bone-white/90">
+                  🔊 Прослушать фразу
+                </button>
+                <button id="btn-listen-hint" class="rounded-[16px] bg-ash-seam border border-smoke-outline px-4 py-3 font-manrope text-xs sm:text-sm font-semibold text-bone-white hover:bg-smoke-outline">
+                  Показать подсказку
+                </button>
+              </div>
+
+              <input
+                id="dictation-user-input"
+                type="text"
+                placeholder="Напечатайте услышанное предложение на английском..."
+                class="w-full rounded-[16px] border border-smoke-outline bg-graphite-slab px-4 py-3.5 font-mono text-sm text-bone-white focus:outline-none"
+              />
+
+              <div id="dictation-live-feedback" class="slab-surface p-4 font-mono text-xs text-pewter-text">
+                Перевод смысла: «${dic.ru}»
+              </div>
+            </div>
+
+            <div class="lg:col-span-5 card-surface p-6 space-y-4">
+              <h3 class="font-manrope text-base font-semibold text-bone-white">Тренировка Shadowing (Повтор за диктором)</h3>
+              <p class="font-mono text-xs text-pewter-text leading-relaxed">
+                Метод Shadowing развивает беглость и естественную интонацию: включите фразу и произносите её вслух одновременно с диктором, копируя ритм и паузы.
+              </p>
+              <div class="slab-surface p-4 font-mono text-xs space-y-2">
+                <div class="text-pewter-text">Разметка фразового ударения:</div>
+                <div class="text-bone-white text-sm leading-relaxed">
+                  "${dic.en.split(' ').map((w, i) => (i % 2 === 0 ? `<strong class="text-amber-string">${w}</strong>` : w)).join(' ')}"
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+
+        document.getElementById('btn-listen-normal').addEventListener('click', () => speakText(dic.en));
+        document.getElementById('btn-listen-hint').addEventListener('click', () => {
+          document.getElementById('dictation-user-input').value = dic.hint;
+        });
+        document.getElementById('btn-next-dictation').addEventListener('click', () => {
+          appState.activeDictationIdx = (appState.activeDictationIdx + 1) % appState.dictations.length;
+          renderSkillWorkspace();
+        });
+        document.getElementById('dictation-user-input').addEventListener('input', (e) => {
+          const val = e.target.value.trim().toLowerCase();
+          const target = dic.en.toLowerCase();
+          const fb = document.getElementById('dictation-live-feedback');
+          if (val === target) {
+            fb.innerHTML = `<span class="text-frost-identifier font-semibold">✓ Идеально! Вы распознали фразу на 100% (+20 XP).</span>`;
+            appState.xp += 20;
+            updateHeaderMetrics();
+          } else if (target.startsWith(val)) {
+            fb.innerHTML = `<span class="text-frost-identifier">✓ Верное начало, продолжайте печатать...</span>`;
+          } else {
+            fb.innerHTML = `<span class="text-amber-string">Эталон: "${dic.en}"</span>`;
+          }
+        });
+
+      } else if (appState.activeSkill === 'speaking') {
+        const scenarioNames = {
+          interview: '💼 Собеседование в международную компанию',
+          cafe: '☕ Заказ кофе и завтрака в кофейне',
+          doctor: '🩺 Описание симптомов на приёме у врача'
+        };
+        const currentLogs = appState.roleplayLogs[appState.activeRoleplayScenario] || [];
+
+        container.innerHTML = `
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            <div class="lg:col-span-7 card-surface p-6">
+              <div class="flex flex-wrap items-center justify-between gap-2 border-b border-ash-seam pb-4 mb-4">
+                <div>
+                  <h2 class="font-manrope text-lg font-semibold text-bone-white">Диалог с ИИ-собеседником</h2>
+                  <p class="font-mono text-xs text-pewter-text">${scenarioNames[appState.activeRoleplayScenario]}</p>
+                </div>
+                <div class="flex gap-1.5 font-mono text-xs">
+                  <button data-scen="interview" class="scen-btn rounded-xl px-3 py-1.5 ${appState.activeRoleplayScenario === 'interview' ? 'bg-bone-white text-soot-canvas font-bold' : 'bg-graphite-slab text-pewter-text'}">Интервью</button>
+                  <button data-scen="cafe" class="scen-btn rounded-xl px-3 py-1.5 ${appState.activeRoleplayScenario === 'cafe' ? 'bg-bone-white text-soot-canvas font-bold' : 'bg-graphite-slab text-pewter-text'}">Кафе</button>
+                  <button data-scen="doctor" class="scen-btn rounded-xl px-3 py-1.5 ${appState.activeRoleplayScenario === 'doctor' ? 'bg-bone-white text-soot-canvas font-bold' : 'bg-graphite-slab text-pewter-text'}">Врач</button>
+                </div>
+              </div>
+
+              <div id="roleplay-chat-box" class="h-[240px] overflow-y-auto rounded-[18px] bg-soot-canvas border border-ash-seam p-4 space-y-3 mb-4 font-mono text-xs">
+                ${currentLogs.map(m => m.sender === 'ai'
+                  ? `<div class="rounded-2xl bg-graphite-slab border border-smoke-outline p-3.5 text-bone-white"><span class="text-frost-identifier block text-[11px] mb-1">AI Partner:</span>${m.text}</div>`
+                  : `<div class="flex justify-end"><div class="rounded-2xl bg-bone-white px-4 py-2.5 text-soot-canvas max-w-[85%]">${m.text}</div></div>`
+                ).join('')}
+              </div>
+
+              <div class="flex gap-2">
+                <input id="roleplay-input" type="text" placeholder="Ответьте на английском (например: I led a migration under a tight deadline)..." class="flex-1 rounded-[16px] border border-smoke-outline bg-graphite-slab px-4 py-3 font-mono text-xs sm:text-sm text-bone-white focus:outline-none" />
+                <button id="btn-send-roleplay" class="rounded-[16px] bg-bone-white px-5 py-3 font-manrope text-xs sm:text-sm font-bold text-soot-canvas">
+                  Ответить
+                </button>
+              </div>
+            </div>
+
+            <div class="lg:col-span-5 card-surface p-6 space-y-4">
+              <h3 class="font-manrope text-base font-semibold text-bone-white">Оценка произношения и интонации</h3>
+              <div class="grid grid-cols-3 gap-2.5 text-center font-mono text-xs">
+                <div class="slab-surface p-3">
+                  <div class="text-pewter-text">Звуки</div>
+                  <div class="font-manrope text-xl font-bold text-frost-identifier mt-1">93/100</div>
+                </div>
+                <div class="slab-surface p-3">
+                  <div class="text-pewter-text">Ударение</div>
+                  <div class="font-manrope text-xl font-bold text-bone-white mt-1">89/100</div>
+                </div>
+                <div class="slab-surface p-3">
+                  <div class="text-pewter-text">Интонация</div>
+                  <div class="font-manrope text-xl font-bold text-amber-string mt-1">86/100</div>
+                </div>
+              </div>
+              <div class="slab-surface p-4 font-mono text-xs text-pewter-text space-y-2">
+                <div class="text-bone-white font-semibold">Рекомендация по произношению:</div>
+                <div>Обратите внимание на связное произношение (linking) на стыке слов: <em>"had to adapt"</em> звучит слитно без паузы после <em>to</em>.</div>
+                <button id="btn-speak-sample-phrase" class="mt-2 inline-flex items-center gap-2 rounded-xl bg-ash-seam border border-smoke-outline px-3.5 py-2 text-bone-white hover:bg-smoke-outline">
+                  🔊 Прослушать эталонную интонацию
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+
+        container.querySelectorAll('.scen-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            appState.activeRoleplayScenario = btn.getAttribute('data-scen');
+            renderSkillWorkspace();
+          });
+        });
+
+        document.getElementById('btn-speak-sample-phrase').addEventListener('click', () => {
+          const lastAi = currentLogs.filter(m => m.sender === 'ai').slice(-1)[0];
+          if (lastAi) speakText(lastAi.text);
+        });
+
+        const sendReply = () => {
+          const inp = document.getElementById('roleplay-input');
+          const txt = (inp.value || '').trim();
+          if (!txt) return;
+          currentLogs.push({ sender: 'user', text: txt });
+          const followUps = {
+            interview: "That sounds impressive! How did you measure the final impact, and what would you do differently next time?",
+            cafe: "Awesome choice! Would you like oat milk or regular milk with that, and is it for here or to go?",
+            doctor: "I see. Have you noticed if the symptoms get worse in the evening, or have you taken any medication so far?"
+          };
+          const aiReply = followUps[appState.activeRoleplayScenario];
+          currentLogs.push({ sender: 'ai', text: aiReply });
+          appState.xp += 15;
+          updateHeaderMetrics();
+          renderSkillWorkspace();
+          speakText(aiReply);
+        };
+
+        document.getElementById('btn-send-roleplay').addEventListener('click', sendReply);
+        document.getElementById('roleplay-input').addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') sendReply();
+        });
+      }
+    }
+
+    // --- ВКЛАДКА ПРОГРЕСС: КАЛИБРОВКА УРОВНЯ ---
+    function renderPlacementTest() {
+      const box = document.getElementById('placement-test-box');
+      if (appState.placementStep >= appState.placementQuestions.length) {
+        const recommendedLevel = appState.placementScore >= 5 ? 'C1' : appState.placementScore >= 3 ? 'B2' : 'B1';
+        box.innerHTML = `
+          <div class="slab-surface p-5 space-y-3 text-center">
+            <div class="font-mono text-xs text-frost-identifier">Тест завершён</div>
+            <div class="font-manrope text-3xl font-bold text-bone-white">Ваш уровень: ${recommendedLevel}</div>
+            <p class="font-mono text-xs text-pewter-text">
+              Мы обновили сложность примеров и грамматических тем под уровень ${recommendedLevel}.
+            </p>
+            <button id="btn-restart-placement" class="rounded-[16px] bg-bone-white px-5 py-2.5 font-manrope text-xs font-bold text-soot-canvas">
+              Пройти заново
+            </button>
+          </div>
+        `;
+        document.getElementById('btn-restart-placement').addEventListener('click', () => {
+          appState.placementStep = 0;
+          appState.placementScore = 0;
+          renderPlacementTest();
+        });
+        return;
+      }
+
+      const item = appState.placementQuestions[appState.placementStep];
+      box.innerHTML = `
+        <div class="font-mono text-xs text-pewter-text">Вопрос ${appState.placementStep + 1} из ${appState.placementQuestions.length}</div>
+        <div class="font-manrope text-base font-medium text-bone-white">${item.q}</div>
+        <div class="space-y-2.5 font-mono text-xs">
+          ${item.options.map(o => `
+            <button data-p-score="${o.score}" class="placement-opt-btn w-full text-left rounded-2xl border border-smoke-outline bg-graphite-slab p-3.5 text-bone-white hover:border-bone-white transition-all">
+              ${o.label}
+            </button>
+          `).join('')}
+        </div>
+      `;
+
+      box.querySelectorAll('.placement-opt-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          appState.placementScore += parseInt(btn.getAttribute('data-p-score'), 10);
+          appState.placementStep += 1;
+          if (appState.placementStep >= appState.placementQuestions.length) {
+            const rec = appState.placementScore >= 5 ? 'C1' : appState.placementScore >= 3 ? 'B2' : 'B1';
+            appState.userLevel = rec;
+            document.getElementById('user-cefr-select').value = rec;
+            updateHeaderMetrics();
+            showToast(`Ваш уровень откалиброван: ${rec}`);
+          }
+          renderPlacementTest();
+        });
+      });
+    }
+
+    // --- МОДАЛЬНЫЕ ОКНА ---
+    function openModal(type) {
+      const overlay = document.getElementById('modal-overlay');
+      const title = document.getElementById('modal-title');
+      const body = document.getElementById('modal-body');
+
+      if (type === 'tg') {
+        title.textContent = 'Синхронизация с Telegram-ботом';
+        body.innerHTML = `
+          <p class="font-mono text-xs text-pewter-text leading-relaxed">
+            Ваш аккаунт связан через Telegram. Отправляйте боту отдельные слова или пересылайте целые абзацы из книг — они мгновенно появятся здесь в вашей колоде с озвучкой и примерами.
+          </p>
+          <div class="slab-surface p-4 font-mono text-xs space-y-2">
+            <div class="flex justify-between"><span class="text-pewter-text">Статус бота:</span><span class="text-frost-identifier">● Подключён (@LexiconEnglish_bot)</span></div>
+            <div class="flex justify-between"><span class="text-pewter-text">Напоминания о повторении:</span><span class="text-bone-white">Ежедневно в 10:00 и 19:30</span></div>
+          </div>
+          <button id="btn-modal-simulate-tg" class="w-full rounded-[16px] bg-bone-white py-3 font-manrope text-sm font-bold text-soot-canvas">
+            Симулировать отправку слова из Telegram
+          </button>
+        `;
+      } else {
+        title.textContent = 'Импорт слов из Anki, Quizlet или CSV';
+        body.innerHTML = `
+          <p class="font-mono text-xs text-pewter-text">
+            Вставьте список слов или пар «слово — перевод» (каждое с новой строки или через точку с запятой):
+          </p>
+          <textarea id="csv-import-textarea" rows="4" class="w-full rounded-2xl border border-smoke-outline bg-graphite-slab p-3.5 font-mono text-xs text-bone-white focus:outline-none">serendipity; счастливая случайность
+ephemeral; мимолётный, недолговечный</textarea>
+          <button id="btn-run-csv-import" class="w-full rounded-[16px] bg-bone-white py-3 font-manrope text-sm font-bold text-soot-canvas">
+            Импортировать в мою колоду
+          </button>
+        `;
+      }
+
+      overlay.classList.remove('hidden');
+      overlay.classList.add('flex');
+
+      const simTgBtn = document.getElementById('btn-modal-simulate-tg');
+      if (simTgBtn) {
+        simTgBtn.addEventListener('click', () => {
+          analyzeAndAddInput('cut corners');
+          overlay.classList.add('hidden');
+          overlay.classList.remove('flex');
+        });
+      }
+
+      const importBtn = document.getElementById('btn-run-csv-import');
+      if (importBtn) {
+        importBtn.addEventListener('click', () => {
+          const raw = document.getElementById('csv-import-textarea').value || '';
+          const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+          let added = 0;
+          lines.forEach(line => {
+            const parts = line.split(/[;,—-]/).map(s => s.trim()).filter(Boolean);
+            if (parts.length >= 1) {
+              const w = parts[0];
+              const tr = parts[1] || `перевод «${w}»`;
+              if (!appState.deck.some(d => d.word.toLowerCase() === w.toLowerCase())) {
+                appState.deck.unshift({
+                  id: 'w_imp_' + Date.now() + '_' + added,
+                  word: w,
+                  ipa: `/${w.slice(0, 8)}/`,
+                  ru: tr,
+                  cefr: appState.userLevel,
+                  sentence: `In context, "${w}" is a high-value expression for ${appState.userLevel} learners.`,
+                  collocations: [`use ${w}`],
+                  synonyms: ['imported term'],
+                  grammar: 'Импортировано из пользовательского списка.',
+                  intervalDays: 1,
+                  source: 'Импорт CSV / Anki'
+                });
+                added++;
+              }
+            }
+          });
+          updateHeaderMetrics();
+          renderDeckGrid();
+          renderFlashcard();
+          overlay.classList.add('hidden');
+          overlay.classList.remove('flex');
+          showToast(`Импортировано новых слов: ${added}`);
+        });
+      }
+    }
+
+    // --- ИНИЦИАЛИЗАЦИЯ ---
+    window.addEventListener('DOMContentLoaded', () => {
+      updateHeaderMetrics();
+      renderExtractorPreview(appState.deck[0], []);
+      renderFlashcard();
+
+      // Переключение вкладок шапки
+      document.querySelectorAll('.app-nav-btn').forEach(btn => {
+        btn.addEventListener('click', () => switchTab(btn.getAttribute('data-nav')));
+      });
+
+      // Быстрые кнопки на главном баннере
+      document.getElementById('btn-hero-start-review').addEventListener('click', () => {
+        document.getElementById('flashcard-stage').scrollIntoView({ behavior: 'smooth' });
+      });
+      document.getElementById('btn-hero-go-vocab').addEventListener('click', () => {
+        switchTab('vocabulary');
+      });
+      document.getElementById('btn-hero-go-grammar').addEventListener('click', () => {
+        switchTab('grammar');
+      });
+      document.getElementById('btn-hero-go-skills').addEventListener('click', () => {
+        switchTab('skills');
+      });
+
+      // Переключение категорий в разделе Vocabulary
+      document.querySelectorAll('.vocab-cat-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          appState.activeVocabCategory = btn.getAttribute('data-vcat');
+          document.querySelectorAll('.vocab-cat-btn').forEach(b => {
+            const act = b.getAttribute('data-vcat') === appState.activeVocabCategory;
+            b.className = act
+              ? 'vocab-cat-btn rounded-[16px] bg-bone-white px-4 py-2 font-manrope text-xs sm:text-sm font-bold text-soot-canvas transition-all'
+              : 'vocab-cat-btn rounded-[16px] bg-graphite-slab border border-smoke-outline px-4 py-2 font-manrope text-xs sm:text-sm font-semibold text-pewter-text hover:text-bone-white transition-all';
+          });
+          renderVocabularyView();
+        });
+      });
+
+      // Кнопка сброса пар в Vocabulary
+      document.getElementById('btn-reset-matching').addEventListener('click', () => {
+        appState.matchedPairsIds = [];
+        appState.selectedMatchLeft = null;
+        renderVocabMatching();
+        showToast('Поле подбора пар обновлено');
+      });
+
+      // Переключение тем в разделе Grammar
+      document.querySelectorAll('.grammar-topic-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          appState.activeGrammarTopic = btn.getAttribute('data-gtopic');
+          appState.builderChosenWords = [];
+          appState.activeGrammarQuizIdx = 0;
+          document.querySelectorAll('.grammar-topic-btn').forEach(b => {
+            const act = b.getAttribute('data-gtopic') === appState.activeGrammarTopic;
+            b.className = act
+              ? 'grammar-topic-btn rounded-[16px] bg-bone-white px-4 py-2 font-manrope text-xs sm:text-sm font-bold text-soot-canvas transition-all'
+              : 'grammar-topic-btn rounded-[16px] bg-graphite-slab border border-smoke-outline px-4 py-2 font-manrope text-xs sm:text-sm font-semibold text-pewter-text hover:text-bone-white transition-all';
+          });
+          renderGrammarView();
+        });
+      });
+
+      // Сброс конструктора предложений в Grammar
+      document.getElementById('btn-reset-builder').addEventListener('click', () => {
+        appState.builderChosenWords = [];
+        renderGrammarSentenceBuilder(appState.grammarCatalog[appState.activeGrammarTopic]);
+      });
+
+      // Смена уровня CEFR
+      document.getElementById('user-cefr-select').addEventListener('change', (e) => {
+        appState.userLevel = e.target.value;
+        updateHeaderMetrics();
+        showToast(`Уровень обучения переключён на ${appState.userLevel}`);
+      });
+
+      // Кнопки модальных окон
+      document.getElementById('btn-tg-sync').addEventListener('click', () => openModal('tg'));
+      document.getElementById('btn-open-import').addEventListener('click', () => openModal('import'));
+      document.getElementById('btn-close-modal').addEventListener('click', () => {
+        const ov = document.getElementById('modal-overlay');
+        ov.classList.add('hidden');
+        ov.classList.remove('flex');
+      });
+
+      // Умный сбор слов
+      document.getElementById('btn-extract-word').addEventListener('click', () => {
+        const inp = document.getElementById('extractor-input');
+        analyzeAndAddInput(inp.value);
+        inp.value = '';
+      });
+
+      document.querySelectorAll('.quick-extract-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          analyzeAndAddInput(btn.getAttribute('data-quick'));
+        });
+      });
+
+      // Переключение типов карточек
+      document.querySelectorAll('.review-mode-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          appState.reviewMode = btn.getAttribute('data-mode');
+          appState.isCardRevealed = false;
+          document.querySelectorAll('.review-mode-btn').forEach(b => {
+            const act = b.getAttribute('data-mode') === appState.reviewMode;
+            b.className = act
+              ? 'review-mode-btn rounded-full bg-bone-white px-3 py-1 font-mono text-xs font-medium text-soot-canvas transition-all'
+              : 'review-mode-btn rounded-full px-3 py-1 font-mono text-xs text-pewter-text hover:text-bone-white transition-all';
+          });
+          renderFlashcard();
+        });
+      });
+
+      // Показать ответ на карточке
+      document.getElementById('btn-fc-reveal').addEventListener('click', () => {
+        appState.isCardRevealed = true;
+        renderFlashcard();
+      });
+
+      // Оценка карточки («Не знаю / Сложно / Знаю»)
+      document.querySelectorAll('.fc-grade-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const grade = btn.getAttribute('data-grade');
+          const card = appState.deck[appState.currentCardIdx];
+          if (grade === 'again') {
+            card.intervalDays = 1;
+          } else if (grade === 'hard') {
+            card.intervalDays = Math.max(2, card.intervalDays + 1);
+            appState.xp += 5;
+          } else {
+            card.intervalDays = Math.max(4, card.intervalDays * 2);
+            appState.xp += 10;
+          }
+          appState.reviewedToday += 1;
+          appState.currentCardIdx = (appState.currentCardIdx + 1) % appState.deck.length;
+          appState.isCardRevealed = false;
+          updateHeaderMetrics();
+          renderFlashcard();
+        });
+      });
+
+      // Поиск и фильтрация в словаре
+      document.getElementById('deck-search-input').addEventListener('input', (e) => {
+        appState.deckSearchQuery = e.target.value;
+        renderDeckGrid();
+      });
+
+      document.querySelectorAll('.cefr-filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          appState.deckFilterCefr = btn.getAttribute('data-cefr-filter');
+          document.querySelectorAll('.cefr-filter-btn').forEach(b => {
+            const act = b.getAttribute('data-cefr-filter') === appState.deckFilterCefr;
+            b.className = act
+              ? 'cefr-filter-btn rounded-xl bg-bone-white px-3 py-1.5 text-soot-canvas font-bold'
+              : 'cefr-filter-btn rounded-xl bg-graphite-slab border border-smoke-outline px-3 py-1.5 text-pewter-text hover:text-bone-white';
+          });
+          renderDeckGrid();
+        });
+      });
+
+      // Добавление публичных колод
+      const publicPacks = {
+        tech: [
+          { word: 'bottleneck', ipa: '/ˈbɒt.əl.nek/', ru: 'узкое место (в системе или процессе)', cefr: 'B2', sentence: 'Database latency became the main bottleneck during peak traffic.' },
+          { word: 'scalable', ipa: '/ˈskeɪ.lə.bəl/', ru: 'масштабируемый', cefr: 'B2', sentence: 'We need a scalable architecture that handles thousands of users.' },
+          { word: 'trade-off', ipa: '/ˈtreɪd.ɒf/', ru: 'компромисс, выбор между двумя параметрами', cefr: 'C1', sentence: 'There is always a trade-off between speed and accuracy.' }
+        ],
+        idioms: [
+          { word: 'hit the nail on the head', ipa: '/hɪt ðə neɪl/', ru: 'попасть не в бровь, а в глаз (сказать точно)', cefr: 'B2', sentence: 'You hit the nail on the head with that observation.' },
+          { word: 'under the weather', ipa: '/ˈʌn.dər ðə ˈweð.ər/', ru: 'нездоровится, чувствовать себя неважно', cefr: 'B1', sentence: 'I am feeling a bit under the weather today, so I will work from home.' },
+          { word: 'on the same page', ipa: '/ɒn ðə seɪm peɪdʒ/', ru: 'понимать друг друга одинаково, быть на одной волне', cefr: 'B1', sentence: 'Let us have a quick sync to make sure everyone is on the same page.' }
+        ],
+        academic: [
+          { word: 'albeit', ipa: '/ɔːlˈbiː.ɪt/', ru: 'хотя и, пусть даже', cefr: 'C1', sentence: 'He made steady progress, albeit at a slower pace than expected.' },
+          { word: 'notwithstanding', ipa: '/ˌnɒt.wɪðˈstæn.dɪŋ/', ru: 'несмотря на, вопреки', cefr: 'C1', sentence: 'Notwithstanding the initial scepticism, the experiment succeeded.' },
+          { word: 'corroborate', ipa: '/kəˈrɒb.ə.reɪt/', ru: 'подтверждать (фактами или данными)', cefr: 'C1', sentence: 'Recent empirical studies corroborate this hypothesis.' }
+        ]
+      };
+
+      document.querySelectorAll('.add-public-deck-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const packKey = btn.getAttribute('data-pack');
+          const items = publicPacks[packKey] || [];
+          let addedCount = 0;
+          items.forEach(it => {
+            if (!appState.deck.some(d => d.word.toLowerCase() === it.word.toLowerCase())) {
+              appState.deck.unshift({
+                id: 'w_pack_' + Date.now() + '_' + addedCount,
+                ...it,
+                collocations: [`${it.word} in context`],
+                synonyms: ['expression'],
+                grammar: 'Из публичной тематической колоды.',
+                intervalDays: 2,
+                source: 'Публичная колода'
+              });
+              addedCount++;
+            }
+          });
+          updateHeaderMetrics();
+          renderDeckGrid();
+          renderFlashcard();
+          showToast(`Добавлено новых слов из колоды: ${addedCount}`);
+        });
+      });
+
+      // Переключение 4 навыков
+      document.querySelectorAll('.skill-switch-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          appState.activeSkill = btn.getAttribute('data-skill');
+          document.querySelectorAll('.skill-switch-btn').forEach(b => {
+            const act = b.getAttribute('data-skill') === appState.activeSkill;
+            b.className = act
+              ? 'skill-switch-btn rounded-[16px] bg-bone-white px-4 py-2 font-manrope text-xs sm:text-sm font-bold text-soot-canvas transition-all'
+              : 'skill-switch-btn rounded-[16px] bg-graphite-slab border border-smoke-outline px-4 py-2 font-manrope text-xs sm:text-sm font-semibold text-pewter-text hover:text-bone-white transition-all';
+          });
+          renderSkillWorkspace();
+        });
+      });
+    });
+  </script>
+</body>
+</html>

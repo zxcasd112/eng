@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ENG Tutor — Spaced Repetition & Cognitive AI</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="noise-overlay"></div>
+  <div class="ambient-glow"></div>
+
+  <div class="page-container">
+    <!-- Hero Frame -->
+    <header class="hero-frame">
+      <div class="hero-glow-orb"></div>
+
+      <!-- Floating Glass Nav Bar -->
+      <nav class="glass-nav">
+        <a href="#" class="nav-brand">
+          <div class="brand-icon">E</div>
+          <span class="brand-title">ENG Tutor</span>
+        </a>
+        <ul class="nav-links">
+          <li><button class="nav-link-btn active" onclick="scrollToSection('studySection')">{ STUDY } _</button></li>
+          <li><button class="nav-link-btn" onclick="scrollToSection('quizSection')">{ QUIZ LAB } _</button></li>
+          <li><button class="nav-link-btn" onclick="scrollToSection('extractorSection')">{ EXTRACTOR } _</button></li>
+          <li><button class="nav-link-btn" onclick="scrollToSection('deckSection')">{ DECK } _</button></li>
+        </ul>
+        <a href="#studySection" class="btn-primary" style="height: 44px; padding: 0 20px; font-size: 13px;">
+          Тренировка
+        </a>
+      </nav>
+
+      <!-- Hero Header Content -->
+      <div class="hero-content">
+        <div class="eyebrow">{ COGNITIVE ENGLISH ENGINE } <span class="eyebrow-cursor">_</span></div>
+        <h1 class="hero-title">
+          Master English with <span>FSRS Spaced Repetition</span>
+        </h1>
+        <p class="hero-subtitle">
+          Четыре режима активного воспоминания (EN➔RU, RU➔EN, пропуски в предложениях и аудирование), 
+          чередование типов, контекстное обучение и грамматические разборы уровня CEFR (A1–C2).
+        </p>
+
+        <div class="hero-actions">
+          <a href="#studySection" class="btn-primary">Начать повторение ➔</a>
+          <a href="#quizSection" class="btn-secondary">Интерактивный Quiz</a>
+        </div>
+
+        <!-- Real-time Stats Ticker -->
+        <div class="hero-ticker">
+          <span class="ticker-item">7 Уроков: <strong>107 фраз</strong></span>
+          <span class="ticker-dot">·</span>
+          <span class="ticker-item">FSRS Карточек: <strong>428</strong></span>
+          <span class="ticker-dot">·</span>
+          <span class="ticker-item">Режимы: <strong>4 Card Types</strong></span>
+          <span class="ticker-dot">·</span>
+          <span class="ticker-item">Retention: <strong>94.8%</strong></span>
+        </div>
+      </div>
+    </header>
+
+    <!-- CURRICULUM LESSON BAR -->
+    <div class="lesson-bar-container">
+      <div class="lesson-bar-header">
+        <span class="eyebrow">{ CURRICULUM: ЗАВИСИМЫЕ ПРЕДЛОГИ И ВЫРАЖЕНИЯ } <span class="eyebrow-cursor">_</span></span>
+        <span class="lesson-bar-summary" id="lessonSummaryCount">107 выражений · 428 карточек</span>
+      </div>
+      <div class="lesson-pills" id="lessonPillsContainer">
+        <!-- Rendered dynamically by app.js -->
+      </div>
+    </div>
+
+    <!-- SECTION 1: STUDY STUDIO (FSRS Active Recall) -->
+    <section id="studySection" class="section-frame">
+      <div class="section-header">
+        <div>
+          <div class="eyebrow">{ ACTIVE RECALL STUDIO } <span class="eyebrow-cursor">_</span></div>
+          <h2 class="section-title">Интервальное повторение FSRS</h2>
+        </div>
+        <div style="text-align: right;">
+          <div id="studyCurrentLessonBadge" class="study-lesson-badge">Урок: Все 7 уроков</div>
+          <div style="font-size: 12px; color: var(--pewter-text);">Чередование (Interleaving) активно</div>
+        </div>
+      </div>
+
+      <div class="studio-window">
+        <div class="studio-tabs">
+          <button class="studio-tab active" onclick="setCardTypeFilter('ALL')">Все типы (чередование)</button>
+          <button class="studio-tab" onclick="setCardTypeFilter('en_ru')">EN ➔ RU</button>
+          <button class="studio-tab" onclick="setCardTypeFilter('ru_en')">RU ➔ EN</button>
+          <button class="studio-tab" onclick="setCardTypeFilter('cloze')">Cloze Gap</button>
+          <button class="studio-tab" onclick="setCardTypeFilter('audio')">Audio Listening</button>
+        </div>
+
+        <div class="studio-body" id="studioCardContainer">
+          <!-- Rendered dynamically by app.js -->
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 2: QUIZ LAB -->
+    <section id="quizSection" class="section-frame">
+      <div class="section-header">
+        <div>
+          <div class="eyebrow">{ PRACTICE & TESTING } <span class="eyebrow-cursor">_</span></div>
+          <h2 class="section-title">Quiz Lab: Тестирование предлогов</h2>
+        </div>
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <button class="btn-secondary" style="height: 40px; padding: 0 18px; font-size: 13px;" onclick="loadMultipleChoiceQuiz()">
+            Сменить вопрос 🔄
+          </button>
+        </div>
+      </div>
+
+      <div class="studio-window" style="padding: 32px;" id="quizContainer">
+        <!-- Rendered dynamically by app.js -->
+      </div>
+    </section>
+
+    <!-- SECTION 3: SENTENCE VOCABULARY EXTRACTOR -->
+    <section id="extractorSection" class="section-frame">
+      <div class="section-header">
+        <div>
+          <div class="eyebrow">{ CONTEXTUAL PARSER } <span class="eyebrow-cursor">_</span></div>
+          <h2 class="section-title">Выделение новых слов из текста</h2>
+        </div>
+      </div>
+
+      <p style="color: var(--pewter-text); margin-bottom: 20px;">
+        Вставь предложение из книги или статьи — модель определит уровень CEFR, переведёт и выделит неизвестные для твоей колоды слова:
+      </p>
+
+      <textarea id="sentenceInput" class="extractor-textarea" placeholder="Например: The technological disruption in modern software engineering is crucial and inevitable."></textarea>
+      
+      <div style="display: flex; justify-content: flex-end;">
+        <button class="btn-primary" style="height: 48px; padding: 0 28px;" onclick="analyzeSentenceInput()">
+          Анализировать предложение ➔
+        </button>
+      </div>
+
+      <div id="extractorResults"></div>
+    </section>
+
+    <!-- SECTION 4: VOCABULARY DECK -->
+    <section id="deckSection" class="section-frame">
+      <div class="section-header">
+        <div>
+          <div class="eyebrow">{ REPOSITORY } <span class="eyebrow-cursor">_</span></div>
+          <h2 class="section-title">База выражений (107 фраз)</h2>
+        </div>
+
+        <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+          <!-- Search input -->
+          <input type="text" id="deckSearchInput" class="deck-search-input" placeholder="🔍 Поиск фразы или перевода..." oninput="handleDeckSearch(this.value)">
+
+          <!-- CEFR Filter Pills -->
+          <div style="display: flex; gap: 6px;">
+            <button class="nav-link-btn filter-pill active" onclick="filterDeckByLevel('ALL', this)">Все</button>
+            <button class="nav-link-btn filter-pill" onclick="filterDeckByLevel('B1', this)">B1</button>
+            <button class="nav-link-btn filter-pill" onclick="filterDeckByLevel('B2', this)">B2</button>
+            <button class="nav-link-btn filter-pill" onclick="filterDeckByLevel('C1', this)">C1</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="deckGrid" class="words-grid">
+        <!-- Rendered dynamically by app.js -->
+      </div>
+    </section>
+
+    <!-- Footer Slab -->
+    <footer class="footer-slab">
+      <div>
+        <strong style="color: #fff; font-family: var(--font-display); font-size: 15px;">ENG Tutor Platform</strong>
+        <div style="margin-top: 4px; font-size: 12px; color: var(--pewter-text);">
+          FSRS Spaced Repetition · FastAPI · aiogram 3 · NestJS Dark Theme Design
+        </div>
+      </div>
+      <div>
+        <code>{ STATUS: 200 OK } _</code>
+      </div>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    function scrollToSection(id) {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }
+    function setCardTypeFilter(type) {
+      document.querySelectorAll('.studio-tab').forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+      if (type === 'ALL') {
+        studyCards = [...SAMPLE_DECK];
+      } else {
+        studyCards = SAMPLE_DECK.filter(c => c.card_type === type);
+      }
+      currentCardIndex = 0;
+      isAnswerRevealed = false;
+      renderCurrentCard();
+    }
+  </script>
+</body>
+</html>

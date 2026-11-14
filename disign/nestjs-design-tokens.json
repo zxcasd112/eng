@@ -1,0 +1,89 @@
+{
+  "color": {
+    "soot-canvas": {
+      "$value": "#050303",
+      "$type": "color",
+      "$description": "Soot Canvas — Page background behind every section — a red-tinged black so the crimson glows bleed in without a seam"
+    },
+    "bone-white": {
+      "$value": "#ffffff",
+      "$type": "color",
+      "$description": "Bone White — Headlines, navigation, body copy and the filled primary button — the only bright fill on the page"
+    },
+    "nest-crimson": {
+      "$value": "#ea2845",
+      "$type": "color",
+      "$description": "Nest Crimson — The cat logo, the hot corner of every glow gradient and the Devtools showcase wash — red is light behind the page, almost never a flat fill"
+    },
+    "garnet-sweep": {
+      "$value": "#780f20",
+      "$type": "color",
+      "$description": "Garnet Sweep — Crimson-to-garnet-to-soot sweep behind the hero frame, stats band and syntax section — the furnace glow that defines the page"
+    },
+    "graphite-slab": {
+      "$value": "#181818",
+      "$type": "color",
+      "$description": "Graphite Slab — Syntax section field, code-editor body and the footer slab with its grain texture"
+    },
+    "carbon-panel": {
+      "$value": "#0b0b0b",
+      "$type": "color",
+      "$description": "Carbon Panel — Body of the large bordered code window and dark framed panels that sit one step above the canvas"
+    },
+    "ash-seam": {
+      "$value": "#1e1c1c",
+      "$type": "color",
+      "$description": "Ash Seam — Secondary button fill, progress tracks and the 1px seams of the sponsor logo grid"
+    },
+    "smoke-outline": {
+      "$value": "#373535",
+      "$type": "color",
+      "$description": "Smoke Outline — Translucent white 1px outlines on cards, the code window and the testimonial author pill"
+    },
+    "pewter-text": {
+      "$value": "#9b9a9a",
+      "$type": "color",
+      "$description": "Pewter Text — Muted Geist Mono labels, hero stat captions, inactive tab titles and line icons"
+    },
+    "iron-gray": {
+      "$value": "#4e4e4e",
+      "$type": "color",
+      "$description": "Iron Gray — The newsletter Subscribe button fill, sitting inside the translucent e-mail field"
+    },
+    "coral-keyword": {
+      "$value": "#ff7b72",
+      "$type": "color",
+      "$description": "Coral Keyword — Keywords such as import, async and const in the syntax code panel — GitHub-dark syntax colouring"
+    },
+    "amber-string": {
+      "$value": "#ffa657",
+      "$type": "color",
+      "$description": "Amber String — String literals in the syntax code panel, the only warm yellow on the page"
+    },
+    "frost-identifier": {
+      "$value": "#a5d6ff",
+      "$type": "color",
+      "$description": "Frost Identifier — Function and method names in the syntax code panel, a cool counterpoint to the coral keywords"
+    }
+  },
+  "font": {
+    "manrope": {
+      "$value": "Manrope",
+      "$type": "fontFamily",
+      "$description": "The display and interface face. Weight 500 carries everything from 48px section headings to the 112px hero and 128px statements at line-heights near 1.0 and zero tracking, so giant lines read soft and geometric rather than shouty; 16px/500 nav, 16px/700 buttons and 14px/600 footer links share it."
+    },
+    "geist-mono": {
+      "$value": "Geist Mono",
+      "$type": "fontFamily",
+      "$description": "Every paragraph, not just code: hero and section copy at 14px/300 with 24px line-height, uppercase { BRACKETED }_ eyebrows at 12px/300 with -0.3px tracking, stat labels and course metadata at 14px/400, and the 16px/300 syntax panel at 40px line-height. The light monospace makes prose read like CLI output."
+    }
+  },
+  "$extensions": {
+    "com.refero.extraction": {
+      "url": "https://nestjs.com/",
+      "siteName": "NestJS",
+      "extractedAt": "2026-10-23T00:22:55.839Z",
+      "variant": "compact"
+    }
+  }
+}

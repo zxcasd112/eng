@@ -1,0 +1,20 @@
+@theme {
+  /* Colors */
+  --color-soot-canvas: #050303;
+  --color-bone-white: #ffffff;
+  --color-nest-crimson: #ea2845;
+  --color-garnet-sweep: #780f20;
+  --color-graphite-slab: #181818;
+  --color-carbon-panel: #0b0b0b;
+  --color-ash-seam: #1e1c1c;
+  --color-smoke-outline: #373535;
+  --color-pewter-text: #9b9a9a;
+  --color-iron-gray: #4e4e4e;
+  --color-coral-keyword: #ff7b72;
+  --color-amber-string: #ffa657;
+  --color-frost-identifier: #a5d6ff;
+
+  /* Typography */
+  --font-manrope: 'Manrope', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-geist-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
