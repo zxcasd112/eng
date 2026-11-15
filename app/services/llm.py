@@ -18,15 +18,21 @@ class LLMNotConfiguredError(RuntimeError):
 class WordEnrichment(BaseModel):
     lemma: str = Field(description="Base dictionary form (lemma) in English")
     transcription: str = Field(default="", description="IPA transcription, e.g. /ˈsɪm.pəl/")
-    part_of_speech: str = Field(default="", description="Part of speech, e.g. noun, verb, phrasal verb")
+    part_of_speech: str = Field(
+        default="", description="Part of speech, e.g. noun, verb, phrasal verb"
+    )
     cefr_level: str = Field(default="B1", description="CEFR level: A1, A2, B1, B2, C1, or C2")
-    translation_ru: str = Field(description="Accurate concise Russian translation (1-3 main meanings)")
+    translation_ru: str = Field(
+        description="Accurate concise Russian translation (1-3 main meanings)"
+    )
     definition_en: str = Field(default="", description="Simple English definition")
     collocations: list[str] = Field(
         default_factory=list, description="2-4 common collocations or idioms with this word"
     )
     synonyms: list[str] = Field(default_factory=list, description="2-4 common synonyms")
-    antonyms: list[str] = Field(default_factory=list, description="1-3 common antonyms, if applicable")
+    antonyms: list[str] = Field(
+        default_factory=list, description="1-3 common antonyms, if applicable"
+    )
     grammar_note: str = Field(
         default="", description="Key grammatical pattern, preposition, or common pitfall"
     )
@@ -52,7 +58,8 @@ class WordExplanation(BaseModel):
         default_factory=list, description="Key collocations and phraseological combinations"
     )
     synonyms_with_nuances: list[str] = Field(
-        default_factory=list, description="Synonyms and explanation of differences in shades of meaning"
+        default_factory=list,
+        description="Synonyms and explanation of differences in shades of meaning",
     )
     common_mistakes: list[str] = Field(
         default_factory=list, description="Common mistakes made by Russian-speaking learners"
@@ -89,9 +96,7 @@ class LLMService:
             return self._client
         key = self._settings.openai_api_key.strip()
         if not key or key.startswith("your_"):
-            raise LLMNotConfiguredError(
-                "OPENAI_API_KEY не настроен. Укажите ключ в файле .env."
-            )
+            raise LLMNotConfiguredError("OPENAI_API_KEY не настроен. Укажите ключ в файле .env.")
         self._client = AsyncOpenAI(
             api_key=key,
             base_url=self._settings.openai_base_url,
@@ -146,7 +151,7 @@ class LLMService:
         system_prompt = (
             "You are a precise English-Russian lexicographer and language tutor. "
             "Given an English word or short phrase, return strictly valid JSON matching the schema:\n"
-            '{\n'
+            "{\n"
             '  "lemma": "...",\n'
             '  "transcription": "/.../",\n'
             '  "part_of_speech": "...",\n'
@@ -159,7 +164,7 @@ class LLMService:
             '  "grammar_note": "brief note on preposition or pattern",\n'
             '  "example_en": "...",\n'
             '  "example_ru": "..."\n'
-            '}\n'
+            "}\n"
             f"Tailor the example sentence to CEFR level {user_level}. Keep translations concise and natural."
         )
         completion = await client.chat.completions.create(
@@ -220,7 +225,7 @@ class LLMService:
             '  "grammar_note": "...",\n'
             '  "example_en": "...",\n'
             '  "example_ru": "..."\n'
-            '}]}\n'
+            "}]}\n"
             "Use the original sentence (or a clean slightly trimmed version of it) as example_en and translate it into Russian as example_ru."
         )
         completion = await client.chat.completions.create(

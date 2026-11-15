@@ -29,7 +29,9 @@ _EXTRACTION_TTL_SECONDS = 3600
 
 def _cleanup_pending() -> None:
     now = time.time()
-    expired = [k for k, (ts, _) in _PENDING_EXTRACTIONS.items() if now - ts > _EXTRACTION_TTL_SECONDS]
+    expired = [
+        k for k, (ts, _) in _PENDING_EXTRACTIONS.items() if now - ts > _EXTRACTION_TTL_SECONDS
+    ]
     for k in expired:
         _PENDING_EXTRACTIONS.pop(k, None)
 

@@ -17,6 +17,13 @@ class Settings(BaseSettings):
     app_secret_key: str = "dev-secret-key-change-me-in-production-32chars"
     data_dir: Path = Path("data")
 
+    # CORS
+    cors_origins: str = "http://localhost:8000,http://127.0.0.1:8000,http://localhost:3000,http://127.0.0.1:3000,https://eng-tutor.onrender.com"
+
+    @property
+    def cors_origins_list(self) -> list[str]:
+        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
     # Database (PostgreSQL asyncpg or SQLite aiosqlite)
     database_url: str = "sqlite+aiosqlite:///./data/eng.db"
 

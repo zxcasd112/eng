@@ -27,6 +27,7 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     telegram_id: Mapped[int] = mapped_column(BigInteger, unique=True, index=True, nullable=False)
+    email: Mapped[str | None] = mapped_column(String(255), unique=True, index=True, nullable=True)
     username: Mapped[str | None] = mapped_column(String(128), nullable=True)
     first_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
     cefr_level: Mapped[str] = mapped_column(String(8), default="B1", nullable=False)
@@ -126,6 +127,11 @@ class Card(Base):
         ForeignKey("examples.id", ondelete="SET NULL"), nullable=True
     )
     card_type: Mapped[str] = mapped_column(String(16), default="en_ru", nullable=False)
+    source: Mapped[str] = mapped_column(String(32), default="bot", nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(32), default="learning", nullable=False
+    )  # new, learning, review, mastered
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # FSRS state fields
     fsrs_state: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
@@ -133,7 +139,9 @@ class Card(Base):
     stability: Mapped[float | None] = mapped_column(Float, nullable=True)
     difficulty: Mapped[float | None] = mapped_column(Float, nullable=True)
     step: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    state: Mapped[int] = mapped_column(Integer, default=1, nullable=False)  # 1=Learning,2=Review,3=Relearning
+    state: Mapped[int] = mapped_column(
+        Integer, default=1, nullable=False
+    )  # 1=Learning,2=Review,3=Relearning
     reps: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     lapses: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     last_review_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

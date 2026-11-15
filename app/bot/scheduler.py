@@ -42,9 +42,7 @@ async def send_due_reminders(bot: Bot) -> None:
                 reply_markup=reminder_prompt_kb(),
             )
         except Exception:
-            logger.exception(
-                "Failed to send review reminder to telegram_id=%s", telegram_id
-            )
+            logger.exception("Failed to send review reminder to telegram_id=%s", telegram_id)
             continue
 
 

@@ -55,7 +55,7 @@ async def cb_start_mc_quiz(callback: CallbackQuery) -> None:
         f"Слово: <b>{escape(q.lemma)}</b>",
     ]
     if q.context_sentence:
-        lines.append(f"💬 Контекст: <i>\"{escape(q.context_sentence)}\"</i>")
+        lines.append(f'💬 Контекст: <i>"{escape(q.context_sentence)}"</i>')
     lines.append("\nВыбери правильный русский перевод:")
 
     await callback.message.answer(
@@ -131,7 +131,7 @@ async def cb_start_scramble_quiz(callback: CallbackQuery) -> None:
         f"Перемешанные слова:\n{shuffled_str}\n",
     ]
     if q.translation_ru:
-        lines.append(f"🇷🇺 Перевод: <i>\"{escape(q.translation_ru)}\"</i>\n")
+        lines.append(f'🇷🇺 Перевод: <i>"{escape(q.translation_ru)}"</i>\n')
     lines.append(f"Правильный ответ: <b>{escape(q.original_sentence)}</b>")
 
     await callback.message.answer("\n".join(lines), parse_mode="HTML", reply_markup=quiz_next_kb())

@@ -33,9 +33,7 @@ def verify_telegram_login(
         return False
 
     data_check_items = [
-        f"{k}={v}"
-        for k, v in sorted(payload.items())
-        if k != "hash" and v is not None
+        f"{k}={v}" for k, v in sorted(payload.items()) if k != "hash" and v is not None
     ]
     data_check_string = "\n".join(data_check_items)
 

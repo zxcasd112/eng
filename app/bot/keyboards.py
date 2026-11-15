@@ -70,14 +70,8 @@ def cefr_level_kb() -> InlineKeyboardMarkup:
     levels = ["A1", "A2", "B1", "B2", "C1", "C2"]
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [
-                InlineKeyboardButton(text=lvl, callback_data=f"lvl:{lvl}")
-                for lvl in levels[:3]
-            ],
-            [
-                InlineKeyboardButton(text=lvl, callback_data=f"lvl:{lvl}")
-                for lvl in levels[3:]
-            ],
+            [InlineKeyboardButton(text=lvl, callback_data=f"lvl:{lvl}") for lvl in levels[:3]],
+            [InlineKeyboardButton(text=lvl, callback_data=f"lvl:{lvl}") for lvl in levels[3:]],
         ]
     )
 

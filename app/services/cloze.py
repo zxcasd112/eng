@@ -15,14 +15,16 @@ def _generate_inflection_patterns(lemma: str) -> list[str]:
         base = re.escape(clean[:-1])
         patterns.extend([rf"\b{base}ed\b", rf"\b{base}ing\b", rf"\b{escaped}s\b", rf"\b{base}er\b"])
     else:
-        patterns.extend([
-            rf"\b{escaped}s\b",
-            rf"\b{escaped}es\b",
-            rf"\b{escaped}ed\b",
-            rf"\b{escaped}ing\b",
-            rf"\b{escaped}{clean[-1]}ed\b" if len(clean) > 2 else "",
-            rf"\b{escaped}{clean[-1]}ing\b" if len(clean) > 2 else "",
-        ])
+        patterns.extend(
+            [
+                rf"\b{escaped}s\b",
+                rf"\b{escaped}es\b",
+                rf"\b{escaped}ed\b",
+                rf"\b{escaped}ing\b",
+                rf"\b{escaped}{clean[-1]}ed\b" if len(clean) > 2 else "",
+                rf"\b{escaped}{clean[-1]}ing\b" if len(clean) > 2 else "",
+            ]
+        )
 
     # If lemma is multi-word (e.g. phrasal verb "look up" or "carry out")
     parts = clean.split()
@@ -49,11 +51,7 @@ def mask_target_word(
         match = re.search(pat, sentence_en, flags=re.IGNORECASE)
         if match:
             matched_form = match.group(0)
-            masked = (
-                sentence_en[:match.start()]
-                + mask
-                + sentence_en[match.end():]
-            )
+            masked = sentence_en[: match.start()] + mask + sentence_en[match.end() :]
             return masked, matched_form
 
     # Substring / partial fallback: look for words sharing a long common prefix
@@ -75,11 +73,7 @@ def mask_target_word(
 
     if best_match is not None:
         matched_form = best_match.group(0)
-        masked = (
-            sentence_en[:best_match.start()]
-            + mask
-            + sentence_en[best_match.end():]
-        )
+        masked = sentence_en[: best_match.start()] + mask + sentence_en[best_match.end() :]
         return masked, matched_form
 
     # Ultimate fallback if word is completely irregular or missing from sentence

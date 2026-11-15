@@ -1355,33 +1355,41 @@ async def seed_all_lessons():
                         await session.flush()
                         total_cards += 1
 
-                lesson_items_export.append({
-                    "lemma": word.lemma,
-                    "translation_ru": word.translation_ru,
-                    "transcription": word.transcription,
-                    "part_of_speech": word.part_of_speech,
-                    "cefr_level": word.cefr_level,
-                    "grammar_note": word.grammar_note,
-                    "collocations": word.collocations,
-                    "example_en": item["sentence_en"],
-                    "example_ru": item["sentence_ru"],
-                })
+                lesson_items_export.append(
+                    {
+                        "lemma": word.lemma,
+                        "translation_ru": word.translation_ru,
+                        "transcription": word.transcription,
+                        "part_of_speech": word.part_of_speech,
+                        "cefr_level": word.cefr_level,
+                        "grammar_note": word.grammar_note,
+                        "collocations": word.collocations,
+                        "example_en": item["sentence_en"],
+                        "example_ru": item["sentence_ru"],
+                    }
+                )
 
-            export_lessons.append({
-                "lesson_id": lesson_id,
-                "title": title,
-                "item_count": len(lesson_items_export),
-                "items": lesson_items_export,
-            })
+            export_lessons.append(
+                {
+                    "lesson_id": lesson_id,
+                    "title": title,
+                    "item_count": len(lesson_items_export),
+                    "items": lesson_items_export,
+                }
+            )
 
         await session.commit()
 
         # Save to JSON for web client and API
         json_path = Path(__file__).resolve().parent.parent / "app" / "web" / "lessons.json"
         json_path.parent.mkdir(parents=True, exist_ok=True)
-        json_path.write_text(json.dumps(export_lessons, ensure_ascii=False, indent=2), encoding="utf-8")
+        json_path.write_text(
+            json.dumps(export_lessons, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
 
-        print(f"Successfully loaded 7 lessons: {total_words} words, {total_cards} FSRS cards created!")
+        print(
+            f"Successfully loaded 7 lessons: {total_words} words, {total_cards} FSRS cards created!"
+        )
         print(f"Exported lessons to: {json_path}")
 
 

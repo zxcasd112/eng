@@ -117,9 +117,7 @@ async def analyze_sentence(
             detail=str(exc),
         ) from exc
 
-    return SentenceAnalyzeResponse(
-        words=[ExtractedWordOut(**w.model_dump()) for w in words]
-    )
+    return SentenceAnalyzeResponse(words=[ExtractedWordOut(**w.model_dump()) for w in words])
 
 
 @router.get("/cards/due", response_model=list[CardOut])

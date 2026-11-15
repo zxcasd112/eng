@@ -149,7 +149,9 @@ async def cb_toggle_card_type(callback: CallbackQuery) -> None:
             if len(current) > 1:
                 current.remove(c_type)
             else:
-                await callback.answer("Хотя бы один тип карточек должен быть активен!", show_alert=True)
+                await callback.answer(
+                    "Хотя бы один тип карточек должен быть активен!", show_alert=True
+                )
                 return
         else:
             current.append(c_type)
@@ -168,11 +170,15 @@ async def cmd_explain(message: Message) -> None:
         return
     parts = message.text.strip().split(maxsplit=1)
     if len(parts) < 2:
-        await message.answer("Укажи слово для разбора, например: <code>/explain versatile</code>", parse_mode="HTML")
+        await message.answer(
+            "Укажи слово для разбора, например: <code>/explain versatile</code>", parse_mode="HTML"
+        )
         return
 
     target = parts[1].strip()
-    wait_msg = await message.answer(f"⏳ Готовлю подробный разбор для <b>{escape(target)}</b>...", parse_mode="HTML")
+    wait_msg = await message.answer(
+        f"⏳ Готовлю подробный разбор для <b>{escape(target)}</b>...", parse_mode="HTML"
+    )
 
     async with AsyncSessionLocal() as session:
         user = await get_or_create_user_by_telegram(
@@ -294,9 +300,13 @@ async def cmd_reminder(message: Message) -> None:
             if not 0 <= hour <= 23:
                 raise ValueError
         except ValueError:
-            await message.answer("Укажи час от 0 до 23, например: <code>/reminder 19</code>", parse_mode="HTML")
+            await message.answer(
+                "Укажи час от 0 до 23, например: <code>/reminder 19</code>", parse_mode="HTML"
+            )
             return
 
         user.reminder_hour = hour
         await session.commit()
-        await message.answer(f"🔔 Напоминания установлены на <b>{hour:02d}:00 UTC</b>.", parse_mode="HTML")
+        await message.answer(
+            f"🔔 Напоминания установлены на <b>{hour:02d}:00 UTC</b>.", parse_mode="HTML"
+        )

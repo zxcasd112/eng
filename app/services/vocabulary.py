@@ -273,9 +273,7 @@ async def extract_new_words_from_sentence(
         user_level=user.cefr_level,
     )
     known_res = await session.execute(
-        select(Word.normalized)
-        .join(Card, Card.word_id == Word.id)
-        .where(Card.user_id == user.id)
+        select(Word.normalized).join(Card, Card.word_id == Word.id).where(Card.user_id == user.id)
     )
     known = set(known_res.scalars().all())
     return [w for w in result.words if normalize_text(w.lemma) not in known]
