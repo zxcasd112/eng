@@ -41,6 +41,16 @@ def test_production_succeeds_with_strong_secret():
     assert settings.app_secret_key == "this-is-a-strong-custom-production-secret-key-12345"
 
 
+def test_production_rejects_wildcard_cors():
+    with pytest.raises(ValidationError) as exc_info:
+        Settings(
+            app_env="production",
+            app_secret_key="this-is-a-strong-custom-production-secret-key-12345",
+            cors_origins="https://eng-tutor.onrender.com,*",
+        )
+    assert "Wildcard '*' CORS origin is not permitted" in str(exc_info.value)
+
+
 def test_development_allows_default_secret():
     settings = Settings(
         app_env="development",

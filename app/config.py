@@ -38,6 +38,8 @@ class Settings(BaseSettings):
                     "In production (APP_ENV=production), APP_SECRET_KEY must be explicitly set, "
                     "cannot use the default dev secret, and must be at least 32 characters long."
                 )
+            if "*" in [o.strip() for o in self.cors_origins.split(",")]:
+                raise ValueError("Wildcard '*' CORS origin is not permitted in production mode.")
         return self
 
     # CORS
@@ -49,7 +51,10 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins_list(self) -> list[str]:
-        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+        origins = [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+        if self.is_production:
+            origins = [o for o in origins if o != "*"]
+        return origins
 
     # Database (PostgreSQL asyncpg or SQLite aiosqlite)
     database_url: str = "sqlite+aiosqlite:///./data/eng.db"
