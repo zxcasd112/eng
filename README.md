@@ -1,6 +1,8 @@
-# ENG Tutor — MVP (Этап 0 + Этап 1)
+# ENG Tutor — Cognitive English Learning Platform (FSRS + NestJS Design)
 
-Общий бэкенд на **FastAPI** + Telegram-бот на **aiogram 3** для изучения английских слов с алгоритмом интервального повторения **FSRS** (`fsrs`), кэшированием ответов LLM и озвучкой TTS.
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/zxcasd112/eng)
+
+Общий бэкенд на **FastAPI** + веб-приложение в стиле NestJS + Telegram-бот на **aiogram 3** для изучения английских слов и устойчивых выражений с алгоритмом интервального повторения **FSRS** (`fsrs`), 7 уроками зависимых предлогов, кэшированием ответов LLM и озвучкой TTS.
 
 ## Что уже реализовано (Этап 0 + Этап 1)
 
