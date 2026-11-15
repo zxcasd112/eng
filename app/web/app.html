@@ -367,6 +367,7 @@
           </div>
           <div style="display: flex; gap: var(--space-2); flex-wrap: wrap;">
             <button class="app-nav-pill active reading-preset-btn" onclick="toggleReadingGenerator(this)">✨ AI Генератор</button>
+            <button class="app-nav-pill reading-preset-btn" onclick="toggleUrlImportInput(this)">По ссылке 🔗</button>
             <button class="app-nav-pill reading-preset-btn" onclick="loadReadingPreset('habits', this)">Привычки (B1)</button>
             <button class="app-nav-pill reading-preset-btn" onclick="loadReadingPreset('ai_tech', this)">Технологии (B2)</button>
             <button class="app-nav-pill reading-preset-btn" onclick="loadReadingPreset('space', this)">Космос (B2)</button>
@@ -425,6 +426,19 @@
           </div>
         </div>
 
+        <div id="urlImportContainer" style="display: none; margin-bottom: var(--space-6); background: var(--color-surface-subtle); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-4);">
+          <label class="form-label" style="font-size: 0.8125rem;">Вставьте ссылку на англоязычную статью</label>
+          <div style="display: flex; gap: var(--space-2);">
+            <input id="urlImportInput" class="input-field" type="url" placeholder="https://example.com/article" style="flex: 1;">
+            <button id="urlImportSubmitBtn" class="btn btn-primary btn-sm" onclick="handleImportFromUrl()">
+              Загрузить в ридер ➔
+            </button>
+          </div>
+          <div style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 6px;">
+            Статья будет очищена от рекламы и меню, а текст станет интерактивным с кликом по словам.
+          </div>
+        </div>
+
         <div id="customTextContainer" style="display: none; margin-bottom: var(--space-6);">
           <textarea id="customTextInput" class="textarea-field" style="min-height: 100px;" placeholder="Вставьте любой текст на английском языке..."></textarea>
           <div style="display: flex; justify-content: flex-end; margin-top: var(--space-2);">
@@ -432,12 +446,17 @@
           </div>
         </div>
 
-        <!-- Legend -->
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-3); font-size: 0.8125rem; color: var(--color-text-secondary);">
-          <span id="readingArticleTitle" style="font-weight: 600; font-size: 1.0625rem; color: var(--color-text-primary);">Интерактивный материал</span>
+        <!-- Legend & Saved Texts Select -->
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-3); font-size: 0.8125rem; color: var(--color-text-secondary); flex-wrap: wrap; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span id="readingArticleTitle" style="font-weight: 600; font-size: 1.0625rem; color: var(--color-text-primary);">Интерактивный материал</span>
+            <select id="savedTextsSelect" class="select-field" style="width: auto; padding: 3px 8px; font-size: 0.8125rem; height: 30px;" onchange="handleSelectSavedText(this.value)">
+              <option value="">📚 Мои сохраненные тексты...</option>
+            </select>
+          </div>
           <div style="display: flex; align-items: center; gap: 12px;">
-            <span><span style="border-bottom: 2px solid var(--color-success); font-weight: 500;">зеленая линия</span> — слова из вашей колоды</span>
-            <span>Клик по слову — быстрый перевод</span>
+            <span><span style="border-bottom: 2px solid var(--color-success); font-weight: 500;">зеленая линия</span> — слова из колоды</span>
+            <span>Клик по слову — перевод</span>
           </div>
         </div>
 

@@ -1775,6 +1775,7 @@ async function syncUserDeckWords() {
 async function loadReading() {
   await syncUserDeckWords();
   loadReadingPreset('habits');
+  loadSavedTextsDropdown();
   if (!readingPopoverListenerAdded && typeof document !== 'undefined') {
     document.addEventListener('click', onDocumentClickReadingPopover);
     readingPopoverListenerAdded = true;
@@ -1857,6 +1858,92 @@ async function handleGenerateReadingText() {
       btn.disabled = false;
       btn.textContent = 'Сгенерировать текст (AI) ➔';
     }
+  }
+}
+
+function toggleUrlImportInput(btn) {
+  const urlBox = document.getElementById('urlImportContainer');
+  const genBox = document.getElementById('readingGeneratorContainer');
+  const customBox = document.getElementById('customTextContainer');
+  if (!urlBox) return;
+  if (genBox) genBox.style.display = 'none';
+  if (customBox) customBox.style.display = 'none';
+
+  const isHidden = urlBox.style.display === 'none';
+  urlBox.style.display = isHidden ? 'block' : 'none';
+  if (btn) {
+    document.querySelectorAll('.reading-preset-btn').forEach(b => b.classList.remove('active'));
+    if (isHidden) btn.classList.add('active');
+  }
+  if (isHidden) {
+    const input = document.getElementById('urlImportInput');
+    if (input) input.focus();
+  }
+}
+
+async function handleImportFromUrl() {
+  const input = document.getElementById('urlImportInput');
+  const btn = document.getElementById('urlImportSubmitBtn');
+  if (!input || !input.value.trim()) return;
+
+  const url = input.value.trim();
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Загрузка статьи... ⏳';
+  }
+
+  try {
+    const res = await fetchAPI('/sources/url', {
+      method: 'POST',
+      body: JSON.stringify({ url })
+    });
+
+    if (res.ok && res.data) {
+      const data = res.data;
+      currentReadingText = data.body;
+      renderReadingContent(data.body, data.title);
+      showToast('Статья успешно загружена!', 'success');
+      loadSavedTextsDropdown();
+    } else {
+      const err = (res.data && res.data.detail) ? res.data.detail : 'Не удалось загрузить статью';
+      showToast(typeof err === 'string' ? err : 'Ошибка импорта', 'error');
+    }
+  } catch (err) {
+    showToast('Сетевая ошибка при загрузке статьи', 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Загрузить в ридер ➔';
+    }
+  }
+}
+
+async function loadSavedTextsDropdown() {
+  const select = document.getElementById('savedTextsSelect');
+  if (!select) return;
+
+  try {
+    const res = await fetchAPI('/content/texts?limit=25', { silent: true });
+    if (res.ok && Array.isArray(res.data)) {
+      select.innerHTML = '<option value="">📚 Мои сохраненные тексты (' + res.data.length + ')...</option>' +
+        res.data.map(t => `<option value="${t.id}">${t.title.substring(0, 35)} (${t.cefr_level})</option>`).join('');
+    }
+  } catch (err) {
+    console.debug('Could not load saved texts dropdown:', err);
+  }
+}
+
+async function handleSelectSavedText(textId) {
+  if (!textId) return;
+  try {
+    const res = await fetchAPI(`/content/texts/${textId}`);
+    if (res.ok && res.data) {
+      const data = res.data;
+      currentReadingText = data.text;
+      renderReadingContent(data.text, data.title, data.new_words || [], data.comprehension_questions || []);
+    }
+  } catch (err) {
+    showToast('Ошибка при загрузке текста', 'error');
   }
 }
 
