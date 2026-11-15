@@ -39,6 +39,10 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def init_db(target_engine: AsyncEngine | None = None) -> None:
+    current_settings = get_settings()
+    # In production, schema is managed exclusively via Alembic migrations (alembic upgrade head)
+    if current_settings.is_production:
+        return
     eng = target_engine or engine
     async with eng.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
