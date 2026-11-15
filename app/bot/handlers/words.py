@@ -4,6 +4,7 @@ import uuid
 from html import escape
 
 from aiogram import F, Router
+from aiogram.filters import Command
 from aiogram.types import CallbackQuery, FSInputFile, Message
 
 from app.bot.keyboards import sentence_words_kb
@@ -66,6 +67,20 @@ def _format_added_card(
         if example_ru:
             lines.append(f"↳ {escape(example_ru)}")
     return "\n".join(lines)
+
+
+@router.message(Command("add"))
+async def cmd_add(message: Message) -> None:
+    if not message.from_user:
+        return
+    raw_args = message.text.split(maxsplit=1)[1:] if message.text else []
+    if not raw_args or not raw_args[0].strip():
+        await message.answer(
+            "Напиши слово или фразу после команды, например:\n<code>/add versatile</code>",
+            parse_mode="HTML",
+        )
+        return
+    await _handle_word_or_phrase(message, raw_args[0].strip())
 
 
 @router.message(F.text & ~F.text.startswith("/"))

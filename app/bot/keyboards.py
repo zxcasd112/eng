@@ -163,3 +163,57 @@ def quiz_next_kb() -> InlineKeyboardMarkup:
             ]
         ]
     )
+
+
+def profile_menu_kb() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="🎓 Уровень CEFR", callback_data="prof:level"),
+                InlineKeyboardButton(text="🎯 Дневная цель", callback_data="prof:goal"),
+            ],
+            [
+                InlineKeyboardButton(text="⏰ Напоминания", callback_data="prof:reminder"),
+                InlineKeyboardButton(text="🎴 Типы карточек", callback_data="prof:cardtypes"),
+            ],
+        ]
+    )
+
+
+def daily_goal_kb() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="5 слов", callback_data="prof:set_goal:5"),
+                InlineKeyboardButton(text="10 слов", callback_data="prof:set_goal:10"),
+                InlineKeyboardButton(text="15 слов", callback_data="prof:set_goal:15"),
+            ],
+            [
+                InlineKeyboardButton(text="20 слов", callback_data="prof:set_goal:20"),
+                InlineKeyboardButton(text="30 слов", callback_data="prof:set_goal:30"),
+                InlineKeyboardButton(text="50 слов", callback_data="prof:set_goal:50"),
+            ],
+        ]
+    )
+
+
+def recommendation_item_kb(word_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="➕ В колоду", callback_data=f"learn:add:{word_id}"),
+                InlineKeyboardButton(text="⏭ Пропустить", callback_data=f"learn:skip:{word_id}"),
+            ]
+        ]
+    )
+
+
+def word_item_kb(word_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="ℹ️ Подробнее", callback_data=f"wrd:info:{word_id}"),
+                InlineKeyboardButton(text="🗑 Удалить", callback_data=f"wrd:del:{word_id}"),
+            ]
+        ]
+    )
