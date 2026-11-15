@@ -144,7 +144,10 @@ async function renderRoute() {
   if (!currentUser) {
     const authUser = await checkAuth();
     if (!authUser) {
-      if (loginView) loginView.style.display = 'block';
+      if (loginView) {
+        loginView.style.display = 'block';
+        initTelegramLoginWidget();
+      }
       updateNavActiveState('/app');
       return;
     }
@@ -182,38 +185,32 @@ function updateNavActiveState(currentPath) {
   });
 }
 
-// Authentication Handlers
-async function handleQuickLogin() {
-  const input = document.getElementById('quickLoginId');
-  const idVal = input ? input.value.trim() : '';
-  const tgId = idVal ? parseInt(idVal, 10) : 100001;
+// Telegram Login Widget Loader
+async function initTelegramLoginWidget() {
+  const container = document.getElementById('telegramLoginWidgetContainer');
+  if (!container || container.dataset.loaded) return;
+  container.dataset.loaded = 'true';
 
-  if (isNaN(tgId)) {
-    alert('Пожалуйста, введи числовой Telegram ID');
-    return;
+  let botUsername = 'ENG_Tutor_FSRS_bot';
+  try {
+    const res = await fetchAPI('/auth/widget-config');
+    if (res.ok && res.data && res.data.bot_username) {
+      botUsername = res.data.bot_username;
+    }
+  } catch (err) {
+    console.warn('Could not load widget config:', err);
   }
 
-  // Auth mock/dev payload
-  const authPayload = {
-    id: tgId,
-    first_name: 'Learner',
-    username: 'learner_' + tgId,
-    auth_date: Math.floor(Date.now() / 1000),
-    hash: 'quick_login_dev'
-  };
-
-  const res = await fetchAPI('/auth/telegram', {
-    method: 'POST',
-    body: JSON.stringify(authPayload)
-  });
-
-  if (res.ok) {
-    currentUser = res.data.user;
-    updateUserUI();
-    navigate('/app');
-  } else {
-    alert('Ошибка входа: ' + (res.data ? res.data.detail : 'Проверьте соединение'));
-  }
+  const script = document.createElement('script');
+  script.async = true;
+  script.src = 'https://telegram.org/js/telegram-widget.js?22';
+  script.setAttribute('data-telegram-login', botUsername);
+  script.setAttribute('data-size', 'large');
+  script.setAttribute('data-radius', '12');
+  script.setAttribute('data-onauth', 'onTelegramAuth(user)');
+  script.setAttribute('data-request-access', 'write');
+  container.innerHTML = '';
+  container.appendChild(script);
 }
 
 // Callback for Telegram Login Widget

@@ -68,23 +68,8 @@
         </p>
 
         <!-- Official Telegram Login Widget Container -->
-        <div id="telegramLoginWidgetContainer" style="margin-bottom: 24px; min-height: 48px;">
-          <!-- Loaded dynamically or script tag injected -->
-        </div>
-
-        <div style="margin: 20px 0; display: flex; align-items: center; gap: 12px;">
-          <div style="flex: 1; height: 1px; background: var(--smoke-outline);"></div>
-          <span style="font-size: 11px; color: var(--pewter-text); text-transform: uppercase;">Или быстрый вход</span>
-          <div style="flex: 1; height: 1px; background: var(--smoke-outline);"></div>
-        </div>
-
-        <!-- Dev / Direct ID Fast Login -->
-        <div style="display: flex; gap: 8px;">
-          <input type="text" id="quickLoginId" class="deck-search-input" style="flex: 1; height: 44px;" placeholder="Telegram ID (например 123456)">
-          <button class="btn-primary" style="height: 44px; padding: 0 20px; font-size: 13px;" onclick="handleQuickLogin()">Войти ➔</button>
-        </div>
-        <div style="font-size: 11px; color: var(--pewter-text); margin-top: 8px; text-align: left;">
-          * Для локального тестирования без подключенного бота Telegram Login Widget.
+        <div id="telegramLoginWidgetContainer" style="margin-bottom: 24px; min-height: 48px; display: flex; justify-content: center;">
+          <!-- Loaded dynamically via Telegram Login Widget script -->
         </div>
       </div>
     </div>

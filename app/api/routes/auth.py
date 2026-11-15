@@ -54,6 +54,14 @@ async def telegram_login(
     )
 
 
+@router.get("/widget-config")
+async def get_widget_config() -> dict[str, str]:
+    from app.config import get_settings
+
+    settings = get_settings()
+    return {"bot_username": settings.telegram_bot_username or "ENG_Tutor_FSRS_bot"}
+
+
 @router.post("/logout")
 async def logout(response: Response) -> dict:
     response.delete_cookie(key="access_token", path="/")
