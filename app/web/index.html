@@ -2,171 +2,330 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ENG Tutor — Spaced Repetition & Cognitive AI</title>
-  <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  
+  <title>ENG Tutor — FSRS Интервальное повторение и AI для изучения английского</title>
+  <meta name="description" content="Умная система изучения английского языка: синхронизированный Telegram-бот и веб-кабинет на базе научно доказанного алгоритма FSRS, активного воспоминания и персонализированных рекомендаций CEFR.">
+  <meta name="keywords" content="английский язык, интервальное повторение, FSRS, anki, telegram бот, изучение слов, cefr, active recall">
+  <meta name="author" content="ENG Tutor Team">
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://eng-tutor.onrender.com/">
+  <meta property="og:title" content="ENG Tutor — FSRS Spaced Repetition & Cognitive AI">
+  <meta property="og:description" content="Умный Telegram-бот и веб-кабинет для освоения английского языка: 4 типа карточек, алгоритм FSRS, анализ текстов и персональная аналитика.">
+  <meta property="og:image" content="https://raw.githubusercontent.com/zxcasd112/eng/main/assets/og-preview.png">
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:title" content="ENG Tutor — FSRS Spaced Repetition & Cognitive AI">
+  <meta property="twitter:description" content="Умный Telegram-бот и веб-кабинет для освоения английского: интервальное повторение FSRS и персональные рекомендации.">
+
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body>
   <div class="noise-overlay"></div>
   <div class="ambient-glow"></div>
 
   <div class="page-container">
-    <!-- Hero Frame -->
-    <header class="hero-frame">
+    <!-- Header / Glass Nav -->
+    <header class="hero-frame" style="margin-bottom: 32px;">
       <div class="hero-glow-orb"></div>
 
-      <!-- Floating Glass Nav Bar -->
       <nav class="glass-nav">
-        <a href="#" class="nav-brand">
+        <a href="/" class="nav-brand">
           <div class="brand-icon">E</div>
           <span class="brand-title">ENG Tutor</span>
         </a>
+
         <ul class="nav-links">
-          <li><button class="nav-link-btn active" onclick="scrollToSection('studySection')">{ STUDY } _</button></li>
-          <li><button class="nav-link-btn" onclick="scrollToSection('quizSection')">{ QUIZ LAB } _</button></li>
-          <li><button class="nav-link-btn" onclick="scrollToSection('extractorSection')">{ EXTRACTOR } _</button></li>
-          <li><button class="nav-link-btn" onclick="scrollToSection('deckSection')">{ DECK } _</button></li>
+          <li><a href="#how-it-works" class="nav-link-btn">{ КАК ЭТО РАБОТАЕТ } _</a></li>
+          <li><a href="#features" class="nav-link-btn">{ ВОЗМОЖНОСТИ } _</a></li>
+          <li><a href="#methodology" class="nav-link-btn">{ FSRS НАУКА } _</a></li>
+          <li><a href="#faq" class="nav-link-btn">{ FAQ } _</a></li>
         </ul>
-        <a href="#studySection" class="btn-primary" style="height: 44px; padding: 0 20px; font-size: 13px;">
-          Тренировка
-        </a>
+
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <a href="https://t.me/ENG_Tutor_FSRS_bot" target="_blank" rel="noopener noreferrer" class="btn-secondary" style="height: 42px; padding: 0 16px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
+            <span>✈️ Telegram</span>
+          </a>
+          <a href="/app" class="btn-primary" style="height: 42px; padding: 0 18px; font-size: 12px; display: inline-flex; align-items: center;">
+            Кабинет ➔
+          </a>
+        </div>
       </nav>
 
       <!-- Hero Header Content -->
       <div class="hero-content">
         <div class="eyebrow">{ COGNITIVE ENGLISH ENGINE } <span class="eyebrow-cursor">_</span></div>
         <h1 class="hero-title">
-          Master English with <span>FSRS Spaced Repetition</span>
+          Осваивай английский с научным подходом <span>FSRS и AI</span>
         </h1>
         <p class="hero-subtitle">
-          Четыре режима активного воспоминания (EN➔RU, RU➔EN, пропуски в предложениях и аудирование), 
-          чередование типов, контекстное обучение и грамматические разборы уровня CEFR (A1–C2).
+          Единая синхронизированная экосистема: мгновенно сохраняй слова и фразы через Telegram-бот на ходу — закрепляй через интервальные тренировки, активное воспоминание и аналитику в веб-кабинете.
         </p>
 
         <div class="hero-actions">
-          <a href="#studySection" class="btn-primary">Начать повторение ➔</a>
-          <a href="#quizSection" class="btn-secondary">Интерактивный Quiz</a>
+          <a href="https://t.me/ENG_Tutor_FSRS_bot" target="_blank" rel="noopener noreferrer" class="btn-primary">
+            Открыть в Telegram ✈️
+          </a>
+          <a href="/app" class="btn-secondary">
+            Войти в веб-кабинет ➔
+          </a>
         </div>
 
         <!-- Real-time Stats Ticker -->
         <div class="hero-ticker">
-          <span class="ticker-item">7 Уроков: <strong>107 фраз</strong></span>
+          <span class="ticker-item">Алгоритм: <strong>FSRS v4</strong></span>
           <span class="ticker-dot">·</span>
-          <span class="ticker-item">FSRS Карточек: <strong>428</strong></span>
+          <span class="ticker-item">Активное воспоминание: <strong>4 Card Types</strong></span>
           <span class="ticker-dot">·</span>
-          <span class="ticker-item">Режимы: <strong>4 Card Types</strong></span>
+          <span class="ticker-item">Целевой Retention: <strong>95.0%</strong></span>
           <span class="ticker-dot">·</span>
-          <span class="ticker-item">Retention: <strong>94.8%</strong></span>
+          <span class="ticker-item">Синхронизация: <strong>Bot + Web</strong></span>
         </div>
       </div>
     </header>
 
-    <!-- CURRICULUM LESSON BAR -->
-    <div class="lesson-bar-container">
-      <div class="lesson-bar-header">
-        <span class="eyebrow">{ CURRICULUM: ЗАВИСИМЫЕ ПРЕДЛОГИ И ВЫРАЖЕНИЯ } <span class="eyebrow-cursor">_</span></span>
-        <span class="lesson-bar-summary" id="lessonSummaryCount">107 выражений · 428 карточек</span>
-      </div>
-      <div class="lesson-pills" id="lessonPillsContainer">
-        <!-- Rendered dynamically by app.js -->
-      </div>
-    </div>
-
-    <!-- SECTION 1: STUDY STUDIO (FSRS Active Recall) -->
-    <section id="studySection" class="section-frame">
+    <!-- SECTION: HOW IT WORKS -->
+    <section id="how-it-works" class="section-frame" style="margin-bottom: 40px;">
       <div class="section-header">
         <div>
-          <div class="eyebrow">{ ACTIVE RECALL STUDIO } <span class="eyebrow-cursor">_</span></div>
-          <h2 class="section-title">Интервальное повторение FSRS</h2>
+          <div class="eyebrow">{ WORKFLOW ARCHITECTURE } <span class="eyebrow-cursor">_</span></div>
+          <h2 class="section-title">Как это работает</h2>
         </div>
-        <div style="text-align: right;">
-          <div id="studyCurrentLessonBadge" class="study-lesson-badge">Урок: Все 7 уроков</div>
-          <div style="font-size: 12px; color: var(--pewter-text);">Чередование (Interleaving) активно</div>
+        <div>
+          <span style="font-size: 12px; color: var(--pewter-text);">От слова до долгосрочной памяти</span>
         </div>
       </div>
 
-      <div class="studio-window">
-        <div class="studio-tabs">
-          <button class="studio-tab active" onclick="setCardTypeFilter('ALL')">Все типы (чередование)</button>
-          <button class="studio-tab" onclick="setCardTypeFilter('en_ru')">EN ➔ RU</button>
-          <button class="studio-tab" onclick="setCardTypeFilter('ru_en')">RU ➔ EN</button>
-          <button class="studio-tab" onclick="setCardTypeFilter('cloze')">Cloze Gap</button>
-          <button class="studio-tab" onclick="setCardTypeFilter('audio')">Audio Listening</button>
+      <div class="landing-grid-4">
+        <div class="step-card">
+          <div class="step-num">ШАГ 01</div>
+          <h3 style="font-family: var(--font-display); font-size: 18px; margin-bottom: 10px;">Отправь слово боту</h3>
+          <p style="color: var(--pewter-text); font-size: 13px; line-height: 1.6;">
+            Напиши незнакомое слово или перешли цитату боту в Telegram. Модель определит уровень CEFR, перевод, контекстный пример и озвучку.
+          </p>
         </div>
 
-        <div class="studio-body" id="studioCardContainer">
-          <!-- Rendered dynamically by app.js -->
+        <div class="step-card">
+          <div class="step-num">ШАГ 02</div>
+          <h3 style="font-family: var(--font-display); font-size: 18px; margin-bottom: 10px;">FSRS генерация</h3>
+          <p style="color: var(--pewter-text); font-size: 13px; line-height: 1.6;">
+            Система автоматически создает 4 типа карточек: EN➔RU, RU➔EN, пропуск в предложении и аудирование, инициализируя расчет интервалов.
+          </p>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num">ШАГ 03</div>
+          <h3 style="font-family: var(--font-display); font-size: 18px; margin-bottom: 10px;">Интервальное повторение</h3>
+          <p style="color: var(--pewter-text); font-size: 13px; line-height: 1.6;">
+            Повторяй слова в боте или в веб-кабинете. Алгоритм чередует типы карточек и вычисляет идеальный момент для закрепления памяти.
+          </p>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num">ШАГ 04</div>
+          <h3 style="font-family: var(--font-display); font-size: 18px; margin-bottom: 10px;">Аналитика и рост i+1</h3>
+          <p style="color: var(--pewter-text); font-size: 13px; line-height: 1.6;">
+            Следи за retention кривой, выявляй слабые слова с ошибками и получай персональные рекомендации слов по методике Стивена Крашена.
+          </p>
         </div>
       </div>
     </section>
 
-    <!-- SECTION 2: QUIZ LAB -->
-    <section id="quizSection" class="section-frame">
+    <!-- SECTION: FEATURES -->
+    <section id="features" class="section-frame" style="margin-bottom: 40px;">
       <div class="section-header">
         <div>
-          <div class="eyebrow">{ PRACTICE & TESTING } <span class="eyebrow-cursor">_</span></div>
-          <h2 class="section-title">Quiz Lab: Тестирование предлогов</h2>
-        </div>
-        <div style="display: flex; gap: 10px; align-items: center;">
-          <button class="btn-secondary" style="height: 40px; padding: 0 18px; font-size: 13px;" onclick="loadMultipleChoiceQuiz()">
-            Сменить вопрос 🔄
-          </button>
+          <div class="eyebrow">{ CAPABILITIES MATRIX } <span class="eyebrow-cursor">_</span></div>
+          <h2 class="section-title">Возможности платформы</h2>
         </div>
       </div>
 
-      <div class="studio-window" style="padding: 32px;" id="quizContainer">
-        <!-- Rendered dynamically by app.js -->
-      </div>
-    </section>
-
-    <!-- SECTION 3: SENTENCE VOCABULARY EXTRACTOR -->
-    <section id="extractorSection" class="section-frame">
-      <div class="section-header">
-        <div>
-          <div class="eyebrow">{ CONTEXTUAL PARSER } <span class="eyebrow-cursor">_</span></div>
-          <h2 class="section-title">Выделение новых слов из текста</h2>
-        </div>
-      </div>
-
-      <p style="color: var(--pewter-text); margin-bottom: 20px;">
-        Вставь предложение из книги или статьи — модель определит уровень CEFR, переведёт и выделит неизвестные для твоей колоды слова:
-      </p>
-
-      <textarea id="sentenceInput" class="extractor-textarea" placeholder="Например: The technological disruption in modern software engineering is crucial and inevitable."></textarea>
-      
-      <div style="display: flex; justify-content: flex-end;">
-        <button class="btn-primary" style="height: 48px; padding: 0 28px;" onclick="analyzeSentenceInput()">
-          Анализировать предложение ➔
-        </button>
-      </div>
-
-      <div id="extractorResults"></div>
-    </section>
-
-    <!-- SECTION 4: VOCABULARY DECK -->
-    <section id="deckSection" class="section-frame">
-      <div class="section-header">
-        <div>
-          <div class="eyebrow">{ REPOSITORY } <span class="eyebrow-cursor">_</span></div>
-          <h2 class="section-title">База выражений (107 фраз)</h2>
+      <div class="landing-grid-3">
+        <!-- 1. Dictionary -->
+        <div class="feature-card">
+          <div>
+            <div class="feature-icon">📚</div>
+            <h3 style="font-family: var(--font-display); font-size: 18px; margin-bottom: 8px;">Колода и репозиторий слов</h3>
+            <p style="color: var(--pewter-text); font-size: 13px; line-height: 1.6; margin-bottom: 16px;">
+              Полноценная база изученных слов с фильтрацией по CEFR (A1–C2), статусам (Learning / Mastered), поиском, импортом и экспортом в CSV.
+            </p>
+          </div>
+          <div>
+            <span class="pill-tag" style="color: var(--emerald-success); border-color: rgba(63,185,80,0.3);">✓ Полностью доступно</span>
+          </div>
         </div>
 
-        <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-          <!-- Search input -->
-          <input type="text" id="deckSearchInput" class="deck-search-input" placeholder="🔍 Поиск фразы или перевода..." oninput="handleDeckSearch(this.value)">
+        <!-- 2. FSRS Spaced Repetition -->
+        <div class="feature-card">
+          <div>
+            <div class="feature-icon">🧠</div>
+            <h3 style="font-family: var(--font-display); font-size: 18px; margin-bottom: 8px;">FSRS Spaced Repetition</h3>
+            <p style="color: var(--pewter-text); font-size: 13px; line-height: 1.6; margin-bottom: 16px;">
+              Современная математическая модель интервального повторения. На 20–30% меньше повторений по сравнению со старым алгоритмом SM-2 при сохранении 95% retention.
+            </p>
+          </div>
+          <div>
+            <span class="pill-tag" style="color: var(--emerald-success); border-color: rgba(63,185,80,0.3);">✓ Полностью доступно</span>
+          </div>
+        </div>
 
-          <!-- CEFR Filter Pills -->
-          <div style="display: flex; gap: 6px;">
-            <button class="nav-link-btn filter-pill active" onclick="filterDeckByLevel('ALL', this)">Все</button>
-            <button class="nav-link-btn filter-pill" onclick="filterDeckByLevel('B1', this)">B1</button>
-            <button class="nav-link-btn filter-pill" onclick="filterDeckByLevel('B2', this)">B2</button>
-            <button class="nav-link-btn filter-pill" onclick="filterDeckByLevel('C1', this)">C1</button>
+        <!-- 3. Contextual Parser -->
+        <div class="feature-card">
+          <div>
+            <div class="feature-icon">📖</div>
+            <h3 style="font-family: var(--font-display); font-size: 18px; margin-bottom: 8px;">Контекстный анализатор текстов</h3>
+            <p style="color: var(--pewter-text); font-size: 13px; line-height: 1.6; margin-bottom: 16px;">
+              Вставляй любые предложения из книг или статей: система выделит незнакомые слова, грамматические структуры и добавит их в колоду одним кликом.
+            </p>
+          </div>
+          <div>
+            <span class="pill-tag" style="color: var(--emerald-success); border-color: rgba(63,185,80,0.3);">✓ Полностью доступно</span>
+          </div>
+        </div>
+
+        <!-- 4. Listening -->
+        <div class="feature-card">
+          <div>
+            <div class="feature-icon">🎧</div>
+            <h3 style="font-family: var(--font-display); font-size: 18px; margin-bottom: 8px;">Аудирование и произношение</h3>
+            <p style="color: var(--pewter-text); font-size: 13px; line-height: 1.6; margin-bottom: 16px;">
+              Карточки аудирования обучают распознавать слова в беглой речи носителей языка без опоры на визуальный текст.
+            </p>
+          </div>
+          <div>
+            <span class="pill-tag" style="color: var(--emerald-success); border-color: rgba(63,185,80,0.3);">✓ Полностью доступно</span>
+          </div>
+        </div>
+
+        <!-- 5. Writing in dev -->
+        <div class="feature-card">
+          <div>
+            <div class="feature-icon">✍️</div>
+            <h3 style="font-family: var(--font-display); font-size: 18px; margin-bottom: 8px;">Письмо и рецензирование</h3>
+            <p style="color: var(--pewter-text); font-size: 13px; line-height: 1.6; margin-bottom: 16px;">
+              Интеллектуальная проверка письменных эссе и коротких ответов с подробным разбором стилистических и синтаксических нюансов.
+            </p>
+          </div>
+          <div>
+            <span class="pill-tag" style="color: #ffa657; border-color: rgba(255,166,87,0.3);">⏳ В разработке</span>
+          </div>
+        </div>
+
+        <!-- 6. Speaking in dev -->
+        <div class="feature-card">
+          <div>
+            <div class="feature-icon">🗣️</div>
+            <h3 style="font-family: var(--font-display); font-size: 18px; margin-bottom: 8px;">Говорение и AI-диалог</h3>
+            <p style="color: var(--pewter-text); font-size: 13px; line-height: 1.6; margin-bottom: 16px;">
+              Интерактивные голосовые сессии с AI-напарником для преодоления страха речи и тренировки спонтанных ответов.
+            </p>
+          </div>
+          <div>
+            <span class="pill-tag" style="color: #ffa657; border-color: rgba(255,166,87,0.3);">⏳ В разработке</span>
           </div>
         </div>
       </div>
+    </section>
 
-      <div id="deckGrid" class="words-grid">
-        <!-- Rendered dynamically by app.js -->
+    <!-- SECTION: METHODOLOGY FSRS -->
+    <section id="methodology" class="section-frame" style="margin-bottom: 40px;">
+      <div class="section-header">
+        <div>
+          <div class="eyebrow">{ SCIENTIFIC FOUNDATION } <span class="eyebrow-cursor">_</span></div>
+          <h2 class="section-title">Почему FSRS превосходит Anki SM-2</h2>
+        </div>
+      </div>
+
+      <div style="background: var(--carbon-panel); border: 1px solid var(--smoke-outline); border-radius: var(--radius-card); padding: 32px; display: grid; grid-template-columns: 1fr 1fr; gap: 32px;" class="landing-grid-4">
+        <div>
+          <h3 style="font-family: var(--font-display); font-size: 20px; margin-bottom: 12px; color: var(--nest-crimson);">Старый SM-2 (1987)</h3>
+          <ul style="list-style: none; display: flex; flex-direction: column; gap: 10px; color: var(--pewter-text); font-size: 13px;">
+            <li>❌ Фиксированный экспоненциальный множитель легкости (ease factor).</li>
+            <li>❌ «Ад легкости» (Ease Hell): при нескольких ошибках карточка зависает в частых повторениях навсегда.</li>
+            <li>❌ Не учитывает время отклика и индивидуальную сложность материала.</li>
+            <li>❌ Перегрузка повторениями (review overload) через 2–3 месяца обучения.</li>
+          </ul>
+        </div>
+
+        <div>
+          <h3 style="font-family: var(--font-display); font-size: 20px; margin-bottom: 12px; color: var(--emerald-success);">FSRS v4 (2024+)</h3>
+          <ul style="list-style: none; display: flex; flex-direction: column; gap: 10px; color: var(--pewter-text); font-size: 13px;">
+            <li>✅ Моделирует память тремя переменными: <strong>Stability</strong>, <strong>Difficulty</strong> и <strong>Retrievability</strong>.</li>
+            <li>✅ Вычисляет точную вероятность того, что ты вспомнишь слово в конкретный день.</li>
+            <li>✅ На 20–30% меньше повторений при стабильном целевом Retention 95%.</li>
+            <li>✅ Свободный от Ease Hell: карточки быстро адаптируются к твоей памяти.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION: FAQ -->
+    <section id="faq" class="section-frame" style="margin-bottom: 40px;">
+      <div class="section-header">
+        <div>
+          <div class="eyebrow">{ FREQUENTLY ASKED QUESTIONS } <span class="eyebrow-cursor">_</span></div>
+          <h2 class="section-title">Ответы на частые вопросы</h2>
+        </div>
+      </div>
+
+      <div>
+        <details class="faq-accordion" open>
+          <summary class="faq-summary">Синхронизируются ли слова между Telegram-ботом и сайтом?</summary>
+          <div class="faq-content">
+            Да, на 100%. База данных общая: слово или карточка, добавленные через команду <code>/add</code> или текстовое сообщение боту, моментально появляются в твоем веб-кабинете <code>/app</code>, а прогресс повторений обновляется в реальном времени.
+          </div>
+        </details>
+
+        <details class="faq-accordion">
+          <summary class="faq-summary">Как войти в личный веб-кабинет?</summary>
+          <div class="faq-content">
+            Авторизация происходит через официальный Telegram Login Widget. Тебе не нужно придумывать и запоминать пароли — вход осуществляется в один клик по твоему Telegram-аккаунту, а сессия безопасно сохраняется через защищенные httpOnly cookies.
+          </div>
+        </details>
+
+        <details class="faq-accordion">
+          <summary class="faq-summary">Что такое методика Krashen i+1 в рекомендациях?</summary>
+          <div class="faq-content">
+            Гипотеза понятного ввода (Comprehensible Input) лингвиста Стивена Крашена утверждает, что язык усваивается лучше всего, когда материал находится ровно на одну ступень выше текущего уровня учащегося (i+1). Алгоритм анализирует твой уровень CEFR и предлагает слова, которые развивают твой словарный запас без фрустрации.
+          </div>
+        </details>
+
+        <details class="faq-accordion">
+          <summary class="faq-summary">Можно ли загрузить свои слова из Anki, Quizlet или Excel?</summary>
+          <div class="faq-content">
+            Да! В разделе «Словарь» доступен импорт CSV. Ты можешь загрузить файл со списком слов, и система автоматически добавит их в колоду с дедупликацией (повторяющиеся слова будут безопасно пропущены).
+          </div>
+        </details>
+
+        <details class="faq-accordion">
+          <summary class="faq-summary">Сколько это стоит?</summary>
+          <div class="faq-content">
+            Базовая платформа с ботом, веб-кабинетом, FSRS алгоритмом и аналитикой бесплатна.
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <!-- SECTION: BOTTOM CTA BANNER -->
+    <section class="section-frame" style="text-align: center; padding: 48px 24px; background: linear-gradient(180deg, var(--graphite-slab) 0%, rgba(120, 15, 32, 0.15) 100%);">
+      <div class="eyebrow">{ READY TO START } <span class="eyebrow-cursor">_</span></div>
+      <h2 style="font-family: var(--font-display); font-size: 32px; margin-bottom: 14px;">Начни прокачивать английский прямо сейчас</h2>
+      <p style="color: var(--pewter-text); max-width: 520px; margin: 0 auto 28px auto; font-size: 14px; line-height: 1.6;">
+        Запусти бота в Telegram или перейди в веб-кабинет, чтобы проверить свои знания и настроить персональный ритм повторений.
+      </p>
+
+      <div style="display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;">
+        <a href="https://t.me/ENG_Tutor_FSRS_bot" target="_blank" rel="noopener noreferrer" class="btn-primary" style="height: 48px; padding: 0 28px;">
+          Открыть бота в Telegram ✈️
+        </a>
+        <a href="/app" class="btn-secondary" style="height: 48px; padding: 0 28px;">
+          Личный кабинет ➔
+        </a>
       </div>
     </section>
 
@@ -175,33 +334,15 @@
       <div>
         <strong style="color: #fff; font-family: var(--font-display); font-size: 15px;">ENG Tutor Platform</strong>
         <div style="margin-top: 4px; font-size: 12px; color: var(--pewter-text);">
-          FSRS Spaced Repetition · FastAPI · aiogram 3 · NestJS Dark Theme Design
+          FSRS Spaced Repetition · FastAPI · aiogram 3 · Cognitive Science
         </div>
       </div>
-      <div>
-        <code>{ STATUS: 200 OK } _</code>
+      <div style="display: flex; gap: 20px; align-items: center; font-size: 12px;">
+        <a href="/app" style="color: var(--pewter-text); text-decoration: none;">Личный кабинет</a>
+        <a href="https://t.me/ENG_Tutor_FSRS_bot" target="_blank" rel="noopener noreferrer" style="color: var(--pewter-text); text-decoration: none;">Telegram Bot</a>
+        <code style="color: var(--emerald-success);">{ STATUS: 200 OK } _</code>
       </div>
     </footer>
   </div>
-
-  <script src="app.js"></script>
-  <script>
-    function scrollToSection(id) {
-      const el = document.getElementById(id);
-      if (el) el.scrollIntoView({ behavior: 'smooth' });
-    }
-    function setCardTypeFilter(type) {
-      document.querySelectorAll('.studio-tab').forEach(t => t.classList.remove('active'));
-      event.target.classList.add('active');
-      if (type === 'ALL') {
-        studyCards = [...SAMPLE_DECK];
-      } else {
-        studyCards = SAMPLE_DECK.filter(c => c.card_type === type);
-      }
-      currentCardIndex = 0;
-      isAnswerRevealed = false;
-      renderCurrentCard();
-    }
-  </script>
 </body>
 </html>

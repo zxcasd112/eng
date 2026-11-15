@@ -138,6 +138,12 @@ async def test_full_api_flow(api_client):
 
 async def test_spa_app_routes(api_client):
     client, _ = api_client
+    # Public landing page on /
+    resp_landing = await client.get("/")
+    assert resp_landing.status_code == 200
+    assert "ENG Tutor" in resp_landing.text
+    assert "FSRS v4" in resp_landing.text
+
     # /app root
     resp_app = await client.get("/app")
     assert resp_app.status_code == 200
