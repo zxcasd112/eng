@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+
+Sitemap: https://eng-tutor-omuc.onrender.com/sitemap.xml

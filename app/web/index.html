@@ -4,345 +4,393 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
   
-  <title>ENG Tutor — FSRS Интервальное повторение и AI для изучения английского</title>
-  <meta name="description" content="Умная система изучения английского языка: синхронизированный Telegram-бот и веб-кабинет на базе научно доказанного алгоритма FSRS, активного воспоминания и персонализированных рекомендаций CEFR.">
-  <meta name="keywords" content="английский язык, интервальное повторение, FSRS, anki, telegram бот, изучение слов, cefr, active recall">
-  <meta name="author" content="ENG Tutor Team">
+  <title>ENG Tutor — Научный подход FSRS для изучения английского языка</title>
+  <meta name="description" content="Умная система изучения английского языка: мгновенное сохранение слов через Telegram-бот и интервальное повторение на базе доказанного алгоритма FSRS в личном веб-кабинете.">
+  <meta name="keywords" content="английский язык, интервальное повторение, FSRS, spaced repetition, telegram бот, изучение слов, CEFR, anki">
+  <meta name="author" content="ENG Tutor">
+  <meta name="theme-color" content="#18181B">
 
-  <!-- Open Graph / Facebook -->
+  <!-- Open Graph -->
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://eng-tutor.onrender.com/">
-  <meta property="og:title" content="ENG Tutor — FSRS Spaced Repetition & Cognitive AI">
-  <meta property="og:description" content="Умный Telegram-бот и веб-кабинет для освоения английского языка: 4 типа карточек, алгоритм FSRS, анализ текстов и персональная аналитика.">
-  <meta property="og:image" content="https://raw.githubusercontent.com/zxcasd112/eng/main/assets/og-preview.png">
+  <meta property="og:url" content="https://eng-tutor-omuc.onrender.com/">
+  <meta property="og:title" content="ENG Tutor — Научный подход FSRS для изучения английского">
+  <meta property="og:description" content="Telegram-бот сохраняет слова из контекста, а алгоритм FSRS вычисляет идеальный момент для их закрепления в памяти.">
+  <meta property="og:image" content="https://eng-tutor-omuc.onrender.com/brand-og.svg">
+  <meta property="og:locale" content="ru_RU">
 
   <!-- Twitter -->
-  <meta property="twitter:card" content="summary_large_image">
-  <meta property="twitter:title" content="ENG Tutor — FSRS Spaced Repetition & Cognitive AI">
-  <meta property="twitter:description" content="Умный Telegram-бот и веб-кабинет для освоения английского: интервальное повторение FSRS и персональные рекомендации.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="ENG Tutor — Научный подход FSRS для изучения английского">
+  <meta name="twitter:description" content="Telegram-бот сохраняет слова из контекста, а алгоритм FSRS вычисляет идеальный момент для их закрепления.">
 
-  <!-- Favicon -->
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+  <!-- Favicon Vector SVG -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2318181B'/%3E%3Cpath d='M9 10h14M9 16h10M9 22h14' stroke='%23FAFAFA' stroke-width='2.5' stroke-linecap='round'/%3E%3Ccircle cx='23' cy='16' r='2' fill='%23A1A1AA'/%3E%3C/svg%3E">
+
+  <!-- Stylesheet -->
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <div class="noise-overlay"></div>
-  <div class="ambient-glow"></div>
-
-  <div class="page-container">
-    <!-- Header / Glass Nav -->
-    <header class="hero-frame" style="margin-bottom: 32px;">
-      <div class="hero-glow-orb"></div>
-
-      <nav class="glass-nav">
-        <a href="/" class="nav-brand">
-          <div class="brand-icon">E</div>
-          <span class="brand-title">ENG Tutor</span>
-        </a>
-
-        <ul class="nav-links">
-          <li><a href="#how-it-works" class="nav-link-btn">{ КАК ЭТО РАБОТАЕТ } _</a></li>
-          <li><a href="#features" class="nav-link-btn">{ ВОЗМОЖНОСТИ } _</a></li>
-          <li><a href="#methodology" class="nav-link-btn">{ FSRS НАУКА } _</a></li>
-          <li><a href="#faq" class="nav-link-btn">{ FAQ } _</a></li>
-        </ul>
-
-        <div style="display: flex; gap: 10px; align-items: center;">
-          <a href="https://t.me/ENG_Tutor_FSRS_bot" target="_blank" rel="noopener noreferrer" class="btn-secondary" style="height: 42px; padding: 0 16px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
-            <span>✈️ Telegram</span>
-          </a>
-          <a href="/app" class="btn-primary" style="height: 42px; padding: 0 18px; font-size: 12px; display: inline-flex; align-items: center;">
-            Кабинет ➔
-          </a>
+  <!-- Header -->
+  <header class="site-header">
+    <div class="site-container nav-row">
+      <a href="/" class="brand-link" aria-label="ENG Tutor главная">
+        <div class="brand-logo-mark" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <line x1="4" y1="6" x2="20" y2="6"></line>
+            <line x1="4" y1="12" x2="15" y2="12"></line>
+            <line x1="4" y1="18" x2="20" y2="18"></line>
+          </svg>
         </div>
+        <span>ENG Tutor</span>
+      </a>
+
+      <nav aria-label="Основное меню">
+        <ul class="nav-menu">
+          <li><a href="#how-it-works" class="nav-link">Как это работает</a></li>
+          <li><a href="#features" class="nav-link">Возможности</a></li>
+          <li><a href="#methodology" class="nav-link">Методика FSRS</a></li>
+          <li><a href="#faq" class="nav-link">Вопросы и ответы</a></li>
+        </ul>
       </nav>
 
-      <!-- Hero Header Content -->
-      <div class="hero-content">
-        <div class="eyebrow">{ COGNITIVE ENGLISH ENGINE } <span class="eyebrow-cursor">_</span></div>
-        <h1 class="hero-title">
-          Осваивай английский с научным подходом <span>FSRS и AI</span>
+      <div class="nav-actions">
+        <a href="https://t.me/ENG_Tutor_FSRS_bot" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/>
+          </svg>
+          Telegram-бот
+        </a>
+        <a href="/app" class="btn btn-primary btn-sm">
+          Войти в кабинет ➔
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero Section -->
+    <section class="hero-section">
+      <div class="site-container">
+        <div class="hero-badge">
+          <span class="hero-badge-dot"></span>
+          <span>Научно доказанное интервальное повторение</span>
+        </div>
+
+        <h1 class="hero-headline">
+          Запоминайте английские слова навсегда с помощью науки FSRS
         </h1>
-        <p class="hero-subtitle">
-          Единая синхронизированная экосистема: мгновенно сохраняй слова и фразы через Telegram-бот на ходу — закрепляй через интервальные тренировки, активное воспоминание и аналитику в веб-кабинете.
+
+        <p class="hero-lead">
+          Telegram-бот сохраняет незнакомые слова прямо из контекста на ходу, а алгоритм FSRS рассчитывает индивидуальное время повторения в веб-кабинете.
         </p>
 
-        <div class="hero-actions">
-          <a href="https://t.me/ENG_Tutor_FSRS_bot" target="_blank" rel="noopener noreferrer" class="btn-primary">
-            Открыть в Telegram ✈️
+        <div class="hero-cta-group">
+          <a href="https://t.me/ENG_Tutor_FSRS_bot" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-lg">
+            Открыть в Telegram
           </a>
-          <a href="/app" class="btn-secondary">
+          <a href="/app" class="btn btn-secondary btn-lg">
             Войти в веб-кабинет ➔
           </a>
         </div>
 
-        <!-- Real-time Stats Ticker -->
-        <div class="hero-ticker">
-          <span class="ticker-item">Алгоритм: <strong>FSRS v4</strong></span>
-          <span class="ticker-dot">·</span>
-          <span class="ticker-item">Активное воспоминание: <strong>4 Card Types</strong></span>
-          <span class="ticker-dot">·</span>
-          <span class="ticker-item">Целевой Retention: <strong>95.0%</strong></span>
-          <span class="ticker-dot">·</span>
-          <span class="ticker-item">Синхронизация: <strong>Bot + Web</strong></span>
-        </div>
-      </div>
-    </header>
+        <!-- Live Interactive Visual Demonstration -->
+        <div class="hero-demo-wrapper">
+          <div class="hero-demo-card">
+            <div class="demo-card-header">
+              <span>Синхронизация Telegram и Web-кабинета в реальном времени</span>
+              <span style="font-family: var(--font-mono); font-size: 0.75rem;">FSRS v4 Scheduler</span>
+            </div>
 
-    <!-- SECTION: HOW IT WORKS -->
-    <section id="how-it-works" class="section-frame" style="margin-bottom: 40px;">
-      <div class="section-header">
-        <div>
-          <div class="eyebrow">{ WORKFLOW ARCHITECTURE } <span class="eyebrow-cursor">_</span></div>
-          <h2 class="section-title">Как это работает</h2>
-        </div>
-        <div>
-          <span style="font-size: 12px; color: var(--pewter-text);">От слова до долгосрочной памяти</span>
-        </div>
-      </div>
+            <div class="demo-step-row">
+              <div class="demo-box" style="border-right: 1px solid var(--color-border);">
+                <div style="font-size: 0.8125rem; font-weight: 600; color: var(--color-text-muted); text-transform: uppercase;">
+                  1. Отправлено боту в Telegram
+                </div>
+                <div class="demo-telegram-bubble">
+                  <strong>resilience</strong>
+                  <div style="font-size: 0.8125rem; color: var(--color-text-secondary); margin-top: 4px;">
+                    «Technological resilience is essential in engineering.»
+                  </div>
+                </div>
+                <div style="margin-top: 12px; font-size: 0.8125rem; color: var(--color-success); display: flex; align-items: center; gap: 6px;">
+                  <span>✓</span> Бот определил уровень B2 и создал 4 карточки
+                </div>
+              </div>
 
-      <div class="landing-grid-4">
-        <div class="step-card">
-          <div class="step-num">ШАГ 01</div>
-          <h3 style="font-family: var(--font-display); font-size: 18px; margin-bottom: 10px;">Отправь слово боту</h3>
-          <p style="color: var(--pewter-text); font-size: 13px; line-height: 1.6;">
-            Напиши незнакомое слово или перешли цитату боту в Telegram. Модель определит уровень CEFR, перевод, контекстный пример и озвучку.
-          </p>
-        </div>
-
-        <div class="step-card">
-          <div class="step-num">ШАГ 02</div>
-          <h3 style="font-family: var(--font-display); font-size: 18px; margin-bottom: 10px;">FSRS генерация</h3>
-          <p style="color: var(--pewter-text); font-size: 13px; line-height: 1.6;">
-            Система автоматически создает 4 типа карточек: EN➔RU, RU➔EN, пропуск в предложении и аудирование, инициализируя расчет интервалов.
-          </p>
-        </div>
-
-        <div class="step-card">
-          <div class="step-num">ШАГ 03</div>
-          <h3 style="font-family: var(--font-display); font-size: 18px; margin-bottom: 10px;">Интервальное повторение</h3>
-          <p style="color: var(--pewter-text); font-size: 13px; line-height: 1.6;">
-            Повторяй слова в боте или в веб-кабинете. Алгоритм чередует типы карточек и вычисляет идеальный момент для закрепления памяти.
-          </p>
-        </div>
-
-        <div class="step-card">
-          <div class="step-num">ШАГ 04</div>
-          <h3 style="font-family: var(--font-display); font-size: 18px; margin-bottom: 10px;">Аналитика и рост i+1</h3>
-          <p style="color: var(--pewter-text); font-size: 13px; line-height: 1.6;">
-            Следи за retention кривой, выявляй слабые слова с ошибками и получай персональные рекомендации слов по методике Стивена Крашена.
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <!-- SECTION: FEATURES -->
-    <section id="features" class="section-frame" style="margin-bottom: 40px;">
-      <div class="section-header">
-        <div>
-          <div class="eyebrow">{ CAPABILITIES MATRIX } <span class="eyebrow-cursor">_</span></div>
-          <h2 class="section-title">Возможности платформы</h2>
-        </div>
-      </div>
-
-      <div class="landing-grid-3">
-        <!-- 1. Dictionary -->
-        <div class="feature-card">
-          <div>
-            <div class="feature-icon">📚</div>
-            <h3 style="font-family: var(--font-display); font-size: 18px; margin-bottom: 8px;">Колода и репозиторий слов</h3>
-            <p style="color: var(--pewter-text); font-size: 13px; line-height: 1.6; margin-bottom: 16px;">
-              Полноценная база изученных слов с фильтрацией по CEFR (A1–C2), статусам (Learning / Mastered), поиском, импортом и экспортом в CSV.
-            </p>
-          </div>
-          <div>
-            <span class="pill-tag" style="color: var(--emerald-success); border-color: rgba(63,185,80,0.3);">✓ Полностью доступно</span>
-          </div>
-        </div>
-
-        <!-- 2. FSRS Spaced Repetition -->
-        <div class="feature-card">
-          <div>
-            <div class="feature-icon">🧠</div>
-            <h3 style="font-family: var(--font-display); font-size: 18px; margin-bottom: 8px;">FSRS Spaced Repetition</h3>
-            <p style="color: var(--pewter-text); font-size: 13px; line-height: 1.6; margin-bottom: 16px;">
-              Современная математическая модель интервального повторения. На 20–30% меньше повторений по сравнению со старым алгоритмом SM-2 при сохранении 95% retention.
-            </p>
-          </div>
-          <div>
-            <span class="pill-tag" style="color: var(--emerald-success); border-color: rgba(63,185,80,0.3);">✓ Полностью доступно</span>
-          </div>
-        </div>
-
-        <!-- 3. Contextual Parser -->
-        <div class="feature-card">
-          <div>
-            <div class="feature-icon">📖</div>
-            <h3 style="font-family: var(--font-display); font-size: 18px; margin-bottom: 8px;">Контекстный анализатор текстов</h3>
-            <p style="color: var(--pewter-text); font-size: 13px; line-height: 1.6; margin-bottom: 16px;">
-              Вставляй любые предложения из книг или статей: система выделит незнакомые слова, грамматические структуры и добавит их в колоду одним кликом.
-            </p>
-          </div>
-          <div>
-            <span class="pill-tag" style="color: var(--emerald-success); border-color: rgba(63,185,80,0.3);">✓ Полностью доступно</span>
-          </div>
-        </div>
-
-        <!-- 4. Listening -->
-        <div class="feature-card">
-          <div>
-            <div class="feature-icon">🎧</div>
-            <h3 style="font-family: var(--font-display); font-size: 18px; margin-bottom: 8px;">Аудирование и произношение</h3>
-            <p style="color: var(--pewter-text); font-size: 13px; line-height: 1.6; margin-bottom: 16px;">
-              Карточки аудирования обучают распознавать слова в беглой речи носителей языка без опоры на визуальный текст.
-            </p>
-          </div>
-          <div>
-            <span class="pill-tag" style="color: var(--emerald-success); border-color: rgba(63,185,80,0.3);">✓ Полностью доступно</span>
-          </div>
-        </div>
-
-        <!-- 5. Writing in dev -->
-        <div class="feature-card">
-          <div>
-            <div class="feature-icon">✍️</div>
-            <h3 style="font-family: var(--font-display); font-size: 18px; margin-bottom: 8px;">Письмо и рецензирование</h3>
-            <p style="color: var(--pewter-text); font-size: 13px; line-height: 1.6; margin-bottom: 16px;">
-              Интеллектуальная проверка письменных эссе и коротких ответов с подробным разбором стилистических и синтаксических нюансов.
-            </p>
-          </div>
-          <div>
-            <span class="pill-tag" style="color: #ffa657; border-color: rgba(255,166,87,0.3);">⏳ В разработке</span>
-          </div>
-        </div>
-
-        <!-- 6. Speaking in dev -->
-        <div class="feature-card">
-          <div>
-            <div class="feature-icon">🗣️</div>
-            <h3 style="font-family: var(--font-display); font-size: 18px; margin-bottom: 8px;">Говорение и AI-диалог</h3>
-            <p style="color: var(--pewter-text); font-size: 13px; line-height: 1.6; margin-bottom: 16px;">
-              Интерактивные голосовые сессии с AI-напарником для преодоления страха речи и тренировки спонтанных ответов.
-            </p>
-          </div>
-          <div>
-            <span class="pill-tag" style="color: #ffa657; border-color: rgba(255,166,87,0.3);">⏳ В разработке</span>
+              <div class="demo-box">
+                <div style="font-size: 0.8125rem; font-weight: 600; color: var(--color-text-muted); text-transform: uppercase;">
+                  2. Появилось в веб-кабинете FSRS
+                </div>
+                <div style="margin-top: 12px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 12px 16px;">
+                  <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                    <strong style="font-size: 1.0625rem;">resilience</strong>
+                    <span class="cefr-pill">B2</span>
+                  </div>
+                  <div style="font-size: 0.875rem; color: var(--color-text-secondary); margin-top: 2px;">
+                    устойчивость, способность восстанавливаться
+                  </div>
+                  <div style="margin-top: 8px; font-size: 0.75rem; color: var(--color-text-muted); border-top: 1px solid var(--color-border); padding-top: 6px;">
+                    Следующее повторение: через 3 дня
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- SECTION: METHODOLOGY FSRS -->
-    <section id="methodology" class="section-frame" style="margin-bottom: 40px;">
-      <div class="section-header">
-        <div>
-          <div class="eyebrow">{ SCIENTIFIC FOUNDATION } <span class="eyebrow-cursor">_</span></div>
-          <h2 class="section-title">Почему FSRS превосходит Anki SM-2</h2>
+    <!-- SECTION: HOW IT WORKS (3 STEPS) -->
+    <section id="how-it-works" class="section">
+      <div class="site-container">
+        <div class="section-title-wrap">
+          <div class="section-label">Процесс обучения</div>
+          <h2 class="section-title">Как работает система</h2>
+          <p class="section-desc">
+            Всего 3 простых шага отделяют незнакомое слово от надежного закрепления в долговременной памяти.
+          </p>
+        </div>
+
+        <div class="steps-grid">
+          <div class="step-card">
+            <div class="step-number">01</div>
+            <h3 class="step-heading">Сохраняйте на ходу</h3>
+            <p class="step-text">
+              Встретили незнакомое слово в статье, книге или видео — отправьте его боту в Telegram. Система определит часть речи, уровень CEFR, пример и русский перевод.
+            </p>
+          </div>
+
+          <div class="step-card">
+            <div class="step-number">02</div>
+            <h3 class="step-heading">Повторяйте по науке</h3>
+            <p class="step-text">
+              Алгоритм FSRS чередует 4 типа карточек: прямой перевод (EN➔RU), обратный (RU➔EN), пропуск в предложении и аудирование, исключая механическое заучивание.
+            </p>
+          </div>
+
+          <div class="step-card">
+            <div class="step-number">03</div>
+            <h3 class="step-heading">Видьте реальный прогресс</h3>
+            <p class="step-text">
+              Смотрите график удержания памяти за 30 дней, прогноз будущей нагрузки и получайте умные рекомендации новых слов на один уровень выше текущего (Krashen i+1).
+            </p>
+          </div>
         </div>
       </div>
+    </section>
 
-      <div style="background: var(--carbon-panel); border: 1px solid var(--smoke-outline); border-radius: var(--radius-card); padding: 32px; display: grid; grid-template-columns: 1fr 1fr; gap: 32px;" class="landing-grid-4">
-        <div>
-          <h3 style="font-family: var(--font-display); font-size: 20px; margin-bottom: 12px; color: var(--nest-crimson);">Старый SM-2 (1987)</h3>
-          <ul style="list-style: none; display: flex; flex-direction: column; gap: 10px; color: var(--pewter-text); font-size: 13px;">
-            <li>❌ Фиксированный экспоненциальный множитель легкости (ease factor).</li>
-            <li>❌ «Ад легкости» (Ease Hell): при нескольких ошибках карточка зависает в частых повторениях навсегда.</li>
-            <li>❌ Не учитывает время отклика и индивидуальную сложность материала.</li>
-            <li>❌ Перегрузка повторениями (review overload) через 2–3 месяца обучения.</li>
-          </ul>
+    <!-- SECTION: FEATURES MATRIX -->
+    <section id="features" class="section">
+      <div class="site-container">
+        <div class="section-title-wrap">
+          <div class="section-label">Возможности платформы</div>
+          <h2 class="section-title">Инструменты для системного прогресса</h2>
+          <p class="section-desc">
+            Единое пространство: словарь, интервальные тренировки и аналитика без визуального шума.
+          </p>
         </div>
 
-        <div>
-          <h3 style="font-family: var(--font-display); font-size: 20px; margin-bottom: 12px; color: var(--emerald-success);">FSRS v4 (2024+)</h3>
-          <ul style="list-style: none; display: flex; flex-direction: column; gap: 10px; color: var(--pewter-text); font-size: 13px;">
-            <li>✅ Моделирует память тремя переменными: <strong>Stability</strong>, <strong>Difficulty</strong> и <strong>Retrievability</strong>.</li>
-            <li>✅ Вычисляет точную вероятность того, что ты вспомнишь слово в конкретный день.</li>
-            <li>✅ На 20–30% меньше повторений при стабильном целевом Retention 95%.</li>
-            <li>✅ Свободный от Ease Hell: карточки быстро адаптируются к твоей памяти.</li>
-          </ul>
+        <div class="features-grid">
+          <!-- 1. Dictionary -->
+          <div class="feature-card">
+            <div class="feature-top">
+              <span class="feature-badge-available">Доступно</span>
+              <h3 style="font-size: 1.125rem; font-weight: 600; margin-top: 12px; margin-bottom: 6px;">Единый словарь</h3>
+              <p style="font-size: 0.9375rem; color: var(--color-text-secondary);">
+                Поиск, фильтры по уровням CEFR (A1–C2), статусы усвоения (Изучается / Освоено), заметки, импорт и экспорт CSV.
+              </p>
+            </div>
+          </div>
+
+          <!-- 2. FSRS -->
+          <div class="feature-card">
+            <div class="feature-top">
+              <span class="feature-badge-available">Доступно</span>
+              <h3 style="font-size: 1.125rem; font-weight: 600; margin-top: 12px; margin-bottom: 6px;">Алгоритм FSRS v4</h3>
+              <p style="font-size: 0.9375rem; color: var(--color-text-secondary);">
+                Современная математическая модель памяти: точный расчет стабильности и сложности слова для сохранения 95% материала.
+              </p>
+            </div>
+          </div>
+
+          <!-- 3. Audio -->
+          <div class="feature-card">
+            <div class="feature-top">
+              <span class="feature-badge-available">Доступно</span>
+              <h3 style="font-size: 1.125rem; font-weight: 600; margin-top: 12px; margin-bottom: 6px;">Аудирование</h3>
+              <p style="font-size: 0.9375rem; color: var(--color-text-secondary);">
+                Тренировка восприятия на слух: озвучивание правильного американского и британского произношения прямо в карточках.
+              </p>
+            </div>
+          </div>
+
+          <!-- 4. Text parser -->
+          <div class="feature-card">
+            <div class="feature-top">
+              <span class="feature-badge-available">Доступно</span>
+              <h3 style="font-size: 1.125rem; font-weight: 600; margin-top: 12px; margin-bottom: 6px;">Анализ предложений</h3>
+              <p style="font-size: 0.9375rem; color: var(--color-text-secondary);">
+                Вставьте предложение из книги: парсер автоматически найдет незнакомые конструкции и добавит их в колоду одним кликом.
+              </p>
+            </div>
+          </div>
+
+          <!-- 5. Writing -->
+          <div class="feature-card">
+            <div class="feature-top">
+              <span class="feature-badge-dev">В разработке</span>
+              <h3 style="font-size: 1.125rem; font-weight: 600; margin-top: 12px; margin-bottom: 6px;">Рецензирование письма</h3>
+              <p style="font-size: 0.9375rem; color: var(--color-text-secondary);">
+                Проверка эссе и коротких письменных ответов с анализом стилистических ошибок и предложением более естественных формулировок.
+              </p>
+            </div>
+          </div>
+
+          <!-- 6. Speaking -->
+          <div class="feature-card">
+            <div class="feature-top">
+              <span class="feature-badge-dev">В разработке</span>
+              <h3 style="font-size: 1.125rem; font-weight: 600; margin-top: 12px; margin-bottom: 6px;">Разговорный тренажер</h3>
+              <p style="font-size: 0.9375rem; color: var(--color-text-secondary);">
+                Голосовой диалог с AI для преодоления языкового барьера и отработки спонтанной связной речи в реальных ситуациях.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION: METHODOLOGY FSRS vs SM-2 -->
+    <section id="methodology" class="section">
+      <div class="site-container">
+        <div class="section-title-wrap">
+          <div class="section-label">Научная база</div>
+          <h2 class="section-title">Почему FSRS превосходит старый Anki SM-2</h2>
+          <p class="section-desc">
+            Free Spaced Repetition Scheduler — это математическая модель памяти нового поколения, разработанная в 2023–2024 гг.
+          </p>
+        </div>
+
+        <div class="comparison-container">
+          <div class="comp-box">
+            <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--color-text-muted);">Классический SM-2 (1987)</h3>
+            <ul class="comp-list">
+              <li><span>—</span> Фиксированный экспоненциальный множитель интервалов.</li>
+              <li><span>—</span> Проблема «Ease Hell»: при ошибках карточка зависает в частых повторениях.</li>
+              <li><span>—</span> Не учитывает время отклика и индивидуальную стабильность.</li>
+              <li><span>—</span> Лавинообразный рост карточек («долг по повторениям») через 2–3 месяца.</li>
+            </ul>
+          </div>
+
+          <div class="comp-box highlight">
+            <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--color-text-primary);">Современный FSRS v4</h3>
+            <ul class="comp-list" style="color: var(--color-text-primary);">
+              <li><span>✓</span> Моделирует память тремя переменными: стабильность, сложность и извлекаемость.</li>
+              <li><span>✓</span> На 20–30% меньше повторений при сохранении стабильного 95% удержания.</li>
+              <li><span>✓</span> Автоматическая адаптация под темп и память конкретного человека.</li>
+              <li><span>✓</span> Отсутствие Ease Hell: легкие слова быстро уходят на длинные интервалы.</li>
+            </ul>
+          </div>
         </div>
       </div>
     </section>
 
     <!-- SECTION: FAQ -->
-    <section id="faq" class="section-frame" style="margin-bottom: 40px;">
-      <div class="section-header">
-        <div>
-          <div class="eyebrow">{ FREQUENTLY ASKED QUESTIONS } <span class="eyebrow-cursor">_</span></div>
-          <h2 class="section-title">Ответы на частые вопросы</h2>
+    <section id="faq" class="section">
+      <div class="site-container">
+        <div class="section-title-wrap">
+          <div class="section-label">Частые вопросы</div>
+          <h2 class="section-title">Ответы на ключевые вопросы</h2>
         </div>
-      </div>
 
-      <div>
-        <details class="faq-accordion" open>
-          <summary class="faq-summary">Синхронизируются ли слова между Telegram-ботом и сайтом?</summary>
-          <div class="faq-content">
-            Да, на 100%. База данных общая: слово или карточка, добавленные через команду <code>/add</code> или текстовое сообщение боту, моментально появляются в твоем веб-кабинете <code>/app</code>, а прогресс повторений обновляется в реальном времени.
-          </div>
-        </details>
+        <div class="faq-wrap">
+          <details class="faq-item" open>
+            <summary class="faq-title">Синхронизируются ли слова между Telegram-ботом и веб-кабинетом?</summary>
+            <div class="faq-body">
+              Да, полностью. База данных едина: слово, добавленное через Telegram-бот командой или текстом, моментально отображается в вашей колоде на сайте, а интервалы повторений пересчитываются синхронно.
+            </div>
+          </details>
 
-        <details class="faq-accordion">
-          <summary class="faq-summary">Как войти в личный веб-кабинет?</summary>
-          <div class="faq-content">
-            Авторизация происходит через официальный Telegram Login Widget. Тебе не нужно придумывать и запоминать пароли — вход осуществляется в один клик по твоему Telegram-аккаунту, а сессия безопасно сохраняется через защищенные httpOnly cookies.
-          </div>
-        </details>
+          <details class="faq-item">
+            <summary class="faq-title">Как устроен вход в веб-кабинет?</summary>
+            <div class="faq-body">
+              Авторизация происходит через официальный Telegram Login Widget. Вам не нужно придумывать и вводить пароли — сессия подтверждается в один клик через защищенные cookie с флагом httpOnly.
+            </div>
+          </details>
 
-        <details class="faq-accordion">
-          <summary class="faq-summary">Что такое методика Krashen i+1 в рекомендациях?</summary>
-          <div class="faq-content">
-            Гипотеза понятного ввода (Comprehensible Input) лингвиста Стивена Крашена утверждает, что язык усваивается лучше всего, когда материал находится ровно на одну ступень выше текущего уровня учащегося (i+1). Алгоритм анализирует твой уровень CEFR и предлагает слова, которые развивают твой словарный запас без фрустрации.
-          </div>
-        </details>
+          <details class="faq-item">
+            <summary class="faq-title">Как алгоритм понимает, когда повторять слово?</summary>
+            <div class="faq-body">
+              После каждого ответа вы выбираете одну из четырёх оценок («Снова», «Трудно», «Хорошо», «Легко»). Алгоритм FSRS рассчитывает вероятность забывания и назначает следующий срок так, чтобы вы повторили материал в точке оптимального сохранения памяти.
+            </div>
+          </details>
 
-        <details class="faq-accordion">
-          <summary class="faq-summary">Можно ли загрузить свои слова из Anki, Quizlet или Excel?</summary>
-          <div class="faq-content">
-            Да! В разделе «Словарь» доступен импорт CSV. Ты можешь загрузить файл со списком слов, и система автоматически добавит их в колоду с дедупликацией (повторяющиеся слова будут безопасно пропущены).
-          </div>
-        </details>
+          <details class="faq-item">
+            <summary class="faq-title">Можно ли перенести колоду из Anki или Excel?</summary>
+            <div class="faq-body">
+              Да, в разделе «Словарь» поддерживается импорт CSV-файлов. Система автоматически распознает слова, добавит их в колоду и безопасно пропустит дубликаты.
+            </div>
+          </details>
 
-        <details class="faq-accordion">
-          <summary class="faq-summary">Сколько это стоит?</summary>
-          <div class="faq-content">
-            Базовая платформа с ботом, веб-кабинетом, FSRS алгоритмом и аналитикой бесплатна.
-          </div>
-        </details>
+          <details class="faq-item">
+            <summary class="faq-title">Что такое рекомендации по методике Krashen i+1?</summary>
+            <div class="faq-body">
+              Согласно гипотезе лингвиста Стивена Крашена, язык усваивается наиболее естественно, когда новый материал находится ровно на одну ступеньку выше вашего текущего уровня (i+1). Система отбирает именно такие слова.
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary class="faq-title">Платформа бесплатна?</summary>
+            <div class="faq-body">
+              Да, базовый функционал Telegram-бота, личного кабинета, интервальных тренировок FSRS и словаря доступен бесплатно.
+            </div>
+          </details>
+        </div>
       </div>
     </section>
 
-    <!-- SECTION: BOTTOM CTA BANNER -->
-    <section class="section-frame" style="text-align: center; padding: 48px 24px; background: linear-gradient(180deg, var(--graphite-slab) 0%, rgba(120, 15, 32, 0.15) 100%);">
-      <div class="eyebrow">{ READY TO START } <span class="eyebrow-cursor">_</span></div>
-      <h2 style="font-family: var(--font-display); font-size: 32px; margin-bottom: 14px;">Начни прокачивать английский прямо сейчас</h2>
-      <p style="color: var(--pewter-text); max-width: 520px; margin: 0 auto 28px auto; font-size: 14px; line-height: 1.6;">
-        Запусти бота в Telegram или перейди в веб-кабинет, чтобы проверить свои знания и настроить персональный ритм повторений.
-      </p>
+    <!-- Bottom CTA Banner -->
+    <section class="section" style="background: var(--color-surface); text-align: center;">
+      <div class="site-container">
+        <h2 style="font-size: clamp(1.75rem, 3.5vw, 2.5rem); font-weight: 700; letter-spacing: -0.02em; margin-bottom: 12px;">
+          Начните учить английские слова системно
+        </h2>
+        <p style="font-size: 1.0625rem; color: var(--color-text-secondary); max-width: 540px; margin: 0 auto 28px auto;">
+          Запустите Telegram-бота или войдите в личный кабинет, чтобы настроить индивидуальный ритм тренировок.
+        </p>
 
-      <div style="display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;">
-        <a href="https://t.me/ENG_Tutor_FSRS_bot" target="_blank" rel="noopener noreferrer" class="btn-primary" style="height: 48px; padding: 0 28px;">
-          Открыть бота в Telegram ✈️
-        </a>
-        <a href="/app" class="btn-secondary" style="height: 48px; padding: 0 28px;">
-          Личный кабинет ➔
-        </a>
-      </div>
-    </section>
-
-    <!-- Footer Slab -->
-    <footer class="footer-slab">
-      <div>
-        <strong style="color: #fff; font-family: var(--font-display); font-size: 15px;">ENG Tutor Platform</strong>
-        <div style="margin-top: 4px; font-size: 12px; color: var(--pewter-text);">
-          FSRS Spaced Repetition · FastAPI · aiogram 3 · Cognitive Science
+        <div class="hero-cta-group">
+          <a href="https://t.me/ENG_Tutor_FSRS_bot" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-lg">
+            Открыть бота в Telegram
+          </a>
+          <a href="/app" class="btn btn-secondary btn-lg">
+            Войти в веб-кабинет ➔
+          </a>
         </div>
       </div>
-      <div style="display: flex; gap: 20px; align-items: center; font-size: 12px;">
-        <a href="/app" style="color: var(--pewter-text); text-decoration: none;">Личный кабинет</a>
-        <a href="https://t.me/ENG_Tutor_FSRS_bot" target="_blank" rel="noopener noreferrer" style="color: var(--pewter-text); text-decoration: none;">Telegram Bot</a>
-        <code style="color: var(--emerald-success);">{ STATUS: 200 OK } _</code>
+    </section>
+  </main>
+
+  <!-- Site Footer -->
+  <footer class="site-footer">
+    <div class="site-container footer-content">
+      <div>
+        <strong style="color: var(--color-text-primary);">ENG Tutor</strong>
+        <div style="font-size: 0.8125rem; color: var(--color-text-muted); margin-top: 2px;">
+          Научный подход FSRS к изучению языка
+        </div>
       </div>
-    </footer>
-  </div>
+
+      <ul class="footer-links">
+        <li><a href="/app">Веб-кабинет</a></li>
+        <li><a href="https://t.me/ENG_Tutor_FSRS_bot" target="_blank" rel="noopener noreferrer">Telegram-бот</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ul>
+
+      <div style="font-size: 0.8125rem; color: var(--color-text-muted);">
+        © 2026 ENG Tutor. Все права защищены.
+      </div>
+    </div>
+  </footer>
 </body>
 </html>
