@@ -1,4 +1,7 @@
+import asyncio
 import logging
+import os
+import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -22,7 +25,8 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    get_settings().ensure_dirs()
+    settings = get_settings()
+    settings.ensure_dirs()
     await init_db()
     try:
         from sqlalchemy import func, select
@@ -37,7 +41,76 @@ async def lifespan(_app: FastAPI):
                 await seed_all_lessons()
     except (OSError, RuntimeError) as err:
         logger.warning("Could not auto-seed default lessons: %s", err)
+
+    bot_task: asyncio.Task | None = None
+    bot_instance = None
+    dp_instance = None
+    scheduler_instance = None
+
+    is_test_env = (
+        "pytest" in sys.modules
+        or os.environ.get("PYTEST_CURRENT_TEST") is not None
+    ) and not os.environ.get("FORCE_INTEGRATED_BOT_TEST")
+
+    has_token = (
+        bool(settings.telegram_bot_token)
+        and not settings.telegram_bot_token.startswith("your_")
+        and not settings.telegram_bot_token.startswith("test_")
+        and "TEST" not in settings.telegram_bot_token
+    )
+
+    if settings.run_bot_in_api and has_token and not is_test_env:
+        try:
+            from aiogram import Bot, Dispatcher
+
+            from app.bot.handlers.quiz import router as quiz_router
+            from app.bot.handlers.review import router as review_router
+            from app.bot.handlers.start import router as start_router
+            from app.bot.handlers.words import router as words_router
+            from app.bot.scheduler import create_scheduler
+
+            bot_instance = Bot(token=settings.telegram_bot_token)
+            dp_instance = Dispatcher()
+            dp_instance.include_router(start_router)
+            dp_instance.include_router(review_router)
+            dp_instance.include_router(quiz_router)
+            dp_instance.include_router(words_router)
+
+            if settings.review_reminder_enabled:
+                scheduler_instance = create_scheduler(bot_instance)
+                scheduler_instance.start()
+
+            bot_task = asyncio.create_task(
+                dp_instance.start_polling(bot_instance, handle_signals=False)
+            )
+            logger.info("Integrated Telegram bot polling started successfully")
+        except Exception:
+            logger.exception("Failed to start integrated Telegram bot")
+
     yield
+
+    if scheduler_instance is not None:
+        try:
+            scheduler_instance.shutdown(wait=False)
+        except (RuntimeError, OSError) as exc:
+            logger.debug("Error shutting down scheduler: %s", exc)
+
+    if dp_instance is not None and bot_task is not None:
+        try:
+            await dp_instance.stop_polling()
+        except (RuntimeError, OSError) as exc:
+            logger.debug("Error stopping bot polling: %s", exc)
+        bot_task.cancel()
+        try:
+            await bot_task
+        except (asyncio.CancelledError, RuntimeError, OSError) as exc:
+            logger.debug("Bot task cancellation finished: %s", exc)
+
+    if bot_instance is not None:
+        try:
+            await bot_instance.session.close()
+        except (RuntimeError, OSError) as exc:
+            logger.debug("Error closing bot session: %s", exc)
 
 
 def create_app() -> FastAPI:

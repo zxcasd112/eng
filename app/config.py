@@ -57,6 +57,7 @@ class Settings(BaseSettings):
     # Telegram Bot & Login Widget
     telegram_bot_token: str = ""
     telegram_bot_username: str = ""
+    run_bot_in_api: bool = True
 
     # OpenAI-compatible LLM & TTS
     openai_api_key: str = ""

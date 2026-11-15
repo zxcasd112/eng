@@ -13,8 +13,24 @@ services:
         value: production
       - key: APP_SECRET_KEY
         generateValue: true
-      - key: OPENAI_API_KEY
-        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: eng-db
+          property: connectionString
+      - key: RUN_BOT_IN_API
+        value: "true"
+      - key: CORS_ORIGINS
+        value: "https://eng-tutor.onrender.com,https://eng-tutor-omuc.onrender.com"
       - key: TELEGRAM_BOT_TOKEN
         sync: false
+      - key: TELEGRAM_BOT_USERNAME
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
 
+databases:
+  - name: eng-db
+    databaseName: eng_tutor
+    user: eng_user
+    region: frankfurt
+    plan: free
