@@ -1644,12 +1644,14 @@ async function loadProfile() {
   const tzInput = document.getElementById('profTimezoneInput');
   const remInput = document.getElementById('profReminderHourInput');
   const emailInput = document.getElementById('profEmailInput');
+  const chanSelect = document.getElementById('profChannelSelect');
 
   if (cefrSelect) cefrSelect.value = p.cefr_level || 'B1';
   if (goalInput) goalInput.value = p.daily_goal || 15;
   if (tzInput) tzInput.value = p.timezone || 'UTC';
   if (remInput) remInput.value = p.reminder_hour !== null && p.reminder_hour !== undefined ? p.reminder_hour : '';
   if (emailInput) emailInput.value = p.email || '';
+  if (chanSelect) chanSelect.value = p.reminder_channel || 'both';
 
   const activeTypes = p.active_card_types || ['en_ru', 'ru_en', 'cloze', 'audio'];
   ['en_ru', 'ru_en', 'cloze', 'audio'].forEach(t => {
@@ -1672,6 +1674,7 @@ async function handleSaveProfile(e) {
     daily_goal: parseInt(document.getElementById('profDailyGoalInput').value, 10) || 15,
     timezone: document.getElementById('profTimezoneInput').value.trim() || 'UTC',
     email: document.getElementById('profEmailInput').value.trim() || null,
+    reminder_channel: document.getElementById('profChannelSelect')?.value || 'both',
     active_card_types: activeTypes.length ? activeTypes : ['en_ru', 'ru_en']
   };
 
@@ -1686,9 +1689,9 @@ async function handleSaveProfile(e) {
   });
 
   if (res.ok) {
-    alert('Настройки профиля сохранены.');
+    showToast('Настройки профиля успешно сохранены! ✅', 'success');
   } else {
-    alert('Ошибка при сохранении: ' + (res.data ? res.data.detail : 'Проверьте поля'));
+    showToast('Ошибка при сохранении: ' + (res.data ? res.data.detail : 'Проверьте поля'), 'error');
   }
 }
 

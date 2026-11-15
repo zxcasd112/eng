@@ -18,33 +18,56 @@ async def send_due_reminders(bot: Bot) -> None:
 
     async with AsyncSessionLocal() as session:
         stmt = (
-            select(User.telegram_id, func.count(Card.id))
+            select(
+                User.id,
+                User.telegram_id,
+                User.email,
+                User.reminder_channel,
+                func.count(Card.id).label("due_count"),
+            )
             .join(Card, Card.user_id == User.id)
             .where(
                 User.reminder_hour == current_hour,
-                User.telegram_id.is_not(None),
                 Card.due_at <= now_utc,
             )
-            .group_by(User.id, User.telegram_id)
+            .group_by(User.id, User.telegram_id, User.email, User.reminder_channel)
         )
         rows = (await session.execute(stmt)).all()
 
-    for telegram_id, due_count in rows:
+    for user_id, telegram_id, email, reminder_channel, due_count in rows:
         if due_count <= 0:
             continue
-        try:
-            await bot.send_message(
-                chat_id=telegram_id,
-                text=(
-                    f"⏰ <b>Время повторить слова!</b>\n"
-                    f"У тебя накопилось карточек к повторению: <b>{due_count}</b>."
-                ),
-                parse_mode="HTML",
-                reply_markup=reminder_prompt_kb(),
-            )
-        except Exception:
-            logger.exception("Failed to send review reminder to telegram_id=%s", telegram_id)
-            continue
+        channel = (reminder_channel or "telegram").lower()
+
+        # 1. Telegram Dispatch
+        if channel in ("telegram", "both") and telegram_id:
+            try:
+                await bot.send_message(
+                    chat_id=telegram_id,
+                    text=(
+                        f"⏰ <b>Время повторить слова!</b>\n"
+                        f"У тебя накопилось карточек к повторению: <b>{due_count}</b>."
+                    ),
+                    parse_mode="HTML",
+                    reply_markup=reminder_prompt_kb(),
+                )
+            except Exception:
+                logger.exception("Failed to send review reminder to telegram_id=%s", telegram_id)
+
+        # 2. Email Dispatch
+        if channel in ("email", "both") and email:
+            try:
+                from app.services.email_service import (
+                    generate_unsubscribe_token,
+                    send_email_reminder,
+                )
+
+                unsub_token = generate_unsubscribe_token(user_id, email)
+                study_url = "https://eng-tutor-omuc.onrender.com/app/study"
+                unsub_url = f"https://eng-tutor-omuc.onrender.com/api/v1/profile/unsubscribe?token={unsub_token}"
+                await send_email_reminder(email, due_count, study_url, unsub_url)
+            except Exception:
+                logger.exception("Failed to send review email reminder to user_id=%s", user_id)
 
 
 def create_scheduler(bot: Bot) -> AsyncIOScheduler:

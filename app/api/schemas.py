@@ -289,6 +289,7 @@ class UserProfileResponse(BaseModel):
     daily_goal: int
     timezone: str
     reminder_hour: int | None = None
+    reminder_channel: str = "telegram"
     active_card_types: list[str]
 
 
@@ -297,6 +298,7 @@ class UpdateProfileRequest(BaseModel):
     daily_goal: int | None = None
     timezone: str | None = None
     reminder_hour: int | None = None
+    reminder_channel: str | None = None
     active_card_types: list[str] | None = None
     email: str | None = None
 
