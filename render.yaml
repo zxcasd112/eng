@@ -24,8 +24,10 @@ services:
       - key: TELEGRAM_BOT_TOKEN
         sync: false
       - key: TELEGRAM_BOT_USERNAME
-        sync: false
+        value: nigerbbbit_bot
       - key: OPENAI_API_KEY
+        sync: false
+      - key: GOOGLE_CLIENT_ID
         sync: false
 
 databases:

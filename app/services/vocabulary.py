@@ -58,6 +58,36 @@ async def get_or_create_user_by_telegram(
     return user
 
 
+async def get_or_create_user_by_email(
+    session: AsyncSession,
+    email: str,
+    first_name: str | None = None,
+) -> User:
+    norm_email = email.strip().lower()
+    res = await session.execute(select(User).where(User.email == norm_email))
+    user = res.scalar_one_or_none()
+    if user is None:
+        user = User(
+            email=norm_email,
+            first_name=first_name,
+            telegram_id=None,
+            active_card_types=list(ALL_CARD_TYPES),
+        )
+        session.add(user)
+        await session.flush()
+    else:
+        changed = False
+        if first_name is not None and not user.first_name:
+            user.first_name = first_name
+            changed = True
+        if not user.active_card_types:
+            user.active_card_types = list(ALL_CARD_TYPES)
+            changed = True
+        if changed:
+            await session.flush()
+    return user
+
+
 async def _get_or_create_source(
     session: AsyncSession,
     user_id: int,

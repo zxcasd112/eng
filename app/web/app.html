@@ -71,7 +71,7 @@
 
     <!-- 1. LOGIN VIEW -->
     <div id="loginView" style="display: none; max-width: 480px; margin: 60px auto;">
-      <div class="panel-card" style="text-align: center; padding: var(--space-10) var(--space-6);">
+      <div class="panel-card" style="text-align: center; padding: var(--space-8) var(--space-6);">
         <div class="brand-logo-mark" style="margin: 0 auto var(--space-4) auto; width: 40px; height: 40px;">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
             <line x1="4" y1="6" x2="20" y2="6"></line>
@@ -83,17 +83,53 @@
         <h1 style="font-size: 1.5rem; font-weight: 700; margin-bottom: var(--space-2);">
           Вход в ENG Tutor
         </h1>
-        <p style="font-size: 0.9375rem; color: var(--color-text-secondary); margin-bottom: var(--space-6); line-height: 1.5;">
-          Войдите через Telegram. Слова и карточки, добавленные в боте, синхронизируются в единую базу.
+        <p style="font-size: 0.9375rem; color: var(--color-text-secondary); margin-bottom: var(--space-5); line-height: 1.5;">
+          Выберите удобный способ входа: через Telegram или Gmail.
         </p>
 
-        <!-- Official Telegram Login Widget Container -->
-        <div id="telegramLoginWidgetContainer" style="min-height: 48px; display: flex; justify-content: center; margin-bottom: var(--space-4);">
-          <!-- Widget injected dynamically -->
+        <!-- Auth Switch Tabs -->
+        <div style="display: flex; gap: 8px; margin-bottom: var(--space-6); background: var(--color-surface-subtle); padding: 4px; border-radius: var(--radius-md); border: 1px solid var(--color-border);">
+          <button type="button" id="tabTelegramBtn" class="app-nav-pill active" style="flex: 1; justify-content: center; height: 36px;" onclick="switchAuthTab('telegram')">
+            Telegram
+          </button>
+          <button type="button" id="tabGmailBtn" class="app-nav-pill" style="flex: 1; justify-content: center; height: 36px;" onclick="switchAuthTab('gmail')">
+            Gmail / Google
+          </button>
         </div>
 
-        <div style="font-size: 0.8125rem; color: var(--color-text-muted); border-top: 1px solid var(--color-border); padding-top: var(--space-4);">
-          Безопасная авторизация через официальный Telegram Login Widget без паролей.
+        <!-- 1. Telegram Login Section -->
+        <div id="authSectionTelegram">
+          <div id="telegramLoginWidgetContainer" style="min-height: 48px; display: flex; justify-content: center; margin-bottom: var(--space-4);">
+            <!-- Widget injected dynamically -->
+          </div>
+          <div style="font-size: 0.8125rem; color: var(--color-text-muted);">
+            Безопасная авторизация через официальный Telegram Login Widget бота <a href="https://t.me/nigerbbbit_bot" target="_blank" rel="noopener noreferrer" style="color: var(--color-text-primary); text-decoration: underline;">@nigerbbbit_bot</a>
+          </div>
+        </div>
+
+        <!-- 2. Gmail / Google Login Section -->
+        <div id="authSectionGmail" style="display: none;">
+          <!-- Google Identity Services Container (if client ID is configured) -->
+          <div id="googleSignInContainer" style="display: flex; justify-content: center; margin-bottom: var(--space-4);"></div>
+
+          <!-- Direct Gmail form -->
+          <form onsubmit="handleEmailLogin(event)" style="display: flex; flex-direction: column; gap: var(--space-3); text-align: left;">
+            <div>
+              <label class="metric-label" style="display: block; margin-bottom: 6px;">Адрес Gmail / Email:</label>
+              <input type="email" id="emailLoginInput" class="input-field" placeholder="your.name@gmail.com" required style="width: 100%; height: 42px;">
+            </div>
+            <button type="submit" class="btn btn-primary" id="emailLoginBtn" style="width: 100%; height: 42px;">
+              Войти через Gmail ➔
+            </button>
+          </form>
+
+          <div style="font-size: 0.8125rem; color: var(--color-text-muted); margin-top: var(--space-4);">
+            Быстрый вход без пароля. Все сохранённые карточки и прогресс FSRS будут привязаны к вашему аккаунту.
+          </div>
+        </div>
+
+        <div style="font-size: 0.8125rem; color: var(--color-text-muted); border-top: 1px solid var(--color-border); padding-top: var(--space-4); margin-top: var(--space-6);">
+          Синхронизация Telegram-бота и личного веб-кабинета
         </div>
       </div>
     </div>

@@ -17,8 +17,17 @@ class AuthTokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user_id: int
-    telegram_id: int
+    telegram_id: int | None = None
+    email: str | None = None
     cefr_level: str
+
+
+class GoogleAuthPayload(BaseModel):
+    credential: str = Field(min_length=10, description="Google ID Token JWT")
+
+
+class EmailAuthPayload(BaseModel):
+    email: str = Field(min_length=5, max_length=255, description="Gmail or email address")
 
 
 class AddWordRequest(BaseModel):
@@ -260,7 +269,7 @@ class ImportWordsResponse(BaseModel):
 
 class UserProfileResponse(BaseModel):
     id: int
-    telegram_id: int
+    telegram_id: int | None = None
     username: str | None = None
     first_name: str | None = None
     email: str | None = None

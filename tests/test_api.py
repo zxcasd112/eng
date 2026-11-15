@@ -158,3 +158,44 @@ async def test_spa_app_routes(api_client):
     # /app/words subroute
     resp_words = await client.get("/app/words")
     assert resp_words.status_code == 200
+
+
+async def test_email_login_and_me_profile(api_client):
+    client, _ = api_client
+    resp = await client.post("/api/v1/auth/email", json={"email": "learner@gmail.com"})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["email"] == "learner@gmail.com"
+    assert "access_token" in data
+    assert "access_token" in resp.cookies
+
+    # Access /auth/me with the received cookie
+    me_resp = await client.get("/api/v1/auth/me")
+    assert me_resp.status_code == 200
+    me = me_resp.json()
+    assert me["email"] == "learner@gmail.com"
+    assert me["telegram_id"] is None
+
+
+async def test_google_login_with_mock(api_client, monkeypatch):
+    client, _ = api_client
+    from unittest.mock import AsyncMock
+
+    mock_verify = AsyncMock(
+        return_value={"email": "alice.google@gmail.com", "name": "Alice G", "email_verified": True}
+    )
+    monkeypatch.setattr("app.api.routes.auth.verify_google_id_token", mock_verify)
+
+    resp = await client.post("/api/v1/auth/google", json={"credential": "mock_google_id_token_12345"})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["email"] == "alice.google@gmail.com"
+    assert "access_token" in data
+
+
+async def test_widget_config_returns_nigerbbbit_bot(api_client):
+    client, _ = api_client
+    resp = await client.get("/api/v1/auth/widget-config")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["bot_username"] == "nigerbbbit_bot"

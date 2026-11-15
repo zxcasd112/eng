@@ -47,12 +47,18 @@ def verify_telegram_login(
     return hmac.compare_digest(computed_hash, str(received_hash))
 
 
-def create_access_token(user_id: int, telegram_id: int, expires_days: int = 30) -> str:
+def create_access_token(
+    user_id: int,
+    telegram_id: int | None = None,
+    email: str | None = None,
+    expires_days: int = 30,
+) -> str:
     settings = get_settings()
     now = datetime.now(UTC)
-    claims = {
+    claims: dict[str, Any] = {
         "sub": str(user_id),
         "tg_id": telegram_id,
+        "email": email,
         "iat": int(now.timestamp()),
         "exp": int((now + timedelta(days=expires_days)).timestamp()),
     }
@@ -62,3 +68,36 @@ def create_access_token(user_id: int, telegram_id: int, expires_days: int = 30) 
 def decode_access_token(token: str) -> dict[str, Any]:
     settings = get_settings()
     return jwt.decode(token, settings.app_secret_key, algorithms=["HS256"])
+
+
+async def verify_google_id_token(credential: str) -> dict[str, Any] | None:
+    """Verifies a Google ID token with Google's tokeninfo endpoint.
+
+    Returns the token payload if valid and email is verified; None otherwise.
+    """
+    if not credential:
+        return None
+
+    import httpx
+
+    settings = get_settings()
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(
+                "https://oauth2.googleapis.com/tokeninfo",
+                params={"id_token": credential},
+            )
+            if resp.status_code != 200:
+                return None
+            data = resp.json()
+
+            email_verified = data.get("email_verified")
+            if email_verified not in (True, "true"):
+                return None
+
+            if settings.google_client_id and data.get("aud") != settings.google_client_id:
+                return None
+
+            return data
+    except (httpx.HTTPError, ValueError, KeyError):
+        return None

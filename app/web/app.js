@@ -98,7 +98,15 @@ function updateUserUI() {
   if (currentUser) {
     if (badge) {
       badge.style.display = 'inline-flex';
-      badge.textContent = currentUser.username ? '@' + currentUser.username : 'TG: ' + currentUser.telegram_id;
+      if (currentUser.username) {
+        badge.textContent = '@' + currentUser.username;
+      } else if (currentUser.email) {
+        badge.textContent = currentUser.email.split('@')[0];
+      } else if (currentUser.telegram_id) {
+        badge.textContent = 'TG: ' + currentUser.telegram_id;
+      } else {
+        badge.textContent = 'ID: ' + currentUser.id;
+      }
     }
     if (logoutBtn) logoutBtn.style.display = 'inline-flex';
     if (navLinks) navLinks.style.display = 'flex';
@@ -185,17 +193,76 @@ function updateNavActiveState(currentPath) {
   });
 }
 
-// Telegram Login Widget Loader
+// Auth Tab Switcher (Telegram vs Gmail)
+function switchAuthTab(tab) {
+  const secTg = document.getElementById('authSectionTelegram');
+  const secGm = document.getElementById('authSectionGmail');
+  const btnTg = document.getElementById('tabTelegramBtn');
+  const btnGm = document.getElementById('tabGmailBtn');
+
+  if (tab === 'gmail') {
+    if (secTg) secTg.style.display = 'none';
+    if (secGm) secGm.style.display = 'block';
+    if (btnTg) btnTg.classList.remove('active');
+    if (btnGm) btnGm.classList.add('active');
+  } else {
+    if (secTg) secTg.style.display = 'block';
+    if (secGm) secGm.style.display = 'none';
+    if (btnTg) btnTg.classList.add('active');
+    if (btnGm) btnGm.classList.remove('active');
+  }
+}
+
+// Direct Email / Gmail login
+async function handleEmailLogin(e) {
+  if (e) e.preventDefault();
+  const input = document.getElementById('emailLoginInput');
+  const btn = document.getElementById('emailLoginBtn');
+  if (!input || !input.value.trim()) return;
+
+  const email = input.value.trim().toLowerCase();
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Вход...';
+  }
+
+  try {
+    const res = await fetchAPI('/auth/email', {
+      method: 'POST',
+      body: JSON.stringify({ email })
+    });
+
+    if (res.ok) {
+      currentUser = res.data;
+      updateUserUI();
+      checkAndShowOnboarding();
+      navigate('/app');
+    } else {
+      alert('Ошибка входа: ' + (res.data ? res.data.detail : 'Проверьте email'));
+    }
+  } catch (err) {
+    alert('Сетевая ошибка при входе');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Войти через Gmail ➔';
+    }
+  }
+}
+
+// Telegram & Google Login Widget Loader
 async function initTelegramLoginWidget() {
   const container = document.getElementById('telegramLoginWidgetContainer');
   if (!container || container.dataset.loaded) return;
   container.dataset.loaded = 'true';
 
-  let botUsername = 'ENG_Tutor_FSRS_bot';
+  let botUsername = 'nigerbbbit_bot';
+  let googleClientId = '';
   try {
     const res = await fetchAPI('/auth/widget-config');
-    if (res.ok && res.data && res.data.bot_username) {
-      botUsername = res.data.bot_username;
+    if (res.ok && res.data) {
+      if (res.data.bot_username) botUsername = res.data.bot_username;
+      if (res.data.google_client_id) googleClientId = res.data.google_client_id;
     }
   } catch (err) {
     console.warn('Could not load widget config:', err);
@@ -211,7 +278,55 @@ async function initTelegramLoginWidget() {
   script.setAttribute('data-request-access', 'write');
   container.innerHTML = '';
   container.appendChild(script);
+
+  if (googleClientId) {
+    initGoogleAuth(googleClientId);
+  }
 }
+
+function initGoogleAuth(clientId) {
+  const gContainer = document.getElementById('googleSignInContainer');
+  if (!gContainer || gContainer.dataset.loaded) return;
+  gContainer.dataset.loaded = 'true';
+
+  const gScript = document.createElement('script');
+  gScript.src = 'https://accounts.google.com/gsi/client';
+  gScript.async = true;
+  gScript.defer = true;
+  gScript.onload = () => {
+    if (window.google && window.google.accounts) {
+      window.google.accounts.id.initialize({
+        client_id: clientId,
+        callback: handleGoogleCredentialResponse
+      });
+      window.google.accounts.id.renderButton(gContainer, {
+        theme: 'filled_black',
+        size: 'large',
+        shape: 'pill',
+        text: 'signin_with',
+        locale: 'ru'
+      });
+    }
+  };
+  document.head.appendChild(gScript);
+}
+
+// Callback for Google One Tap / Sign in with Google
+window.handleGoogleCredentialResponse = async function(response) {
+  if (!response || !response.credential) return;
+  const res = await fetchAPI('/auth/google', {
+    method: 'POST',
+    body: JSON.stringify({ credential: response.credential })
+  });
+  if (res.ok) {
+    currentUser = res.data;
+    updateUserUI();
+    checkAndShowOnboarding();
+    navigate('/app');
+  } else {
+    alert('Ошибка авторизации через Google: ' + (res.data ? res.data.detail : 'Попробуйте снова'));
+  }
+};
 
 // Callback for Telegram Login Widget
 window.onTelegramAuth = async function(user) {
@@ -220,8 +335,9 @@ window.onTelegramAuth = async function(user) {
     body: JSON.stringify(user)
   });
   if (res.ok) {
-    currentUser = res.data.user;
+    currentUser = res.data.user || res.data;
     updateUserUI();
+    checkAndShowOnboarding();
     navigate('/app');
   } else {
     alert('Ошибка авторизации Telegram Widget: ' + (res.data ? res.data.detail : 'Попробуйте снова'));
@@ -546,7 +662,7 @@ async function loadStudyQueue() {
             Отправьте первое слово боту в Telegram или добавьте полезные слова из рекомендаций на дашборде.
           </p>
           <div style="display: flex; gap: var(--space-3); justify-content: center; flex-wrap: wrap; margin-top: var(--space-4);">
-            <a href="https://t.me/ENG_Tutor_FSRS_bot" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm">Открыть Telegram-бота ➔</a>
+            <a href="https://t.me/nigerbbbit_bot" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm">Открыть Telegram-бота ➔</a>
             <button class="btn btn-secondary btn-sm" onclick="navigate('/app')">К рекомендациям слов</button>
           </div>
         </div>

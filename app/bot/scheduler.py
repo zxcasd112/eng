@@ -22,6 +22,7 @@ async def send_due_reminders(bot: Bot) -> None:
             .join(Card, Card.user_id == User.id)
             .where(
                 User.reminder_hour == current_hour,
+                User.telegram_id.is_not(None),
                 Card.due_at <= now_utc,
             )
             .group_by(User.id, User.telegram_id)
