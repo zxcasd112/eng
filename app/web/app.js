@@ -250,11 +250,12 @@ async function renderRoute() {
   const readingView = document.getElementById('readingView');
   const practiceView = document.getElementById('practiceView');
   const mistakesView = document.getElementById('mistakesView');
+  const tutorView = document.getElementById('tutorView');
   const analyticsView = document.getElementById('analyticsView');
   const profileView = document.getElementById('profileView');
 
   // Hide all views first
-  [loadingView, loginView, dashboardView, studyView, wordsView, readingView, practiceView, mistakesView, analyticsView, profileView].forEach(v => {
+  [loadingView, loginView, dashboardView, studyView, wordsView, readingView, practiceView, mistakesView, tutorView, analyticsView, profileView].forEach(v => {
     if (v) v.style.display = 'none';
   });
 
@@ -293,6 +294,9 @@ async function renderRoute() {
   } else if (path === '/app/mistakes') {
     if (mistakesView) mistakesView.style.display = 'block';
     loadMistakes();
+  } else if (path === '/app/tutor') {
+    if (tutorView) tutorView.style.display = 'block';
+    loadTutor();
   } else if (path === '/app/analytics') {
     if (analyticsView) analyticsView.style.display = 'block';
     loadAnalytics();
@@ -2468,6 +2472,145 @@ async function convertMistakeToCard(mistakeId, btn) {
       btn.textContent = 'Сделать карточкой (Cloze) →';
     }
     showToast('Не удалось создать карточку: ' + (res.data ? res.data.detail : 'Ошибка'), 'error');
+  }
+}
+
+// ==========================================
+// 8. AI TUTOR (/app/tutor)
+// ==========================================
+let tutorHistory = [];
+let isTutorSending = false;
+
+function loadTutor() {
+  const container = document.getElementById('tutorMessagesContainer');
+  if (!container) return;
+
+  if (tutorHistory.length === 0) {
+    container.innerHTML = `
+      <div style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 16px; max-width: 80%; align-self: flex-start;">
+        <div style="font-weight: 600; color: var(--color-primary); margin-bottom: 6px;">AI-Репетитор 🎓</div>
+        <div style="font-size: 0.9375rem; line-height: 1.6; color: var(--color-text-primary);">
+          Здравствуйте! Я ваш персональный наставник по английскому языку. Я отслеживаю ваш текущий уровень, слова на изучении и типичные ошибки из тренировок.<br><br>
+          Спросите меня о значении любого слова, попросите проверить грамматику предложения или составить персональный квиз!
+        </div>
+      </div>
+    `;
+  }
+}
+
+function handleTutorQuickAction(action) {
+  const input = document.getElementById('tutorInput');
+  if (!input) return;
+
+  if (action === 'explain') {
+    input.value = 'Объясни значение и оттенки слова ';
+    input.focus();
+  } else if (action === 'check') {
+    input.value = 'Проверь предложение: ';
+    input.focus();
+  } else if (action === 'quiz') {
+    input.value = 'Сделай мини-квиз по моим словам из колоды';
+    handleTutorSubmit();
+  } else if (action === 'mistakes') {
+    input.value = 'Какие ошибки я чаще всего допускаю и как их избежать?';
+    handleTutorSubmit();
+  }
+}
+
+async function handleTutorSubmit(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  if (isTutorSending) return;
+
+  const input = document.getElementById('tutorInput');
+  const container = document.getElementById('tutorMessagesContainer');
+  const sendBtn = document.getElementById('tutorSendBtn');
+  const limitEl = document.getElementById('tutorLimitRemaining');
+  if (!input || !container) return;
+
+  const msg = input.value.trim();
+  if (!msg) return;
+
+  input.value = '';
+  isTutorSending = true;
+  if (sendBtn) {
+    sendBtn.disabled = true;
+    sendBtn.textContent = 'Думает...';
+  }
+
+  // Append user message
+  const userBubble = document.createElement('div');
+  userBubble.style.cssText = 'background: var(--color-primary); color: var(--color-text-inverted); border-radius: var(--radius-md); padding: 12px 16px; max-width: 80%; align-self: flex-end; font-size: 0.9375rem; word-break: break-word;';
+  userBubble.textContent = msg;
+  container.appendChild(userBubble);
+
+  // Append loading indicator
+  const loadingBubble = document.createElement('div');
+  loadingBubble.id = 'tutorLoadingBubble';
+  loadingBubble.style.cssText = 'background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 12px 16px; max-width: 80%; align-self: flex-start; font-size: 0.875rem; color: var(--color-text-muted);';
+  loadingBubble.textContent = 'Репетитор анализирует вопрос... ⏳';
+  container.appendChild(loadingBubble);
+  container.scrollTop = container.scrollHeight;
+
+  try {
+    const res = await fetchAPI('/tutor/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        message: msg,
+        history: tutorHistory.slice(-6)
+      })
+    });
+
+    if (loadingBubble.parentNode) {
+      loadingBubble.parentNode.removeChild(loadingBubble);
+    }
+
+    if (res.ok && res.data) {
+      const data = res.data;
+      if (limitEl && typeof data.daily_requests_remaining === 'number') {
+        limitEl.textContent = data.daily_requests_remaining;
+      }
+
+      tutorHistory.push({ role: 'user', content: msg });
+      tutorHistory.push({ role: 'assistant', content: data.reply });
+
+      const assistantBubble = document.createElement('div');
+      assistantBubble.style.cssText = 'background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 16px; max-width: 85%; align-self: flex-start; font-size: 0.9375rem; line-height: 1.6; word-break: break-word;';
+
+      let replyHtml = data.reply
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/\n/g, '<br>');
+
+      if (data.tool_calls_executed && data.tool_calls_executed.length > 0) {
+        const toolsNames = data.tool_calls_executed.map(t => t.tool_name).join(', ');
+        replyHtml += `<div style="margin-top: 10px; font-size: 0.75rem; color: var(--color-text-muted); border-top: 1px solid var(--color-border); padding-top: 6px;">🛠 Использованы инструменты: ${toolsNames}</div>`;
+      }
+
+      assistantBubble.innerHTML = `
+        <div style="font-weight: 600; color: var(--color-primary); margin-bottom: 6px;">AI-Репетитор 🎓</div>
+        <div>${replyHtml}</div>
+      `;
+      container.appendChild(assistantBubble);
+      container.scrollTop = container.scrollHeight;
+    } else {
+      const errDetail = res.data ? (res.data.detail || JSON.stringify(res.data)) : 'Ошибка соединения';
+      showToast(typeof errDetail === 'string' ? errDetail : 'Ошибка ответа репетитора', 'error');
+    }
+  } catch (err) {
+    if (loadingBubble.parentNode) {
+      loadingBubble.parentNode.removeChild(loadingBubble);
+    }
+    showToast('Сетевая ошибка при связи с репетитором', 'error');
+  } finally {
+    isTutorSending = false;
+    if (sendBtn) {
+      sendBtn.disabled = false;
+      sendBtn.textContent = 'Отправить ➔';
+    }
+    if (input) input.focus();
   }
 }
 

@@ -35,6 +35,7 @@
           <button class="app-nav-pill" data-route="/app/words" onclick="navigate('/app/words')">Словарь</button>
           <button class="app-nav-pill" data-route="/app/reading" onclick="navigate('/app/reading')">Чтение</button>
           <button class="app-nav-pill" data-route="/app/practice" onclick="navigate('/app/practice')">Тренажеры</button>
+          <button class="app-nav-pill" data-route="/app/tutor" onclick="navigate('/app/tutor')">Репетитор</button>
           <button class="app-nav-pill" data-route="/app/mistakes" onclick="navigate('/app/mistakes')">Ошибки</button>
           <button class="app-nav-pill" data-route="/app/analytics" onclick="navigate('/app/analytics')">Аналитика</button>
           <button class="app-nav-pill" data-route="/app/profile" onclick="navigate('/app/profile')">Профиль</button>
@@ -60,6 +61,7 @@
     <button class="app-nav-pill" data-route="/app/words" onclick="navigate('/app/words')">Словарь</button>
     <button class="app-nav-pill" data-route="/app/reading" onclick="navigate('/app/reading')">Чтение</button>
     <button class="app-nav-pill" data-route="/app/practice" onclick="navigate('/app/practice')">Тренажеры</button>
+    <button class="app-nav-pill" data-route="/app/tutor" onclick="navigate('/app/tutor')">Репетитор</button>
     <button class="app-nav-pill" data-route="/app/mistakes" onclick="navigate('/app/mistakes')">Ошибки</button>
     <button class="app-nav-pill" data-route="/app/analytics" onclick="navigate('/app/analytics')">Аналитика</button>
     <button class="app-nav-pill" data-route="/app/profile" onclick="navigate('/app/profile')">Профиль</button>
@@ -552,6 +554,44 @@
         <div id="mistakesListContainer" style="display: flex; flex-direction: column; gap: var(--space-3); margin-top: var(--space-4);">
           <!-- Injected dynamically -->
         </div>
+      </div>
+    </div>
+
+    <!-- TUTOR VIEW (/app/tutor) -->
+    <div id="tutorView" style="display: none;">
+      <div class="panel-card" style="display: flex; flex-direction: column; height: 75vh; min-height: 550px;">
+        <div class="panel-header" style="flex-shrink: 0;">
+          <div>
+            <h1 class="panel-title" style="font-size: 1.5rem;">AI-Репетитор</h1>
+            <div style="font-size: 0.875rem; color: var(--color-text-secondary);">
+              Персональный наставник, знающий ваш уровень, текущие слова и типичные ошибки
+            </div>
+          </div>
+          <div style="font-size: 0.8125rem; color: var(--color-text-secondary); background: var(--color-surface-subtle); padding: 4px 10px; border-radius: var(--radius-full); border: 1px solid var(--color-border);">
+            Осталось запросов: <strong id="tutorLimitRemaining">50</strong> / день
+          </div>
+        </div>
+
+        <!-- Quick actions -->
+        <div style="display: flex; gap: var(--space-2); flex-wrap: wrap; margin-bottom: var(--space-3); flex-shrink: 0;">
+          <button class="app-nav-pill" onclick="handleTutorQuickAction('explain')">💡 Объясни слово</button>
+          <button class="app-nav-pill" onclick="handleTutorQuickAction('check')">✍️ Проверь предложение</button>
+          <button class="app-nav-pill" onclick="handleTutorQuickAction('quiz')">🎯 Мини-квиз по словам</button>
+          <button class="app-nav-pill" onclick="handleTutorQuickAction('mistakes')">⚠️ Разбор моих ошибок</button>
+        </div>
+
+        <!-- Chat messages container -->
+        <div id="tutorMessagesContainer" style="flex: 1; overflow-y: auto; padding: var(--space-4); background: var(--color-surface-subtle); border: 1px solid var(--color-border); border-radius: var(--radius-md); display: flex; flex-direction: column; gap: var(--space-3); margin-bottom: var(--space-3);">
+          <!-- Messages injected dynamically -->
+        </div>
+
+        <!-- Chat input bar -->
+        <form id="tutorChatForm" onsubmit="handleTutorSubmit(event)" style="display: flex; gap: var(--space-2); flex-shrink: 0;">
+          <input id="tutorInput" class="input-field" type="text" placeholder="Задайте вопрос репетитору на русском или английском..." style="flex: 1;" autocomplete="off">
+          <button id="tutorSendBtn" type="submit" class="btn btn-primary" style="padding: 0 20px;">
+            Отправить ➔
+          </button>
+        </form>
       </div>
     </div>
 

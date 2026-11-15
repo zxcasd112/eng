@@ -252,6 +252,57 @@ async def cmd_explain(message: Message) -> None:
     await wait_msg.edit_text("\n".join(lines), parse_mode="HTML")
 
 
+@router.message(Command("ask"))
+async def cmd_ask(message: Message) -> None:
+    if not message.from_user or not message.text:
+        return
+    parts = message.text.strip().split(maxsplit=1)
+    if len(parts) < 2:
+        await message.answer(
+            "Задай вопрос AI-репетитору, например:\n"
+            "<code>/ask В чем разница между affect и effect?</code>\n"
+            "<code>/ask Проверь предложение: I have arrived yesterday.</code>\n"
+            "<code>/ask Объясни слово serendipity</code>",
+            parse_mode="HTML",
+        )
+        return
+
+    question = parts[1].strip()
+    wait_msg = await message.answer("⏳ Репетитор думает над ответом...", parse_mode="HTML")
+
+    async with AsyncSessionLocal() as session:
+        user = await get_or_create_user_by_telegram(
+            session=session,
+            telegram_id=message.from_user.id,
+            username=message.from_user.username,
+            first_name=message.from_user.first_name,
+            last_name=message.from_user.last_name,
+        )
+        try:
+            from fastapi import HTTPException
+
+            from app.api.routes.tutor import TutorChatRequest, tutor_chat
+
+            resp = await tutor_chat(
+                payload=TutorChatRequest(message=question),
+                user=user,
+                session=session,
+                llm_service=_llm_service,
+            )
+            reply = resp.reply
+            if resp.tool_calls_executed:
+                tools_used = ", ".join([tc.tool_name for tc in resp.tool_calls_executed])
+                reply += f"\n\n<i>(Использованы инструменты: {escape(tools_used)})</i>"
+            await wait_msg.edit_text(reply, parse_mode="HTML")
+        except HTTPException as he:
+            await wait_msg.edit_text(f"⚠️ {he.detail}")
+        except Exception:
+            logger.exception("Bot /ask tutor failed")
+            await wait_msg.edit_text(
+                "Не удалось получить ответ репетитора. Повторите попытку позже."
+            )
+
+
 @router.message(Command("level"))
 async def cmd_level(message: Message) -> None:
     await message.answer(

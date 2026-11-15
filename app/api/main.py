@@ -19,6 +19,7 @@ from app.api.routes.mistakes import router as mistakes_router
 from app.api.routes.practice import router as practice_router
 from app.api.routes.profile import router as profile_router
 from app.api.routes.quiz import router as quiz_router
+from app.api.routes.tutor import router as tutor_router
 from app.api.routes.words import router as words_router
 from app.config import get_settings
 from app.db.session import init_db
@@ -144,6 +145,7 @@ def create_app() -> FastAPI:
     app.include_router(practice_router)
     app.include_router(mistakes_router)
     app.include_router(content_router)
+    app.include_router(tutor_router)
 
     # Mount web app static files if they exist
     candidates = [

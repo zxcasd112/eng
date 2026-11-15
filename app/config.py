@@ -69,6 +69,7 @@ class Settings(BaseSettings):
     openai_tts_model: str = "gpt-4o-mini-tts"
     openai_tts_voice: str = "alloy"
     enable_tts: bool = True
+    tutor_daily_limit: int = 50
 
     # Reminders / Scheduler
     review_reminder_enabled: bool = True
