@@ -15,7 +15,4 @@ services:
         sync: false
       - key: TELEGRAM_BOT_TOKEN
         sync: false
-    disk:
-      name: eng-data
-      mountPath: /app/data
-      sizeGB: 1
+

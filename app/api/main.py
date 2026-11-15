@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    get_settings().ensure_dirs()
     await init_db()
     try:
         from sqlalchemy import func, select

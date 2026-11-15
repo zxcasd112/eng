@@ -12,6 +12,12 @@ from app.db.base import Base
 
 
 def create_engine_from_url(database_url: str) -> AsyncEngine:
+    # Normalize Postgres URLs provided by cloud hosts (Render, Railway, Heroku)
+    if database_url.startswith("postgres://"):
+        database_url = database_url.replace("postgres://", "postgresql+asyncpg://", 1)
+    elif database_url.startswith("postgresql://") and not database_url.startswith("postgresql+"):
+        database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+
     kwargs: dict = {"echo": False, "pool_pre_ping": True}
     if database_url.startswith("sqlite"):
         kwargs.pop("pool_pre_ping", None)
