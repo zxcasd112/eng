@@ -447,9 +447,20 @@ async def get_word_explanation(
     )
 
 
-async def get_user_stats(session: AsyncSession, user_id: int) -> dict:
+async def get_user_stats(session: AsyncSession, user_id: int, user_tz: str | None = None) -> dict:
     now_utc = datetime.now(UTC)
-    start_of_today = now_utc.replace(hour=0, minute=0, second=0, microsecond=0)
+    if user_tz:
+        try:
+            import zoneinfo
+            tz = zoneinfo.ZoneInfo(user_tz)
+        except Exception:  # noqa: BLE001
+            tz = UTC
+    else:
+        tz = UTC
+
+    now_user = datetime.now(tz)
+    start_of_today_user = now_user.replace(hour=0, minute=0, second=0, microsecond=0)
+    start_of_today = start_of_today_user.astimezone(UTC)
 
     total_cards = (
         await session.scalar(select(func.count(Card.id)).where(Card.user_id == user_id))

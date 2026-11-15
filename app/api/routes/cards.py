@@ -1,4 +1,7 @@
+from datetime import UTC, datetime
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_llm_service
@@ -104,6 +107,23 @@ async def list_due_cards(
     return [_card_to_out(c) for c in cards]
 
 
+@router.get("/cards/due/count")
+async def get_due_cards_count(
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+) -> dict[str, int]:
+    now_utc = datetime.now(UTC)
+    count = (
+        await session.scalar(
+            select(func.count(Card.id)).where(
+                Card.user_id == user.id,
+                Card.due_at <= now_utc,
+            )
+        )
+    ) or 0
+    return {"count": count}
+
+
 @router.get("/cards/types", response_model=CardTypesResponse)
 async def get_card_types(
     user: User = Depends(get_current_user),
@@ -142,6 +162,30 @@ async def review_card(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ) -> ReviewSubmitResponse:
+    # Verify card exists and belongs to user
+    res = await session.execute(
+        select(Card).where(Card.id == card_id, Card.user_id == user.id)
+    )
+    existing_card = res.scalar_one_or_none()
+    if not existing_card:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Card {card_id} not found for user {user.id}",
+        )
+
+    # Prevent duplicate submission within 5 seconds
+    if existing_card.last_review_at is not None:
+        last_rev = (
+            existing_card.last_review_at
+            if existing_card.last_review_at.tzinfo
+            else existing_card.last_review_at.replace(tzinfo=UTC)
+        )
+        if (datetime.now(UTC) - last_rev).total_seconds() < 5.0:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Review for this card was already submitted recently",
+            )
+
     try:
         card, _review = await submit_review(
             session=session,
@@ -171,5 +215,5 @@ async def get_stats(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ) -> UserStatsResponse:
-    stats = await get_user_stats(session=session, user_id=user.id)
+    stats = await get_user_stats(session=session, user_id=user.id, user_tz=user.timezone)
     return UserStatsResponse(**stats)

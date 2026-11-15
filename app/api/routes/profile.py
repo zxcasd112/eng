@@ -77,7 +77,9 @@ async def get_analytics(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ) -> UserAnalyticsResponse:
-    analytics_data = await get_user_analytics(session=session, user_id=user.id)
+    analytics_data = await get_user_analytics(
+        session=session, user_id=user.id, user_tz=user.timezone
+    )
     return UserAnalyticsResponse(**analytics_data)
 
 

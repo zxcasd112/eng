@@ -2,11 +2,69 @@
 
 const API_BASE = '/api/v1';
 
+// Study Queue Pure State Manager (Exportable for Unit Testing)
+function createStudyQueueManager() {
+  let queue = [];
+  let index = 0;
+  let isRevealed = false;
+  let filter = 'ALL';
+  let isSubmitting = false;
+
+  return {
+    getQueue: () => queue,
+    getIndex: () => index,
+    isAnswerRevealed: () => isRevealed,
+    getFilter: () => filter,
+    isSubmitting: () => isSubmitting,
+    getCurrentCard: () => queue[index] || null,
+    setFilter: (newFilter) => {
+      filter = newFilter;
+      index = 0;
+      isRevealed = false;
+      return filter;
+    },
+    setQueue: (newCards) => {
+      queue = Array.isArray(newCards) ? newCards : [];
+      index = 0;
+      isRevealed = false;
+      return queue;
+    },
+    revealAnswer: () => {
+      isRevealed = true;
+    },
+    canSubmit: () => !isSubmitting && index < queue.length,
+    startSubmit: () => {
+      if (isSubmitting) return false;
+      isSubmitting = true;
+      return true;
+    },
+    finishSubmitSuccess: () => {
+      isSubmitting = false;
+      index++;
+      isRevealed = false;
+      return index;
+    },
+    finishSubmitFailure: () => {
+      isSubmitting = false;
+      // Network/server failure does NOT advance the queue!
+      return index;
+    },
+    reset: () => {
+      queue = [];
+      index = 0;
+      isRevealed = false;
+      isSubmitting = false;
+    }
+  };
+}
+
+const studyQueueManager = createStudyQueueManager();
+
 // Global App State
 let currentUser = null;
 let currentRoute = '/app';
 
-// Study Session State
+// Study Session State (synced with studyQueueManager)
 let studyQueue = [];
 let studyIndex = 0;
 let isAnswerRevealed = false;
@@ -26,10 +84,45 @@ const wordsState = {
 
 // Quiz Lab State
 let currentQuiz = null;
+let isSubmittingQuiz = false;
+
+// Toast Notification System
+function showToast(message, type = 'info') {
+  if (typeof document === 'undefined') return;
+  let container = document.getElementById('toastContainer');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toastContainer';
+    container.style.cssText = 'position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; pointer-events: none;';
+    document.body.appendChild(container);
+  }
+
+  const toast = document.createElement('div');
+  const bg = type === 'error' ? 'var(--color-danger-bg)' : (type === 'success' ? 'var(--color-success-bg)' : 'var(--color-surface)');
+  const border = type === 'error' ? 'var(--color-danger-border)' : (type === 'success' ? 'var(--color-success-border)' : 'var(--color-border)');
+  const color = type === 'error' ? 'var(--color-danger)' : (type === 'success' ? 'var(--color-success)' : 'var(--color-text-primary)');
+
+  toast.style.cssText = `pointer-events: auto; background: ${bg}; border: 1px solid ${border}; color: ${color}; padding: 12px 18px; border-radius: var(--radius-md); font-size: 0.875rem; box-shadow: var(--shadow-lg); transition: all 0.25s ease; opacity: 0; transform: translateY(10px); max-width: 380px;`;
+  toast.textContent = message;
+  container.appendChild(toast);
+
+  requestAnimationFrame(() => {
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateY(0)';
+  });
+
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(10px)';
+    setTimeout(() => {
+      if (toast.parentNode) toast.parentNode.removeChild(toast);
+    }, 250);
+  }, 4000);
+}
 
 // Audio Pronunciation via Web Speech API
 function speakWord(text) {
-  if ('speechSynthesis' in window) {
+  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'en-US';
@@ -38,8 +131,9 @@ function speakWord(text) {
   }
 }
 
-// Unified API Fetch with Cookie Authentication
+// Unified API Fetch with Cookie Authentication & Resilient Error Handling
 async function fetchAPI(endpoint, options = {}) {
+  const silent = options.silent || endpoint.startsWith('/auth/me') || endpoint.startsWith('/auth/widget-config');
   const defaultHeaders = {};
   if (!(options.body instanceof FormData)) {
     defaultHeaders['Content-Type'] = 'application/json';
@@ -54,21 +148,32 @@ async function fetchAPI(endpoint, options = {}) {
     }
   };
 
-  const res = await fetch(`${API_BASE}${endpoint}`, opts);
-  if (res.status === 401) {
-    currentUser = null;
-    return { ok: false, status: 401, error: 'Unauthorized' };
-  }
+  try {
+    const res = await fetch(`${API_BASE}${endpoint}`, opts);
+    if (res.status === 401) {
+      currentUser = null;
+      return { ok: false, status: 401, error: 'Unauthorized' };
+    }
 
-  const contentType = res.headers.get('content-type') || '';
-  let data = null;
-  if (contentType.includes('application/json')) {
-    data = await res.json();
-  } else {
-    data = await res.text();
-  }
+    const contentType = res.headers.get('content-type') || '';
+    let data = null;
+    if (contentType.includes('application/json')) {
+      data = await res.json();
+    } else {
+      data = await res.text();
+    }
 
-  return { ok: res.ok, status: res.status, data };
+    if (res.status >= 500 && !silent) {
+      showToast('Ошибка сервера (5xx). Повторите попытку позже.', 'error');
+    }
+
+    return { ok: res.ok, status: res.status, data };
+  } catch (err) {
+    if (!silent) {
+      showToast('Сетевая ошибка: проверьте интернет-соединение.', 'error');
+    }
+    return { ok: false, status: 0, error: err.message, networkError: true };
+  }
 }
 
 // Check Authentication Status
@@ -128,7 +233,9 @@ function navigate(path) {
   renderRoute();
 }
 
-window.addEventListener('popstate', renderRoute);
+if (typeof window !== 'undefined') {
+  window.addEventListener('popstate', renderRoute);
+}
 
 async function renderRoute() {
   const path = window.location.pathname.replace(/\/$/, '') || '/app';
@@ -395,37 +502,39 @@ function initGoogleAuth(clientId) {
 }
 
 // Callback for Google One Tap / Sign in with Google
-window.handleGoogleCredentialResponse = async function(response) {
-  if (!response || !response.credential) return;
-  const res = await fetchAPI('/auth/google', {
-    method: 'POST',
-    body: JSON.stringify({ credential: response.credential })
-  });
-  if (res.ok) {
-    currentUser = res.data;
-    updateUserUI();
-    checkAndShowOnboarding();
-    navigate('/app');
-  } else {
-    alert('Ошибка авторизации через Google: ' + (res.data ? res.data.detail : 'Попробуйте снова'));
-  }
-};
+if (typeof window !== 'undefined') {
+  window.handleGoogleCredentialResponse = async function(response) {
+    if (!response || !response.credential) return;
+    const res = await fetchAPI('/auth/google', {
+      method: 'POST',
+      body: JSON.stringify({ credential: response.credential })
+    });
+    if (res.ok) {
+      currentUser = res.data;
+      updateUserUI();
+      checkAndShowOnboarding();
+      navigate('/app');
+    } else {
+      alert('Ошибка авторизации через Google: ' + (res.data ? res.data.detail : 'Попробуйте снова'));
+    }
+  };
 
-// Callback for Telegram Login Widget
-window.onTelegramAuth = async function(user) {
-  const res = await fetchAPI('/auth/telegram', {
-    method: 'POST',
-    body: JSON.stringify(user)
-  });
-  if (res.ok) {
-    currentUser = res.data.user || res.data;
-    updateUserUI();
-    checkAndShowOnboarding();
-    navigate('/app');
-  } else {
-    alert('Ошибка авторизации Telegram Widget: ' + (res.data ? res.data.detail : 'Попробуйте снова'));
-  }
-};
+  // Callback for Telegram Login Widget
+  window.onTelegramAuth = async function(user) {
+    const res = await fetchAPI('/auth/telegram', {
+      method: 'POST',
+      body: JSON.stringify(user)
+    });
+    if (res.ok) {
+      currentUser = res.data.user || res.data;
+      updateUserUI();
+      checkAndShowOnboarding();
+      navigate('/app');
+    } else {
+      alert('Ошибка авторизации Telegram Widget: ' + (res.data ? res.data.detail : 'Попробуйте снова'));
+    }
+  };
+}
 
 async function handleLogout() {
   await fetchAPI('/auth/logout', { method: 'POST' });
@@ -439,22 +548,24 @@ async function handleLogout() {
 // ==========================================
 async function loadDashboard() {
   try {
-    const [dueRes, profRes, anRes] = await Promise.all([
-      fetchAPI('/cards/due?limit=50'),
+    const [statsRes, profRes, anRes] = await Promise.all([
+      fetchAPI('/stats'),
       fetchAPI('/profile'),
       fetchAPI('/profile/analytics')
     ]);
 
-    // Due Today
-    const dueCount = dueRes.ok && Array.isArray(dueRes.data) ? dueRes.data.length : 0;
+    // Accurate Due Count without 50-limit ceiling
+    const dueCount = statsRes.ok && statsRes.data ? (statsRes.data.due_cards ?? 0) : 0;
     const dueEl = document.getElementById('dashDueCount');
     if (dueEl) dueEl.textContent = dueCount;
 
-    // Daily Goal & Streak
+    // Daily Goal & Streak & Real Reviewed Today (in user timezone)
     if (profRes.ok && profRes.data) {
       const goal = profRes.data.daily_goal || 15;
-      const streak = profRes.data.current_streak || 0;
-      
+      const streak = (statsRes.ok && statsRes.data && statsRes.data.streak_days !== undefined)
+        ? statsRes.data.streak_days
+        : (profRes.data.current_streak || 0);
+
       const streakBadge = document.getElementById('streakBadge');
       if (streakBadge) {
         streakBadge.style.display = 'inline-flex';
@@ -463,9 +574,13 @@ async function loadDashboard() {
       const dashStreak = document.getElementById('dashStreak');
       if (dashStreak) dashStreak.textContent = `${streak} дн`;
 
+      // Real reviewed today count from backend database
+      const reviewedToday = (statsRes.ok && statsRes.data && statsRes.data.reviewed_today !== undefined)
+        ? statsRes.data.reviewed_today
+        : ((anRes.ok && anRes.data && anRes.data.reviewed_today !== undefined) ? anRes.data.reviewed_today : 0);
+
       const goalProgress = document.getElementById('dashGoalProgress');
       const goalBar = document.getElementById('dashGoalBar');
-      const reviewedToday = Math.min(goal, Math.max(0, goal - dueCount));
       if (goalProgress) goalProgress.textContent = `${reviewedToday} / ${goal}`;
       if (goalBar) {
         const pct = Math.min(100, Math.round((reviewedToday / goal) * 100));
@@ -648,6 +763,7 @@ async function handleAnalyzeSentence() {
 async function loadInteractiveQuiz() {
   const container = document.getElementById('dashQuizContainer');
   if (!container) return;
+  isSubmittingQuiz = false;
 
   container.innerHTML = '<div style="color: var(--color-text-muted); text-align: center; padding: 24px;">Загружаем вопрос квиза...</div>';
 
@@ -680,7 +796,7 @@ async function loadInteractiveQuiz() {
 
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;" id="quizOptionsGrid">
       ${currentQuiz.options.map(opt => `
-        <button class="btn btn-secondary" style="height: auto; padding: 12px 16px; text-align: left; justify-content: flex-start; white-space: normal;" onclick="submitQuizAnswer('${opt.replace(/'/g, "\\'")}', this)">
+        <button class="btn btn-secondary quiz-option-btn" style="height: auto; padding: 12px 16px; text-align: left; justify-content: flex-start; white-space: normal;" onclick="submitQuizAnswer('${opt.replace(/'/g, "\\'")}', this)">
           ${opt}
         </button>
       `).join('')}
@@ -690,39 +806,60 @@ async function loadInteractiveQuiz() {
 }
 
 async function submitQuizAnswer(chosenOption, btn) {
-  if (!currentQuiz) return;
+  if (!currentQuiz || isSubmittingQuiz) return;
+  isSubmittingQuiz = true;
 
-  const res = await fetchAPI('/quiz/multiple-choice/answer', {
-    method: 'POST',
-    body: JSON.stringify({
-      quiz_id: currentQuiz.quiz_id,
-      chosen_option: chosenOption
-    })
+  // Immediately lock all options to prevent double-answering
+  const optionButtons = document.querySelectorAll('#quizOptionsGrid button');
+  optionButtons.forEach(b => {
+    b.disabled = true;
+    b.style.pointerEvents = 'none';
   });
 
-  const feedback = document.getElementById('quizFeedbackContainer');
-  if (res.ok && res.data) {
-    const isCorrect = res.data.is_correct;
-    if (isCorrect) {
-      btn.style.borderColor = 'var(--color-success)';
-      btn.style.background = 'var(--color-success-bg)';
-      btn.style.color = 'var(--color-success)';
-    } else {
-      btn.style.borderColor = 'var(--color-danger)';
-      btn.style.background = 'var(--color-danger-bg)';
-      btn.style.color = 'var(--color-danger)';
-    }
+  try {
+    const res = await fetchAPI('/quiz/multiple-choice/answer', {
+      method: 'POST',
+      body: JSON.stringify({
+        quiz_id: currentQuiz.quiz_id,
+        chosen_option: chosenOption
+      })
+    });
 
-    if (feedback) {
-      feedback.innerHTML = `
-        <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-radius: var(--radius-md); background: ${isCorrect ? 'var(--color-success-bg)' : 'var(--color-danger-bg)'}; border: 1px solid ${isCorrect ? 'var(--color-success-border)' : 'var(--color-danger-border)'};">
-          <span style="font-size: 0.875rem; color: ${isCorrect ? 'var(--color-success)' : 'var(--color-danger)'};">
-            ${isCorrect ? 'Верно!' : `Правильный ответ: <strong>${res.data.correct_answer}</strong>`}
-          </span>
-          <button class="btn btn-primary btn-sm" onclick="loadInteractiveQuiz()">Следующий ➔</button>
-        </div>
-      `;
+    const feedback = document.getElementById('quizFeedbackContainer');
+    if (res.ok && res.data) {
+      const isCorrect = res.data.is_correct;
+      if (btn) {
+        if (isCorrect) {
+          btn.style.borderColor = 'var(--color-success)';
+          btn.style.background = 'var(--color-success-bg)';
+          btn.style.color = 'var(--color-success)';
+        } else {
+          btn.style.borderColor = 'var(--color-danger)';
+          btn.style.background = 'var(--color-danger-bg)';
+          btn.style.color = 'var(--color-danger)';
+        }
+      }
+
+      if (feedback) {
+        feedback.innerHTML = `
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-radius: var(--radius-md); background: ${isCorrect ? 'var(--color-success-bg)' : 'var(--color-danger-bg)'}; border: 1px solid ${isCorrect ? 'var(--color-success-border)' : 'var(--color-danger-border)'};">
+            <span style="font-size: 0.875rem; color: ${isCorrect ? 'var(--color-success)' : 'var(--color-danger)'};">
+              ${isCorrect ? 'Верно!' : `Правильный ответ: <strong>${res.data.correct_answer}</strong>`}
+            </span>
+            <button class="btn btn-primary btn-sm" onclick="loadInteractiveQuiz()">Следующий →</button>
+          </div>
+        `;
+      }
+    } else {
+      // Re-enable on error
+      optionButtons.forEach(b => {
+        b.disabled = false;
+        b.style.pointerEvents = 'auto';
+      });
+      showToast('Не удалось отправить ответ квиза', 'error');
     }
+  } finally {
+    isSubmittingQuiz = false;
   }
 }
 
@@ -792,14 +929,17 @@ async function loadStudyQueue() {
     return;
   }
 
-  studyQueue = res.data;
-  studyIndex = 0;
-  isAnswerRevealed = false;
+  studyQueueManager.setQueue(res.data);
+  studyQueue = studyQueueManager.getQueue();
+  studyIndex = studyQueueManager.getIndex();
+  isAnswerRevealed = studyQueueManager.isAnswerRevealed();
   renderCurrentStudyCard();
 }
 
 function setStudyTypeFilter(type) {
   studyTypeFilter = type;
+  studyQueueManager.setFilter(type);
+  studyIndex = studyQueueManager.getIndex();
   document.querySelectorAll('.studio-tab').forEach(t => {
     t.classList.toggle('active', t.getAttribute('data-type') === type);
   });
@@ -958,6 +1098,7 @@ function handleCardClick(e) {
 }
 
 function revealCardAnswer() {
+  studyQueueManager.revealAnswer();
   isAnswerRevealed = true;
   const backFace = document.getElementById('cardBackFace');
   const revealBtn = document.getElementById('revealBtnContainer');
@@ -966,32 +1107,53 @@ function revealCardAnswer() {
 }
 
 async function submitCardRating(cardId, rating) {
-  await fetchAPI(`/cards/${cardId}/review`, {
+  if (!studyQueueManager.startSubmit()) return;
+
+  const ratingButtons = document.querySelectorAll('.rating-btn');
+  ratingButtons.forEach(b => {
+    b.disabled = true;
+    b.style.pointerEvents = 'none';
+  });
+
+  const res = await fetchAPI(`/cards/${cardId}/review`, {
     method: 'POST',
     body: JSON.stringify({ rating: rating })
   });
 
-  studyIndex++;
-  isAnswerRevealed = false;
-  renderCurrentStudyCard();
+  if (res.ok || res.status === 409) {
+    studyQueueManager.finishSubmitSuccess();
+    studyIndex = studyQueueManager.getIndex();
+    isAnswerRevealed = studyQueueManager.isAnswerRevealed();
+    renderCurrentStudyCard();
+  } else {
+    // Network or server error: DO NOT advance queue!
+    studyQueueManager.finishSubmitFailure();
+    ratingButtons.forEach(b => {
+      b.disabled = false;
+      b.style.pointerEvents = 'auto';
+    });
+    showToast('Не удалось сохранить ответ. Попробуйте еще раз.', 'error');
+  }
 }
 
 // Global hotkeys for study studio
-document.addEventListener('keydown', (e) => {
-  if (currentRoute !== '/app/study' || !studyQueue.length || studyIndex >= studyQueue.length) return;
-  if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+if (typeof document !== 'undefined') {
+  document.addEventListener('keydown', (e) => {
+    if (currentRoute !== '/app/study' || !studyQueue.length || studyIndex >= studyQueue.length) return;
+    if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
 
-  if (e.code === 'Space') {
-    e.preventDefault();
-    if (!isAnswerRevealed) revealCardAnswer();
-  } else if (isAnswerRevealed) {
-    const card = studyQueue[studyIndex];
-    if (e.key === '1') submitCardRating(card.id, 1);
-    if (e.key === '2') submitCardRating(card.id, 2);
-    if (e.key === '3') submitCardRating(card.id, 3);
-    if (e.key === '4') submitCardRating(card.id, 4);
-  }
-});
+    if (e.code === 'Space') {
+      e.preventDefault();
+      if (!isAnswerRevealed) revealCardAnswer();
+    } else if (isAnswerRevealed) {
+      const card = studyQueue[studyIndex];
+      if (e.key === '1') submitCardRating(card.id, 1);
+      if (e.key === '2') submitCardRating(card.id, 2);
+      if (e.key === '3') submitCardRating(card.id, 3);
+      if (e.key === '4') submitCardRating(card.id, 4);
+    }
+  });
+}
 
 // ==========================================
 // 3. WORDS DECK VIEW
@@ -1250,15 +1412,23 @@ async function loadAnalytics() {
   }
 
   // 2. Card Types Accuracy
-  if (cardTypesContainer && an.card_type_accuracy) {
+  const breakdownList = an.card_types_breakdown || [];
+  const breakdownMap = {};
+  breakdownList.forEach(item => {
+    breakdownMap[item.card_type] = item.accuracy_pct;
+  });
+
+  if (cardTypesContainer) {
     const types = [
-      { key: 'en_ru', label: 'Прямой перевод (EN ➔ RU)' },
-      { key: 'ru_en', label: 'Активное воспроизведение (RU ➔ EN)' },
+      { key: 'en_ru', label: 'Прямой перевод (EN → RU)' },
+      { key: 'ru_en', label: 'Активное воспроизведение (RU → EN)' },
       { key: 'cloze', label: 'Пропуск в контексте (Cloze)' },
       { key: 'audio', label: 'Восприятие на слух (Audio)' }
     ];
     cardTypesContainer.innerHTML = types.map(t => {
-      const acc = an.card_type_accuracy[t.key] !== undefined ? an.card_type_accuracy[t.key] : 100;
+      const acc = (an.card_type_accuracy && an.card_type_accuracy[t.key] !== undefined)
+        ? an.card_type_accuracy[t.key]
+        : (breakdownMap[t.key] !== undefined ? breakdownMap[t.key] : 100);
       return `
         <div>
           <div style="display: flex; justify-content: space-between; font-size: 0.8125rem; margin-bottom: 4px;">
@@ -1274,14 +1444,16 @@ async function loadAnalytics() {
   }
 
   // 3. 7-Day Workload Forecast
-  if (forecastContainer && an.forecast_7d) {
-    const maxVal = Math.max(1, ...an.forecast_7d.map(d => d.due_count));
-    forecastContainer.innerHTML = an.forecast_7d.map(d => {
-      const heightPct = Math.round((d.due_count / maxVal) * 100);
+  const forecastList = an.workload_forecast_7d || an.forecast_7d || [];
+  if (forecastContainer && forecastList.length) {
+    const maxVal = Math.max(1, ...forecastList.map(d => d.due_cards_count !== undefined ? d.due_cards_count : (d.due_count || 0)));
+    forecastContainer.innerHTML = forecastList.map(d => {
+      const count = d.due_cards_count !== undefined ? d.due_cards_count : (d.due_count || 0);
+      const heightPct = Math.round((count / maxVal) * 100);
       const dayLabel = d.date.slice(5);
       return `
         <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end;">
-          <div style="font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted);">${d.due_count}</div>
+          <div style="font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted);">${count}</div>
           <div style="width: 100%; background: var(--color-primary); border-radius: 4px; height: ${Math.max(8, heightPct)}%;"></div>
           <div style="font-size: 0.6875rem; color: var(--color-text-muted);">${dayLabel}</div>
         </div>
@@ -1333,7 +1505,7 @@ function renderRetentionSvgChart(container, dailyData) {
   const points = dailyData.map((d, idx) => {
     const denom = Math.max(1, dailyData.length - 1);
     const x = padLeft + (idx / denom) * chartW;
-    const rawRate = Number(d.retention_rate);
+    const rawRate = Number(d.retention_pct !== undefined ? d.retention_pct : d.retention_rate);
     const rate = (!isNaN(rawRate) && isFinite(rawRate)) ? Math.max(0, Math.min(100, rawRate)) : 100;
     const y = padTop + chartH - (rate / 100) * chartH;
     return {
@@ -2018,8 +2190,14 @@ async function handleSendSpeakingMessage() {
 }
 
 // Entrypoint initialization
-document.addEventListener('DOMContentLoaded', () => {
-  if (document.getElementById('appRoot')) {
-    renderRoute();
-  }
-});
+if (typeof document !== 'undefined') {
+  document.addEventListener('DOMContentLoaded', () => {
+    if (document.getElementById('appRoot')) {
+      renderRoute();
+    }
+  });
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { createStudyQueueManager };
+}

@@ -12,7 +12,7 @@ from app.services.cefr import get_cefr_distance, normalize_cefr
 from app.services.review_engine import ALL_CARD_TYPES
 
 
-async def get_user_analytics(session: AsyncSession, user_id: int) -> dict:
+async def get_user_analytics(session: AsyncSession, user_id: int, user_tz: str | None = None) -> dict:
     """Compute comprehensive cognitive learning analytics for a user."""
     now_utc = datetime.now(UTC)
     thirty_days_ago = now_utc - timedelta(days=30)
@@ -31,6 +31,30 @@ async def get_user_analytics(session: AsyncSession, user_id: int) -> dict:
     total_30d = len(rev_rows)
     passed_30d = sum(1 for r in rev_rows if r.rating >= 3)
     retention_30d = round((passed_30d / total_30d) * 100, 1) if total_30d else 0.0
+
+    if user_tz:
+        try:
+            import zoneinfo
+            tz = zoneinfo.ZoneInfo(user_tz)
+        except Exception:  # noqa: BLE001
+            tz = UTC
+    else:
+        tz = UTC
+
+    now_user = datetime.now(tz)
+    start_of_today_user = now_user.replace(hour=0, minute=0, second=0, microsecond=0)
+    start_of_today_utc = start_of_today_user.astimezone(UTC)
+
+    reviewed_today = sum(
+        1
+        for r in rev_rows
+        if (
+            r.reviewed_at.astimezone(UTC)
+            if r.reviewed_at.tzinfo
+            else r.reviewed_at.replace(tzinfo=UTC)
+        )
+        >= start_of_today_utc
+    )
 
     daily_map = defaultdict(lambda: {"total": 0, "passed": 0})
     for r in rev_rows:
@@ -212,6 +236,7 @@ async def get_user_analytics(session: AsyncSession, user_id: int) -> dict:
         "workload_forecast_7d": workload_forecast_7d,
         "stability_stats": stability_stats,
         "difficulty_stats": difficulty_stats,
+        "reviewed_today": reviewed_today,
     }
 
 

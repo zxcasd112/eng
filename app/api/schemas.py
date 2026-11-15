@@ -351,6 +351,7 @@ class UserAnalyticsResponse(BaseModel):
     workload_forecast_7d: list[DailyForecastItem]
     stability_stats: ValueDistributionStats
     difficulty_stats: ValueDistributionStats
+    reviewed_today: int = 0
 
 
 class RecommendationItem(BaseModel):
