@@ -1156,6 +1156,10 @@ button, input, select, textarea {
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 
+.read-token.in-deck {
+  border-bottom: 2px solid var(--color-success);
+}
+
 .read-token:hover {
   background-color: var(--color-surface-subtle);
   text-decoration: underline;

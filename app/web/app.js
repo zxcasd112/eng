@@ -679,16 +679,30 @@ async function addWordToDeck(lemma, translation, cefr, btn) {
       btn.classList.remove('btn-primary');
       btn.classList.add('btn-secondary');
     }
+    showToast(`Слово "${lemma}" добавлено в колоду!`, 'success');
+    if (typeof userDeckWordSet !== 'undefined') {
+      userDeckWordSet.add(lemma.toLowerCase().trim());
+      if (typeof document !== 'undefined') {
+        document.querySelectorAll('.read-token').forEach(el => {
+          const wordText = el.textContent.toLowerCase().replace(/[^a-z'-]/g, '');
+          if (wordText === lemma.toLowerCase().trim()) {
+            el.classList.add('in-deck');
+          }
+        });
+      }
+    }
   } else {
     let msg = 'Ошибка при добавлении слова';
     if (res.data) {
       if (typeof res.data.detail === 'string') {
         msg = res.data.detail;
       } else if (Array.isArray(res.data.detail) && res.data.detail.length > 0) {
-        msg = res.data.detail.map(d => d.msg || d.type).join(', ');
+        msg = res.data.detail.map(d => (typeof d === 'string' ? d : (d.msg || d.type || JSON.stringify(d)))).join(', ');
+      } else if (typeof res.data.detail === 'object') {
+        msg = JSON.stringify(res.data.detail);
       }
     }
-    alert('Не удалось добавить слово: ' + msg);
+    showToast('Не удалось добавить слово: ' + msg, 'error');
     if (btn) {
       btn.disabled = false;
       btn.textContent = 'В колоду';
@@ -1741,10 +1755,23 @@ const QUICK_DICT = {
 let currentReadingText = READING_PRESETS.habits.text;
 let currentActiveToken = null;
 let readingPopoverListenerAdded = false;
+let userDeckWordSet = new Set();
 
-function loadReading() {
+async function syncUserDeckWords() {
+  try {
+    const res = await fetchAPI('/words?page=1&page_size=100', { silent: true });
+    if (res.ok && res.data && res.data.items) {
+      userDeckWordSet = new Set(res.data.items.map(it => (it.lemma || '').toLowerCase().trim()));
+    }
+  } catch (err) {
+    console.debug('Could not sync user deck words:', err);
+  }
+}
+
+async function loadReading() {
+  await syncUserDeckWords();
   loadReadingPreset('habits');
-  if (!readingPopoverListenerAdded) {
+  if (!readingPopoverListenerAdded && typeof document !== 'undefined') {
     document.addEventListener('click', onDocumentClickReadingPopover);
     readingPopoverListenerAdded = true;
   }
@@ -1767,6 +1794,68 @@ function hideReadingPopover() {
   }
 }
 
+function toggleReadingGenerator(btn) {
+  const genBox = document.getElementById('readingGeneratorContainer');
+  const customBox = document.getElementById('customTextContainer');
+  if (!genBox) return;
+  if (customBox) customBox.style.display = 'none';
+
+  const isHidden = genBox.style.display === 'none';
+  genBox.style.display = isHidden ? 'block' : 'none';
+  if (btn) {
+    document.querySelectorAll('.reading-preset-btn').forEach(b => b.classList.remove('active'));
+    if (isHidden) btn.classList.add('active');
+  }
+}
+
+async function handleGenerateReadingText() {
+  const btn = document.getElementById('readGenSubmitBtn');
+  const cefr = document.getElementById('readGenCefr')?.value || 'B1';
+  const fmt = document.getElementById('readGenFormat')?.value || 'text';
+  const wordCount = parseInt(document.getElementById('readGenWords')?.value, 10) || 150;
+  const topic = document.getElementById('readGenTopic')?.value?.trim() || 'General English';
+  const targetRaw = document.getElementById('readGenTarget')?.value?.trim() || '';
+
+  const targetWords = targetRaw
+    ? targetRaw.split(/[,;\s]+/).map(w => w.trim()).filter(Boolean)
+    : [];
+
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Генерация текста (AI)... ⏳';
+  }
+
+  try {
+    const res = await fetchAPI('/content/generate', {
+      method: 'POST',
+      body: JSON.stringify({
+        cefr_level: cefr,
+        topic: topic,
+        word_count: wordCount,
+        format: fmt,
+        target_words: targetWords.length ? targetWords : null
+      })
+    });
+
+    if (res.ok && res.data) {
+      const data = res.data;
+      currentReadingText = data.text;
+      renderReadingContent(data.text, data.title, data.new_words, data.comprehension_questions);
+      showToast('Текст успешно сгенерирован!', 'success');
+    } else {
+      const err = (res.data && res.data.detail) ? res.data.detail : 'Не удалось сгенерировать текст';
+      showToast(typeof err === 'string' ? err : 'Ошибка генерации', 'error');
+    }
+  } catch (err) {
+    showToast('Сетевая ошибка при генерации текста', 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Сгенерировать текст (AI) ➔';
+    }
+  }
+}
+
 function loadReadingPreset(presetKey, btn) {
   if (btn) {
     document.querySelectorAll('.reading-preset-btn').forEach(b => b.classList.remove('active'));
@@ -1777,16 +1866,22 @@ function loadReadingPreset(presetKey, btn) {
 
   const preset = READING_PRESETS[presetKey] || READING_PRESETS.habits;
   currentReadingText = preset.text;
-  renderReadingContent(currentReadingText);
+  renderReadingContent(currentReadingText, preset.title || 'Тематический текст');
 }
 
-function toggleCustomTextInput() {
+function toggleCustomTextInput(btn) {
   const customBox = document.getElementById('customTextContainer');
+  const genBox = document.getElementById('readingGeneratorContainer');
   if (!customBox) return;
+  if (genBox) genBox.style.display = 'none';
+
   const isHidden = customBox.style.display === 'none';
   customBox.style.display = isHidden ? 'block' : 'none';
-  if (isHidden) {
+  if (btn) {
     document.querySelectorAll('.reading-preset-btn').forEach(b => b.classList.remove('active'));
+    if (isHidden) btn.classList.add('active');
+  }
+  if (isHidden) {
     const input = document.getElementById('customTextInput');
     if (input) input.focus();
   }
@@ -1796,11 +1891,16 @@ function applyCustomText() {
   const input = document.getElementById('customTextInput');
   if (!input || !input.value.trim()) return;
   currentReadingText = input.value.trim();
-  renderReadingContent(currentReadingText);
+  renderReadingContent(currentReadingText, 'Пользовательский текст');
 }
 
-function renderReadingContent(rawText) {
+function renderReadingContent(rawText, title = 'Интерактивный материал', newWords = [], questions = []) {
   const container = document.getElementById('readingArticleContent');
+  const titleEl = document.getElementById('readingArticleTitle');
+  const vocabBox = document.getElementById('readingVocabContainer');
+  const compBox = document.getElementById('readingComprehensionContainer');
+
+  if (titleEl) titleEl.textContent = title;
   if (!container) return;
   hideReadingPopover();
 
@@ -1816,7 +1916,10 @@ function renderReadingContent(rawText) {
 
     tokens.forEach(tok => {
       if (/^[a-zA-Z0-9'-]+$/.test(tok)) {
-        paraHtml += `<span class="read-token" onclick="handleReadWordClick(this, '${tok.replace(/'/g, "\\'")}')">${tok}</span>`;
+        const cleanTok = tok.toLowerCase();
+        const isInDeck = userDeckWordSet.has(cleanTok);
+        const deckClass = isInDeck ? ' in-deck' : '';
+        paraHtml += `<span class="read-token${deckClass}" onclick="handleReadWordClick(this, '${tok.replace(/'/g, "\\'")}')">${tok}</span>`;
       } else {
         paraHtml += tok.replace(/\n/g, '<br>');
       }
@@ -1827,6 +1930,91 @@ function renderReadingContent(rawText) {
   });
 
   container.innerHTML = html;
+
+  // Render Target/New Vocabulary
+  if (vocabBox) {
+    if (newWords && newWords.length > 0) {
+      vocabBox.style.display = 'block';
+      vocabBox.innerHTML = `
+        <div style="font-weight: 600; font-size: 1rem; margin-bottom: var(--space-3); color: var(--color-text-primary);">
+          Ключевые слова текста (${newWords.length})
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--space-3);">
+          ${newWords.map(w => `
+            <div style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 12px; display: flex; flex-direction: column; justify-content: space-between;">
+              <div>
+                <div style="font-weight: 600; font-size: 1rem; color: var(--color-primary);">${w.lemma}</div>
+                <div style="font-size: 0.875rem; color: var(--color-text-secondary); margin-top: 2px;">${w.translation_ru}</div>
+              </div>
+              <button class="btn btn-secondary btn-sm" style="margin-top: 10px; width: 100%;" onclick="addWordToDeck('${w.lemma.replace(/'/g, "\\'")}', '${w.translation_ru.replace(/'/g, "\\'")}', 'B1', this)">
+                + В колоду
+              </button>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    } else {
+      vocabBox.style.display = 'none';
+      vocabBox.innerHTML = '';
+    }
+  }
+
+  // Render Comprehension Questions
+  if (compBox) {
+    if (questions && questions.length > 0) {
+      compBox.style.display = 'block';
+      compBox.innerHTML = `
+        <div style="font-weight: 600; font-size: 1.0625rem; margin-bottom: var(--space-4); display: flex; align-items: center; justify-content: space-between;">
+          <span>Вопросы на понимание прочитанного (${questions.length})</span>
+          <span style="font-size: 0.8125rem; color: var(--color-text-secondary); font-weight: normal;">Выберите правильный ответ</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: var(--space-4);">
+          ${questions.map((q, idx) => `
+            <div style="background: var(--color-surface-subtle); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 16px;">
+              <div style="font-weight: 500; font-size: 0.9375rem; margin-bottom: 12px; color: var(--color-text-primary);">
+                ${idx + 1}. ${q.q}
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px;">
+                ${q.options.map(opt => `
+                  <button class="btn btn-secondary btn-sm comp-opt-btn" style="text-align: left; padding: 8px 12px; white-space: normal; height: auto;" onclick="handleComprehensionOption(this, ${opt === q.answer}, '${q.answer.replace(/'/g, "\\'")}')">
+                    ${opt}
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    } else {
+      compBox.style.display = 'none';
+      compBox.innerHTML = '';
+    }
+  }
+}
+
+function handleComprehensionOption(btn, isCorrect, correctAns) {
+  const parent = btn.parentElement;
+  if (!parent) return;
+
+  parent.querySelectorAll('.comp-opt-btn').forEach(b => {
+    b.disabled = true;
+    if (b.textContent.trim() === correctAns.trim()) {
+      b.style.backgroundColor = 'var(--color-success-bg)';
+      b.style.borderColor = 'var(--color-success-border)';
+      b.style.color = 'var(--color-success)';
+      b.innerHTML += ' ✓';
+    }
+  });
+
+  if (!isCorrect) {
+    btn.style.backgroundColor = 'var(--color-danger-bg)';
+    btn.style.borderColor = 'var(--color-danger-border)';
+    btn.style.color = 'var(--color-danger)';
+    btn.innerHTML += ' ✗';
+    showToast('Неверно. Правильный ответ подсвечен зеленым.', 'error');
+  } else {
+    showToast('Верно! Отличный результат.', 'success');
+  }
 }
 
 async function handleReadWordClick(element, rawWord) {

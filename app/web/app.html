@@ -364,10 +364,62 @@
             </div>
           </div>
           <div style="display: flex; gap: var(--space-2); flex-wrap: wrap;">
-            <button class="app-nav-pill active reading-preset-btn" onclick="loadReadingPreset('habits', this)">Привычки (B1)</button>
+            <button class="app-nav-pill active reading-preset-btn" onclick="toggleReadingGenerator(this)">✨ AI Генератор</button>
+            <button class="app-nav-pill reading-preset-btn" onclick="loadReadingPreset('habits', this)">Привычки (B1)</button>
             <button class="app-nav-pill reading-preset-btn" onclick="loadReadingPreset('ai_tech', this)">Технологии (B2)</button>
             <button class="app-nav-pill reading-preset-btn" onclick="loadReadingPreset('space', this)">Космос (B2)</button>
-            <button class="app-nav-pill reading-preset-btn" onclick="toggleCustomTextInput()">Свой текст ✎</button>
+            <button class="app-nav-pill reading-preset-btn" onclick="toggleCustomTextInput(this)">Свой текст ✎</button>
+          </div>
+        </div>
+
+        <!-- AI Text Generator Form -->
+        <div id="readingGeneratorContainer" style="margin-bottom: var(--space-6); background: var(--color-surface-subtle); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5);">
+          <div style="font-weight: 600; font-size: 1rem; margin-bottom: var(--space-3); display: flex; align-items: center; justify-content: space-between;">
+            <span>Параметры генерации текста</span>
+            <span style="font-size: 0.75rem; color: var(--color-text-secondary); font-weight: normal;">Текст строго подбирается под выбранный уровень CEFR</span>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--space-3); margin-bottom: var(--space-3);">
+            <div>
+              <label class="form-label" style="font-size: 0.8125rem;">Уровень CEFR</label>
+              <select id="readGenCefr" class="select-field">
+                <option value="A1">A1 — Начальный</option>
+                <option value="A2">A2 — Базовый</option>
+                <option value="B1" selected>B1 — Средний</option>
+                <option value="B2">B2 — Выше среднего</option>
+                <option value="C1">C1 — Продвинутый</option>
+                <option value="C2">C2 — В совершенстве</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label" style="font-size: 0.8125rem;">Формат</label>
+              <select id="readGenFormat" class="select-field">
+                <option value="text" selected>Статья / Рассказ</option>
+                <option value="dialogue">Живой диалог</option>
+                <option value="cloze">Текст с фокусом на слова</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label" style="font-size: 0.8125rem;">Объем текста</label>
+              <select id="readGenWords" class="select-field">
+                <option value="100">~100 слов (Быстрое чтение)</option>
+                <option value="150" selected>~150 слов (Оптимально)</option>
+                <option value="250">~250 слов (Подробный разбор)</option>
+                <option value="400">~400 слов (Глубокое чтение)</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label" style="font-size: 0.8125rem;">Тематика</label>
+              <input id="readGenTopic" class="input-field" type="text" value="Технологии и общество" placeholder="Например: Карьера, Путешествия, Искусство">
+            </div>
+          </div>
+          <div style="margin-bottom: var(--space-4);">
+            <label class="form-label" style="font-size: 0.8125rem;">Целевые слова (необязательно)</label>
+            <input id="readGenTarget" class="input-field" type="text" placeholder="Введите слова через запятую или оставьте пустым (будут взяты слова из вашей колоды)">
+          </div>
+          <div style="display: flex; justify-content: flex-end;">
+            <button id="readGenSubmitBtn" class="btn btn-primary" onclick="handleGenerateReadingText()">
+              Сгенерировать текст (AI) ➔
+            </button>
           </div>
         </div>
 
@@ -378,9 +430,28 @@
           </div>
         </div>
 
+        <!-- Legend -->
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-3); font-size: 0.8125rem; color: var(--color-text-secondary);">
+          <span id="readingArticleTitle" style="font-weight: 600; font-size: 1.0625rem; color: var(--color-text-primary);">Интерактивный материал</span>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <span><span style="border-bottom: 2px solid var(--color-success); font-weight: 500;">зеленая линия</span> — слова из вашей колоды</span>
+            <span>Клик по слову — быстрый перевод</span>
+          </div>
+        </div>
+
         <!-- Interactive Text Article Box -->
         <div style="padding: var(--space-6); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); line-height: 1.9; font-size: 1.0625rem;" id="readingArticleContent">
           <!-- Text with clickable word tokens injected dynamically -->
+        </div>
+
+        <!-- Target / New Vocabulary Section -->
+        <div id="readingVocabContainer" style="display: none; margin-top: var(--space-6); background: var(--color-surface-subtle); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5);">
+          <!-- Injected dynamically -->
+        </div>
+
+        <!-- Comprehension Check Section -->
+        <div id="readingComprehensionContainer" style="display: none; margin-top: var(--space-6); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5);">
+          <!-- Questions injected dynamically -->
         </div>
 
         <!-- Floating Word Popover -->

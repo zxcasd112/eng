@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.routes.auth import router as auth_router
 from app.api.routes.cards import router as cards_router
+from app.api.routes.content import router as content_router
 from app.api.routes.explain import router as explain_router
 from app.api.routes.health import router as health_router
 from app.api.routes.mistakes import router as mistakes_router
@@ -142,6 +143,7 @@ def create_app() -> FastAPI:
     app.include_router(quiz_router)
     app.include_router(practice_router)
     app.include_router(mistakes_router)
+    app.include_router(content_router)
 
     # Mount web app static files if they exist
     candidates = [
