@@ -3,8 +3,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_llm_service
 from app.api.schemas import (
-    AddWordRequest,
-    AddWordResponse,
     CardOut,
     CardTypesResponse,
     ExampleOut,
@@ -22,7 +20,6 @@ from app.db.session import get_db
 from app.services.llm import LLMNotConfiguredError, LLMService
 from app.services.review_engine import ALL_CARD_TYPES
 from app.services.vocabulary import (
-    add_word_or_phrase,
     extract_new_words_from_sentence,
     get_due_cards,
     get_user_stats,
@@ -62,37 +59,6 @@ def _card_to_out(card: Card) -> CardOut:
             if card.example
             else None
         ),
-    )
-
-
-@router.post("/words", response_model=AddWordResponse)
-async def add_word(
-    payload: AddWordRequest,
-    user: User = Depends(get_current_user),
-    session: AsyncSession = Depends(get_db),
-    llm_service: LLMService = Depends(get_llm_service),
-) -> AddWordResponse:
-    try:
-        result = await add_word_or_phrase(
-            session=session,
-            user=user,
-            text=payload.text,
-            llm_service=llm_service,
-            source_title=payload.source_title,
-            source_type="api",
-        )
-        await session.commit()
-    except LLMNotConfiguredError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=str(exc),
-        ) from exc
-
-    result.card.word = result.word
-    result.card.example = result.example
-    return AddWordResponse(
-        created_new_card=result.created_new_card,
-        card=_card_to_out(result.card),
     )
 
 

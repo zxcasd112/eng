@@ -1,7 +1,9 @@
+import csv
+import io
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -172,6 +174,8 @@ async def add_word_from_enrichment(
                 state=state_data["state"],
                 reps=0,
                 lapses=0,
+                source=source_type,
+                status="learning",
                 last_review_at=state_data["last_review_at"],
             )
             session.add(card)
@@ -448,3 +452,332 @@ async def get_user_stats(session: AsyncSession, user_id: int) -> dict:
         "streak_days": streak,
         "card_types_breakdown": card_types_breakdown,
     }
+
+
+async def get_user_words(
+    session: AsyncSession,
+    user_id: int,
+    page: int = 1,
+    page_size: int = 20,
+    cefr_level: str | None = None,
+    status: str | None = None,
+    search: str | None = None,
+) -> tuple[list[dict], int]:
+    """Retrieve user's distinct deck words with filters and pagination."""
+    base_query = (
+        select(
+            Word,
+            func.min(Card.created_at).label("card_created_at"),
+            func.min(Card.status).label("card_status"),
+            func.min(Card.source).label("card_source"),
+            func.max(Card.notes).label("card_notes"),
+            func.count(Card.id).label("cards_count"),
+            func.min(Card.due_at).label("next_due_at"),
+            func.sum(Card.reps).label("total_reps"),
+            func.sum(Card.lapses).label("total_lapses"),
+        )
+        .join(Card, Card.word_id == Word.id)
+        .where(Card.user_id == user_id)
+        .group_by(Word.id)
+    )
+
+    count_subquery = (
+        select(Word.id).join(Card, Card.word_id == Word.id).where(Card.user_id == user_id)
+    )
+
+    if cefr_level:
+        lvl = cefr_level.strip().upper()
+        base_query = base_query.where(Word.cefr_level == lvl)
+        count_subquery = count_subquery.where(Word.cefr_level == lvl)
+    if status:
+        st = status.strip().lower()
+        base_query = base_query.where(Card.status == st)
+        count_subquery = count_subquery.where(Card.status == st)
+    if search:
+        s = f"%{search.strip().lower()}%"
+        cond = or_(func.lower(Word.lemma).like(s), func.lower(Word.translation_ru).like(s))
+        base_query = base_query.where(cond)
+        count_subquery = count_subquery.where(cond)
+
+    sub = count_subquery.distinct().subquery()
+    total = await session.scalar(select(func.count()).select_from(sub)) or 0
+
+    offset_val = max(0, (page - 1) * page_size)
+    paginated_query = (
+        base_query.order_by(func.min(Card.created_at).desc()).offset(offset_val).limit(page_size)
+    )
+    rows = (await session.execute(paginated_query)).all()
+
+    items = []
+    for r in rows:
+        w = r[0]
+        items.append(
+            {
+                "id": w.id,
+                "lemma": w.lemma,
+                "translation_ru": w.translation_ru,
+                "transcription": w.transcription,
+                "part_of_speech": w.part_of_speech,
+                "cefr_level": w.cefr_level,
+                "status": r.card_status or "learning",
+                "source": r.card_source or "bot",
+                "notes": r.card_notes,
+                "created_at": r.card_created_at,
+                "cards_count": r.cards_count or 0,
+                "next_due_at": r.next_due_at,
+                "total_reps": int(r.total_reps or 0),
+                "total_lapses": int(r.total_lapses or 0),
+                "collocations": w.collocations,
+                "grammar_note": w.grammar_note,
+            }
+        )
+
+    return items, total
+
+
+async def get_user_word_detail(
+    session: AsyncSession,
+    user_id: int,
+    word_id: int,
+) -> dict | None:
+    """Get full details of a word in user's deck including examples, cards, and reviews."""
+    word_res = await session.execute(
+        select(Word).options(selectinload(Word.examples)).where(Word.id == word_id)
+    )
+    word = word_res.scalar_one_or_none()
+    if word is None:
+        return None
+
+    cards_res = await session.execute(
+        select(Card)
+        .options(selectinload(Card.reviews), selectinload(Card.example))
+        .where(Card.user_id == user_id, Card.word_id == word_id)
+    )
+    cards = cards_res.scalars().all()
+    if not cards:
+        return None
+
+    all_reviews = []
+    for c in cards:
+        for rev in c.reviews:
+            all_reviews.append(
+                {
+                    "id": rev.id,
+                    "card_id": rev.card_id,
+                    "rating": rev.rating,
+                    "reviewed_at": rev.reviewed_at,
+                    "scheduled_days": rev.scheduled_days,
+                    "elapsed_days": rev.elapsed_days,
+                    "response_time_ms": rev.response_time_ms,
+                }
+            )
+    all_reviews.sort(key=lambda x: x["reviewed_at"], reverse=True)
+
+    primary_card = cards[0]
+    cards_out = []
+    for c in cards:
+        cards_out.append(
+            {
+                "id": c.id,
+                "card_type": c.card_type,
+                "due_at": c.due_at,
+                "state": c.state,
+                "reps": c.reps,
+                "lapses": c.lapses,
+                "word": {
+                    "id": word.id,
+                    "lemma": word.lemma,
+                    "transcription": word.transcription,
+                    "part_of_speech": word.part_of_speech,
+                    "cefr_level": word.cefr_level,
+                    "translation_ru": word.translation_ru,
+                    "definition_en": word.definition_en,
+                    "collocations": word.collocations,
+                    "synonyms": word.synonyms,
+                    "antonyms": word.antonyms,
+                    "grammar_note": word.grammar_note,
+                },
+                "example": {
+                    "id": c.example.id,
+                    "sentence_en": c.example.sentence_en,
+                    "sentence_ru": c.example.sentence_ru,
+                }
+                if c.example
+                else None,
+            }
+        )
+
+    examples_out = [
+        {"id": ex.id, "sentence_en": ex.sentence_en, "sentence_ru": ex.sentence_ru}
+        for ex in word.examples
+    ]
+
+    return {
+        "id": word.id,
+        "lemma": word.lemma,
+        "normalized": word.normalized,
+        "translation_ru": word.translation_ru,
+        "transcription": word.transcription,
+        "part_of_speech": word.part_of_speech,
+        "cefr_level": word.cefr_level,
+        "definition_en": word.definition_en,
+        "collocations": word.collocations,
+        "synonyms": word.synonyms,
+        "antonyms": word.antonyms,
+        "grammar_note": word.grammar_note,
+        "status": primary_card.status or "learning",
+        "source": primary_card.source or "bot",
+        "notes": primary_card.notes,
+        "created_at": primary_card.created_at,
+        "examples": examples_out,
+        "cards": cards_out,
+        "reviews": all_reviews,
+    }
+
+
+async def update_user_word(
+    session: AsyncSession,
+    user_id: int,
+    word_id: int,
+    status: str | None = None,
+    notes: str | None = None,
+    cefr_level: str | None = None,
+) -> dict | None:
+    """Update user card status/notes or word CEFR level."""
+    cards_res = await session.execute(
+        select(Card).where(Card.user_id == user_id, Card.word_id == word_id)
+    )
+    cards = cards_res.scalars().all()
+    if not cards:
+        return None
+
+    for c in cards:
+        if status is not None:
+            c.status = status.strip().lower()
+        if notes is not None:
+            c.notes = notes.strip()
+
+    if cefr_level is not None:
+        word = await session.get(Word, word_id)
+        if word:
+            word.cefr_level = cefr_level.strip().upper()[:8]
+
+    await session.flush()
+    return await get_user_word_detail(session, user_id, word_id)
+
+
+async def delete_user_word(
+    session: AsyncSession,
+    user_id: int,
+    word_id: int,
+) -> bool:
+    """Remove a word from user's deck (deletes user's cards, keeps Word entity)."""
+    cards_res = await session.execute(
+        select(Card).where(Card.user_id == user_id, Card.word_id == word_id)
+    )
+    cards = cards_res.scalars().all()
+    if not cards:
+        return False
+
+    for c in cards:
+        await session.delete(c)
+    await session.flush()
+    return True
+
+
+async def import_words_csv(
+    session: AsyncSession,
+    user: User,
+    csv_text: str,
+    source_type: str = "import",
+) -> dict:
+    """Import words from CSV text with report: added, duplicates, errors."""
+    added = 0
+    duplicates = 0
+    errors: list[str] = []
+
+    if not csv_text.strip():
+        return {"added": 0, "duplicates": 0, "errors": ["Empty CSV content"]}
+
+    # Detect delimiter: comma, semicolon, tab
+    sample = csv_text[:1024]
+    delimiter = ","
+    if ";" in sample and sample.count(";") > sample.count(","):
+        delimiter = ";"
+    elif "\t" in sample and sample.count("\t") > sample.count(","):
+        delimiter = "\t"
+
+    reader = csv.reader(io.StringIO(csv_text), delimiter=delimiter)
+    active_types = getattr(user, "active_card_types", None) or ALL_CARD_TYPES
+
+    for line_idx, row in enumerate(reader, start=1):
+        if not row or not any(field.strip() for field in row):
+            continue
+
+        raw_lemma = row[0].strip()
+        raw_translation = row[1].strip() if len(row) > 1 else ""
+
+        # Skip header row if detected
+        if line_idx == 1 and raw_lemma.lower() in {"word", "lemma", "слово", "term", "english"}:
+            continue
+
+        if not raw_lemma:
+            errors.append(f"Line {line_idx}: empty word")
+            continue
+
+        norm = normalize_text(raw_lemma)
+        if not norm:
+            errors.append(f"Line {line_idx}: invalid word format '{raw_lemma}'")
+            continue
+
+        # Check if user already has this word in cards
+        existing_card = await session.scalar(
+            select(Card.id)
+            .join(Word, Card.word_id == Word.id)
+            .where(Card.user_id == user.id, Word.normalized == norm)
+        )
+        if existing_card is not None:
+            duplicates += 1
+            continue
+
+        # Find or create Word
+        w_res = await session.execute(select(Word).where(Word.normalized == norm))
+        word = w_res.scalar_one_or_none()
+        if word is None:
+            word = Word(
+                lemma=raw_lemma,
+                normalized=norm,
+                language="en",
+                translation_ru=raw_translation or raw_lemma,
+                cefr_level="B1",
+            )
+            session.add(word)
+            await session.flush()
+        elif raw_translation and (not word.translation_ru or word.translation_ru == word.lemma):
+            word.translation_ru = raw_translation
+            await session.flush()
+
+        # Create cards for active card types
+        for c_type in active_types:
+            st = new_card_state()
+            c = Card(
+                user_id=user.id,
+                word_id=word.id,
+                card_type=c_type,
+                source=source_type,
+                status="new",
+                fsrs_state=st["fsrs_state"],
+                due_at=st["due_at"],
+                stability=st["stability"],
+                difficulty=st["difficulty"],
+                step=st["step"],
+                state=st["state"],
+                reps=0,
+                lapses=0,
+            )
+            session.add(c)
+
+        await session.flush()
+        added += 1
+
+    return {"added": added, "duplicates": duplicates, "errors": errors}

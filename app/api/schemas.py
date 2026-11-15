@@ -24,6 +24,7 @@ class AuthTokenResponse(BaseModel):
 class AddWordRequest(BaseModel):
     text: str = Field(min_length=1, max_length=200)
     source_title: str | None = None
+    source: str = "web"  # bot / web / reading / sentence / import
 
 
 class WordOut(BaseModel):
@@ -184,3 +185,74 @@ class MatchingAnswerResponse(BaseModel):
     is_match: bool
     en_word: str
     ru_translation: str
+
+
+class ReviewOut(BaseModel):
+    id: int
+    card_id: int
+    rating: int
+    reviewed_at: datetime
+    scheduled_days: int
+    elapsed_days: int
+    response_time_ms: int | None = None
+
+
+class UserWordItemOut(BaseModel):
+    id: int
+    lemma: str
+    translation_ru: str
+    transcription: str | None = None
+    part_of_speech: str | None = None
+    cefr_level: str | None = None
+    status: str = "learning"
+    source: str = "bot"
+    notes: str | None = None
+    created_at: datetime
+    cards_count: int = 0
+    next_due_at: datetime | None = None
+    total_reps: int = 0
+    total_lapses: int = 0
+    collocations: list[str] | None = None
+    grammar_note: str | None = None
+
+
+class UserWordDetailOut(BaseModel):
+    id: int
+    lemma: str
+    normalized: str
+    translation_ru: str
+    transcription: str | None = None
+    part_of_speech: str | None = None
+    cefr_level: str | None = None
+    definition_en: str | None = None
+    collocations: list[str] | None = None
+    synonyms: list[str] | None = None
+    antonyms: list[str] | None = None
+    grammar_note: str | None = None
+    status: str = "learning"
+    source: str = "bot"
+    notes: str | None = None
+    created_at: datetime
+    examples: list[ExampleOut] = []
+    cards: list[CardOut] = []
+    reviews: list[ReviewOut] = []
+
+
+class PaginatedWordsResponse(BaseModel):
+    items: list[UserWordItemOut]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
+
+class UpdateWordRequest(BaseModel):
+    status: str | None = None
+    notes: str | None = None
+    cefr_level: str | None = None
+
+
+class ImportWordsResponse(BaseModel):
+    added: int
+    duplicates: int
+    errors: list[str] = []

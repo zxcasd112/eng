@@ -11,6 +11,7 @@ from app.api.routes.cards import router as cards_router
 from app.api.routes.explain import router as explain_router
 from app.api.routes.health import router as health_router
 from app.api.routes.quiz import router as quiz_router
+from app.api.routes.words import router as words_router
 from app.config import get_settings
 from app.db.session import init_db
 
@@ -58,6 +59,7 @@ def create_app() -> FastAPI:
     app.include_router(health_router)
     app.include_router(auth_router)
     app.include_router(cards_router)
+    app.include_router(words_router)
     app.include_router(explain_router)
     app.include_router(quiz_router)
 
