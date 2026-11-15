@@ -338,6 +338,14 @@ button, input, select, textarea {
   transform: scale(0.98);
 }
 
+.btn-secondary.active {
+  background-color: var(--color-surface-hover);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-active);
+  font-weight: 600;
+  box-shadow: 0 0 0 1px var(--color-border-active);
+}
+
 .btn-ghost {
   background: transparent;
   color: var(--color-text-secondary);

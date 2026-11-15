@@ -7,7 +7,8 @@
   
   <meta name="description" content="Личный кабинет ENG Tutor: интервальное повторение FSRS, словарь и персональная аналитика прогресса.">
   <meta name="theme-color" content="#18181B">
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2318181B'/%3E%3Cpath d='M9 10h14M9 16h10M9 22h14' stroke='%23FAFAFA' stroke-width='2.5' stroke-linecap='round'/%3E%3Ccircle cx='23' cy='16' r='2' fill='%23A1A1AA'/%3E%3C/svg%3E">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="alternate icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2318181B'/%3E%3Cpath d='M9 10h14M9 16h10M9 22h14' stroke='%23FAFAFA' stroke-width='2.5' stroke-linecap='round'/%3E%3Ccircle cx='23' cy='16' r='2' fill='%23A1A1AA'/%3E%3C/svg%3E">
   
   <link rel="stylesheet" href="/style.css">
 </head>
@@ -409,6 +410,64 @@
             <button type="submit" class="btn btn-primary" style="width: 100%;">
               Сохранить настройки
             </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Onboarding Modal (First Login Setup) -->
+    <div id="onboardingModal" style="display: none; position: fixed; inset: 0; background: rgba(9, 9, 11, 0.85); backdrop-filter: blur(8px); z-index: 1000; align-items: center; justify-content: center; padding: var(--space-4);" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle">
+      <div class="panel-card" style="max-width: 520px; width: 100%; border: 1px solid var(--color-border-active); box-shadow: var(--shadow-lg);">
+        <div style="text-align: center; margin-bottom: var(--space-6);">
+          <div class="brand-logo-mark" style="margin: 0 auto var(--space-3) auto; width: 44px; height: 44px;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <line x1="4" y1="6" x2="20" y2="6"></line>
+              <line x1="4" y1="12" x2="15" y2="12"></line>
+              <line x1="4" y1="18" x2="20" y2="18"></line>
+            </svg>
+          </div>
+          <h2 id="onboardingTitle" style="font-size: 1.5rem; font-weight: 700; margin-bottom: var(--space-2);">Добро пожаловать в ENG Tutor!</h2>
+          <p style="font-size: 0.875rem; color: var(--color-text-secondary); line-height: 1.5;">
+            Настройте персональную программу обучения. Вы всегда сможете изменить параметры в профиле.
+          </p>
+        </div>
+
+        <form id="onboardingForm" onsubmit="handleSaveOnboarding(event)" style="display: flex; flex-direction: column; gap: var(--space-5);">
+          <div>
+            <label class="metric-label" style="display: block; margin-bottom: 8px;">1. Стартовый уровень владения (CEFR):</label>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;" id="onboardingCefrGrid">
+              <button type="button" class="btn btn-secondary btn-sm onb-cefr" data-cefr="A1" onclick="selectOnboardingCefr('A1', this)">A1 Beginner</button>
+              <button type="button" class="btn btn-secondary btn-sm onb-cefr" data-cefr="A2" onclick="selectOnboardingCefr('A2', this)">A2 Elementary</button>
+              <button type="button" class="btn btn-secondary btn-sm onb-cefr active" data-cefr="B1" onclick="selectOnboardingCefr('B1', this)">B1 Intermediate</button>
+              <button type="button" class="btn btn-secondary btn-sm onb-cefr" data-cefr="B2" onclick="selectOnboardingCefr('B2', this)">B2 Upper-Int</button>
+              <button type="button" class="btn btn-secondary btn-sm onb-cefr" data-cefr="C1" onclick="selectOnboardingCefr('C1', this)">C1 Advanced</button>
+              <button type="button" class="btn btn-secondary btn-sm onb-cefr" data-cefr="C2" onclick="selectOnboardingCefr('C2', this)">C2 Native</button>
+            </div>
+          </div>
+
+          <div>
+            <label class="metric-label" style="display: block; margin-bottom: 8px;">2. Цель повторений в день:</label>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;" id="onboardingGoalGrid">
+              <button type="button" class="btn btn-secondary btn-sm onb-goal" data-goal="10" onclick="selectOnboardingGoal(10, this)">10 слов (5 мин)</button>
+              <button type="button" class="btn btn-secondary btn-sm onb-goal active" data-goal="15" onclick="selectOnboardingGoal(15, this)">15 слов (10 мин)</button>
+              <button type="button" class="btn btn-secondary btn-sm onb-goal" data-goal="25" onclick="selectOnboardingGoal(25, this)">25 слов (15 мин)</button>
+            </div>
+          </div>
+
+          <div>
+            <label class="metric-label" style="display: block; margin-bottom: 8px;">3. Удобный час напоминания в боте (UTC):</label>
+            <select id="onboardingReminderHour" class="select-field">
+              <option value="18">18:00 (Вечер)</option>
+              <option value="19" selected>19:00 (После работы / учёбы)</option>
+              <option value="20">20:00 (Перед сном)</option>
+              <option value="21">21:00 (Поздний вечер)</option>
+              <option value="12">12:00 (В обед)</option>
+            </select>
+          </div>
+
+          <div style="display: flex; gap: var(--space-3); margin-top: var(--space-3);">
+            <button type="button" class="btn btn-secondary" style="flex: 1;" onclick="skipOnboarding()">Пропустить</button>
+            <button type="submit" class="btn btn-primary" style="flex: 2;">Начать обучение ➔</button>
           </div>
         </form>
       </div>

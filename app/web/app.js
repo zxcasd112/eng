@@ -156,6 +156,9 @@ async function renderRoute() {
   // Update active states on nav buttons
   updateNavActiveState(path);
 
+  // Check onboarding for first-time visitors
+  checkAndShowOnboarding();
+
   // Render view
   if (path === '/app/study') {
     if (studyView) studyView.style.display = 'block';
@@ -513,7 +516,44 @@ async function loadStudyQueue() {
   }
 
   const res = await fetchAPI(url);
-  if (!res.ok || !Array.isArray(res.data) || res.data.length === 0) {
+  if (!res.ok) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon" style="color: var(--color-danger);">⚠️</div>
+        <h3 class="empty-title">Не удалось загрузить карточки</h3>
+        <p class="empty-desc">Произошла сетевая ошибка при получении очереди повторения. Попробуйте повторить попытку.</p>
+        <button class="btn btn-secondary btn-sm" onclick="loadStudyQueue()">Повторить попытку ↻</button>
+      </div>
+    `;
+    return;
+  }
+
+  if (!Array.isArray(res.data) || res.data.length === 0) {
+    let hasWords = true;
+    try {
+      const wordsCheck = await fetchAPI('/words?page=1&page_size=1');
+      if (wordsCheck.ok && wordsCheck.data && wordsCheck.data.total === 0) {
+        hasWords = false;
+      }
+    } catch (_) {}
+
+    if (!hasWords) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">📖</div>
+          <h3 class="empty-title">В вашей колоде пока нет слов</h3>
+          <p class="empty-desc">
+            Отправьте первое слово боту в Telegram или добавьте полезные слова из рекомендаций на дашборде.
+          </p>
+          <div style="display: flex; gap: var(--space-3); justify-content: center; flex-wrap: wrap; margin-top: var(--space-4);">
+            <a href="https://t.me/ENG_Tutor_FSRS_bot" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm">Открыть Telegram-бота ➔</a>
+            <button class="btn btn-secondary btn-sm" onclick="navigate('/app')">К рекомендациям слов</button>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
     container.innerHTML = `
       <div class="empty-state">
         <div class="empty-icon">✓</div>
@@ -745,7 +785,15 @@ async function loadWordsDeck() {
 
   const res = await fetchAPI(url);
   if (!res.ok || !res.data) {
-    container.innerHTML = '<div style="color: var(--color-danger); padding: 40px; text-align: center; grid-column: 1 / -1;">Не удалось загрузить слова.</div>';
+    container.innerHTML = `
+      <div style="grid-column: 1 / -1;" class="empty-state">
+        <div class="empty-icon" style="color: var(--color-danger);">⚠️</div>
+        <h3 class="empty-title">Не удалось загрузить слова</h3>
+        <p class="empty-desc">Произошла сетевая ошибка при обращении к серверу. Попробуйте повторить запрос.</p>
+        <button class="btn btn-secondary btn-sm" onclick="loadWordsDeck()">Повторить попытку ↻</button>
+      </div>
+    `;
+    if (pagination) pagination.innerHTML = '';
     return;
   }
 
@@ -927,7 +975,14 @@ async function loadAnalytics() {
 
   const res = await fetchAPI('/profile/analytics');
   if (!res.ok || !res.data) {
-    if (chartContainer) chartContainer.innerHTML = '<div style="color: var(--color-danger);">Не удалось загрузить данные аналитики.</div>';
+    if (chartContainer) {
+      chartContainer.innerHTML = `
+        <div style="padding: 24px 0; text-align: center;">
+          <div style="color: var(--color-danger); margin-bottom: 8px;">Не удалось загрузить данные аналитики.</div>
+          <button class="btn btn-secondary btn-sm" onclick="loadAnalytics()">Повторить попытку ↻</button>
+        </div>
+      `;
+    }
     return;
   }
 
@@ -1117,6 +1172,70 @@ async function handleSaveProfile(e) {
   } else {
     alert('Ошибка при сохранении: ' + (res.data ? res.data.detail : 'Проверьте поля'));
   }
+}
+
+// ==========================================
+// 6. ONBOARDING (First Login Setup)
+// ==========================================
+const onboardingState = {
+  cefr: 'B1',
+  goal: 15,
+  hour: 19
+};
+
+function checkAndShowOnboarding() {
+  if (!currentUser) return;
+  const done = localStorage.getItem('eng_onboarding_completed');
+  const modal = document.getElementById('onboardingModal');
+  if (!done && modal) {
+    modal.style.display = 'flex';
+  }
+}
+
+function selectOnboardingCefr(cefr, el) {
+  onboardingState.cefr = cefr;
+  document.querySelectorAll('.onb-cefr').forEach(b => b.classList.remove('active'));
+  if (el) el.classList.add('active');
+}
+
+function selectOnboardingGoal(goal, el) {
+  onboardingState.goal = Number(goal);
+  document.querySelectorAll('.onb-goal').forEach(b => b.classList.remove('active'));
+  if (el) el.classList.add('active');
+}
+
+async function handleSaveOnboarding(e) {
+  if (e) e.preventDefault();
+  const hourSelect = document.getElementById('onboardingReminderHour');
+  const hour = hourSelect ? parseInt(hourSelect.value, 10) : 19;
+  onboardingState.hour = isNaN(hour) ? 19 : hour;
+
+  try {
+    await fetchAPI('/profile', {
+      method: 'PATCH',
+      body: JSON.stringify({
+        cefr_level: onboardingState.cefr,
+        daily_goal: onboardingState.goal,
+        reminder_hour: onboardingState.hour
+      })
+    });
+  } catch (err) {
+    console.warn('Failed to save onboarding settings:', err);
+  }
+
+  localStorage.setItem('eng_onboarding_completed', 'true');
+  const modal = document.getElementById('onboardingModal');
+  if (modal) modal.style.display = 'none';
+
+  if (currentRoute === '/app') {
+    loadDashboard();
+  }
+}
+
+function skipOnboarding() {
+  localStorage.setItem('eng_onboarding_completed', 'true');
+  const modal = document.getElementById('onboardingModal');
+  if (modal) modal.style.display = 'none';
 }
 
 // Entrypoint initialization

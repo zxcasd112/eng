@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#18181b"/>
+      <stop offset="100%" stop-color="#09090b"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.01"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect x="40" y="40" width="1120" height="550" rx="24" fill="url(#glow)" stroke="#27272a" stroke-width="2"/>
+  
+  <!-- Logo Icon -->
+  <rect x="100" y="100" width="80" height="80" rx="20" fill="#27272a" stroke="#3f3f46" stroke-width="2"/>
+  <path d="M120 125h40M120 140h28M120 155h40" stroke="#fafafa" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="165" cy="140" r="4.5" fill="#a1a1aa"/>
+  
+  <!-- Brand Title -->
+  <text x="210" y="156" fill="#fafafa" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="44" font-weight="700" letter-spacing="-0.02em">ENG Tutor</text>
+  <rect x="450" y="124" width="110" height="34" rx="17" fill="#27272a" stroke="#3f3f46" stroke-width="1.5"/>
+  <text x="505" y="146" fill="#a1a1aa" font-family="system-ui, sans-serif" font-size="16" font-weight="600" text-anchor="middle">FSRS 6.3</text>
+
+  <!-- Tagline / Value Proposition -->
+  <text x="100" y="270" fill="#fafafa" font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif" font-size="56" font-weight="800" letter-spacing="-0.03em">
+    Научный подход к изучению
+  </text>
+  <text x="100" y="340" fill="#a1a1aa" font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif" font-size="56" font-weight="800" letter-spacing="-0.03em">
+    английских слов
+  </text>
+  
+  <text x="100" y="420" fill="#71717a" font-family="system-ui, sans-serif" font-size="24" font-weight="400">
+    Синхронизация Telegram-бота и личного веб-кабинета с интервальным алгоритмом FSRS.
+  </text>
+
+  <!-- Feature Pills -->
+  <g transform="translate(100, 480)">
+    <rect width="210" height="48" rx="24" fill="#27272a" stroke="#3f3f46" stroke-width="1.5"/>
+    <text x="105" y="30" fill="#e4e4e7" font-family="system-ui, sans-serif" font-size="18" font-weight="500" text-anchor="middle">⚡ Telegram Bot</text>
+  </g>
+  <g transform="translate(330, 480)">
+    <rect width="240" height="48" rx="24" fill="#27272a" stroke="#3f3f46" stroke-width="1.5"/>
+    <text x="120" y="30" fill="#e4e4e7" font-family="system-ui, sans-serif" font-size="18" font-weight="500" text-anchor="middle">🧠 Алгоритм FSRS</text>
+  </g>
+  <g transform="translate(590, 480)">
+    <rect width="220" height="48" rx="24" fill="#27272a" stroke="#3f3f46" stroke-width="1.5"/>
+    <text x="110" y="30" fill="#e4e4e7" font-family="system-ui, sans-serif" font-size="18" font-weight="500" text-anchor="middle">📊 Веб-кабинет</text>
+  </g>
+  <g transform="translate(830, 480)">
+    <rect width="240" height="48" rx="24" fill="#27272a" stroke="#3f3f46" stroke-width="1.5"/>
+    <text x="120" y="30" fill="#e4e4e7" font-family="system-ui, sans-serif" font-size="18" font-weight="500" text-anchor="middle">🎯 Уровни CEFR</text>
+  </g>
+</svg>
