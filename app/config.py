@@ -1,6 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -20,6 +21,24 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.app_env.lower() in ("production", "prod")
+
+    @model_validator(mode="after")
+    def validate_production_secrets(self) -> "Settings":
+        if self.is_production:
+            insecure_defaults = {
+                "dev-secret-key-change-me-in-production-32chars",
+                "change-this-secret-in-production-min-32-chars",
+            }
+            if (
+                not self.app_secret_key
+                or self.app_secret_key in insecure_defaults
+                or len(self.app_secret_key) < 32
+            ):
+                raise ValueError(
+                    "In production (APP_ENV=production), APP_SECRET_KEY must be explicitly set, "
+                    "cannot use the default dev secret, and must be at least 32 characters long."
+                )
+        return self
 
     # CORS
     cors_origins: str = (
