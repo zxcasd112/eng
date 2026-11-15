@@ -150,10 +150,10 @@ async def get_user_analytics(session: AsyncSession, user_id: int, user_tz: str |
         for r in problem_rows
     ]
 
-    # 4. Workload Forecast (Next 7 Days)
-    workload_forecast_7d = []
+    # 4. Workload Forecast (Next 30 Days)
+    workload_forecast_30d = []
     start_today = datetime(now_utc.year, now_utc.month, now_utc.day, tzinfo=UTC)
-    for day_i in range(7):
+    for day_i in range(30):
         day_date = start_today + timedelta(days=day_i)
         next_date = day_date + timedelta(days=1)
         d_str = day_date.strftime("%Y-%m-%d")
@@ -179,16 +179,17 @@ async def get_user_analytics(session: AsyncSession, user_id: int, user_tz: str |
                 or 0
             )
 
-        workload_forecast_7d.append(
+        workload_forecast_30d.append(
             {
                 "date": d_str,
                 "due_cards_count": due_cnt,
             }
         )
+    workload_forecast_7d = workload_forecast_30d[:7]
 
     # 5. Stability & Difficulty Distributions
     cards_stats_res = await session.execute(
-        select(Card.stability, Card.difficulty).where(Card.user_id == user_id)
+        select(Card.word_id, Card.stability, Card.difficulty, Card.last_review_at).where(Card.user_id == user_id)
     )
     all_cards_stats = cards_stats_res.all()
 
@@ -228,15 +229,95 @@ async def get_user_analytics(session: AsyncSession, user_id: int, user_tz: str |
     stability_stats = _calc_dist(stabilities, "S", step_size=5.0, bucket_count=5)
     difficulty_stats = _calc_dist(difficulties, "D", step_size=2.0, bucket_count=5)
 
+    # 6. Activity Heatmap (Last 365 Days)
+    one_year_ago = now_utc - timedelta(days=365)
+    rev_year_stmt = (
+        select(Review.reviewed_at, Review.rating)
+        .where(Review.user_id == user_id, Review.reviewed_at >= one_year_ago)
+        .order_by(Review.reviewed_at.asc())
+    )
+    rev_year_rows = (await session.execute(rev_year_stmt)).all()
+
+    year_map = defaultdict(lambda: {"total": 0, "passed": 0})
+    for r in rev_year_rows:
+        dt = (
+            r.reviewed_at.astimezone(tz)
+            if r.reviewed_at.tzinfo
+            else r.reviewed_at.replace(tzinfo=UTC).astimezone(tz)
+        )
+        d_str = dt.strftime("%Y-%m-%d")
+        year_map[d_str]["total"] += 1
+        if r.rating >= 3:
+            year_map[d_str]["passed"] += 1
+
+    activity_heatmap_365d = []
+    for day_offset in range(365, -1, -1):
+        target_date = (now_user - timedelta(days=day_offset)).strftime("%Y-%m-%d")
+        stats = year_map.get(target_date, {"total": 0, "passed": 0})
+        pct = round((stats["passed"] / stats["total"]) * 100, 1) if stats["total"] else 0.0
+        activity_heatmap_365d.append(
+            {
+                "date": target_date,
+                "count": stats["total"],
+                "passed_count": stats["passed"],
+                "retention_pct": pct,
+            }
+        )
+
+    # 7. True Retention for Mature Cards (scheduled_days >= 21 or elapsed_days >= 21)
+    mature_rev_stmt = select(Review.rating).where(
+        Review.user_id == user_id,
+        or_(Review.scheduled_days >= 21, Review.elapsed_days >= 21),
+    )
+    mature_ratings = (await session.execute(mature_rev_stmt)).scalars().all()
+    total_mature = len(mature_ratings)
+    passed_mature = sum(1 for r in mature_ratings if r >= 3)
+    true_retention_mature_pct = (
+        round((passed_mature / total_mature) * 100, 1) if total_mature else 0.0
+    )
+
+    mature_cards_count = sum(1 for c in all_cards_stats if (c.stability or 0) >= 21.0)
+    avg_s = round(float(statistics.mean(stabilities)), 2) if stabilities else 0.0
+    avg_d = round(float(statistics.mean(difficulties)), 2) if difficulties else 0.0
+
+    # Active vocabulary estimate: words with retrievability >= 0.90
+    active_word_ids = set()
+    for c in all_cards_stats:
+        stab = c.stability or 0.0
+        if not c.last_review_at:
+            active_word_ids.add(c.word_id)
+        elif stab > 0:
+            last_dt = (
+                c.last_review_at.astimezone(UTC)
+                if c.last_review_at.tzinfo
+                else c.last_review_at.replace(tzinfo=UTC)
+            )
+            elapsed = max(0.0, (now_utc - last_dt).total_seconds() / 86400.0)
+            retrievability = (1.0 + 0.19 * (elapsed / stab)) ** -0.5
+            if retrievability >= 0.90:
+                active_word_ids.add(c.word_id)
+
+    anki_metrics = {
+        "true_retention_mature_pct": true_retention_mature_pct,
+        "mature_cards_count": mature_cards_count,
+        "total_mature_reviews": total_mature,
+        "avg_stability": avg_s,
+        "avg_difficulty": avg_d,
+        "active_vocabulary_estimate": len(active_word_ids),
+    }
+
     return {
         "retention_30d": retention_30d,
         "retention_daily": retention_daily,
         "card_types_breakdown": card_types_breakdown,
         "problem_words": problem_words,
         "workload_forecast_7d": workload_forecast_7d,
+        "workload_forecast_30d": workload_forecast_30d,
         "stability_stats": stability_stats,
         "difficulty_stats": difficulty_stats,
         "reviewed_today": reviewed_today,
+        "activity_heatmap_365d": activity_heatmap_365d,
+        "anki_metrics": anki_metrics,
     }
 
 

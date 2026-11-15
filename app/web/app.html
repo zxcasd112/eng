@@ -629,6 +629,50 @@
           </div>
         </div>
 
+        <!-- Anki / FSRS Cognitive Metrics Grid -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--space-3); margin-top: var(--space-4); margin-bottom: var(--space-6);">
+          <div style="background: var(--color-surface-subtle); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 14px;">
+            <div style="font-size: 0.75rem; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">True Retention (зрелые)</div>
+            <div id="ankiTrueRetention" style="font-size: 1.5rem; font-weight: 700; color: var(--color-success); margin-top: 4px;">0.0%</div>
+            <div style="font-size: 0.6875rem; color: var(--color-text-muted); margin-top: 2px;">карточки с интервалом ≥ 21 день</div>
+          </div>
+          <div style="background: var(--color-surface-subtle); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 14px;">
+            <div style="font-size: 0.75rem; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Зрелых карточек</div>
+            <div id="ankiMatureCards" style="font-size: 1.5rem; font-weight: 700; color: var(--color-primary); margin-top: 4px;">0</div>
+            <div style="font-size: 0.6875rem; color: var(--color-text-muted); margin-top: 2px;">стабильность ≥ 21 день</div>
+          </div>
+          <div style="background: var(--color-surface-subtle); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 14px;">
+            <div style="font-size: 0.75rem; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Активный словарь</div>
+            <div id="ankiActiveVocab" style="font-size: 1.5rem; font-weight: 700; color: var(--color-primary); margin-top: 4px;">0</div>
+            <div style="font-size: 0.6875rem; color: var(--color-text-muted); margin-top: 2px;">вероятность вспомнить ≥ 90%</div>
+          </div>
+          <div style="background: var(--color-surface-subtle); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 14px;">
+            <div style="font-size: 0.75rem; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Ср. стабильность FSRS</div>
+            <div id="ankiAvgStability" style="font-size: 1.5rem; font-weight: 700; color: var(--color-text-primary); margin-top: 4px;">0 дн</div>
+            <div style="font-size: 0.6875rem; color: var(--color-text-muted); margin-top: 2px;">ср. интервал забывания</div>
+          </div>
+        </div>
+
+        <!-- Activity Heatmap Calendar (365 days) -->
+        <div style="margin-bottom: var(--space-8); background: var(--color-surface-subtle); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-3);">
+            <div style="font-size: 0.875rem; font-weight: 600; color: var(--color-text-primary);">
+              Календарь активности повторений (365 дней)
+            </div>
+            <div style="font-size: 0.75rem; color: var(--color-text-secondary); display: flex; align-items: center; gap: 4px;">
+              <span>Меньше</span>
+              <span style="display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: var(--color-border);"></span>
+              <span style="display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: rgba(34, 197, 94, 0.4);"></span>
+              <span style="display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: rgba(34, 197, 94, 0.75);"></span>
+              <span style="display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: #22c55e;"></span>
+              <span>Больше</span>
+            </div>
+          </div>
+          <div id="activityHeatmapContainer" style="overflow-x: auto; padding-bottom: 4px;">
+            <!-- SVG Heatmap injected dynamically -->
+          </div>
+        </div>
+
         <!-- SVG Retention Chart -->
         <div style="margin-top: var(--space-4); margin-bottom: var(--space-8);">
           <div style="font-size: 0.875rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-2);">

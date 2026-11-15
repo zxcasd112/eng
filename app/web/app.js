@@ -1423,6 +1423,25 @@ async function loadAnalytics() {
 
   const an = res.data;
 
+  // 0. Anki / FSRS Cognitive Metrics
+  const trueRetEl = document.getElementById('ankiTrueRetention');
+  const matureCardsEl = document.getElementById('ankiMatureCards');
+  const activeVocabEl = document.getElementById('ankiActiveVocab');
+  const avgStabEl = document.getElementById('ankiAvgStability');
+
+  if (an.anki_metrics) {
+    if (trueRetEl) trueRetEl.textContent = `${Number(an.anki_metrics.true_retention_mature_pct || 0).toFixed(1)}%`;
+    if (matureCardsEl) matureCardsEl.textContent = an.anki_metrics.mature_cards_count || 0;
+    if (activeVocabEl) activeVocabEl.textContent = an.anki_metrics.active_vocabulary_estimate || 0;
+    if (avgStabEl) avgStabEl.textContent = `${Number(an.anki_metrics.avg_stability || 0).toFixed(1)} дн`;
+  }
+
+  // 0.1 Activity Heatmap (365 days)
+  const heatmapContainer = document.getElementById('activityHeatmapContainer');
+  if (heatmapContainer && an.activity_heatmap_365d) {
+    renderActivityHeatmapSvg(heatmapContainer, an.activity_heatmap_365d);
+  }
+
   if (scoreBadge) {
     const rVal = an.retention_30d !== undefined ? an.retention_30d : 95.0;
     scoreBadge.textContent = `Удержание: ${Number(rVal).toFixed(1)}%`;
@@ -1561,6 +1580,53 @@ function renderRetentionSvgChart(container, dailyData) {
           <title>${p.date}: ${p.rate}%</title>
         </circle>
       `).join('')}
+    </svg>
+  `;
+}
+
+function renderActivityHeatmapSvg(container, heatmapData) {
+  if (!heatmapData || heatmapData.length === 0) {
+    container.innerHTML = '<div style="color: var(--color-text-muted); font-size: 0.8125rem;">Нет данных активности.</div>';
+    return;
+  }
+
+  const cellSize = 11;
+  const cellGap = 3;
+  const colStep = cellSize + cellGap;
+  const numWeeks = Math.ceil(heatmapData.length / 7) || 53;
+  const svgWidth = numWeeks * colStep + 30;
+  const svgHeight = 7 * colStep + 10;
+
+  let rectsHtml = '';
+  heatmapData.forEach((d, idx) => {
+    const col = Math.floor(idx / 7);
+    const row = idx % 7;
+    const x = col * colStep + 20;
+    const y = row * colStep + 5;
+
+    let fill = 'var(--color-border)';
+    if (d.count > 8) {
+      fill = '#22c55e';
+    } else if (d.count > 3) {
+      fill = 'rgba(34, 197, 94, 0.75)';
+    } else if (d.count > 0) {
+      fill = 'rgba(34, 197, 94, 0.4)';
+    }
+
+    rectsHtml += `
+      <rect x="${x}" y="${y}" width="${cellSize}" height="${cellSize}" rx="2" fill="${fill}">
+        <title>${d.date}: ${d.count} повторений (${d.retention_pct}% успешно)</title>
+      </rect>
+    `;
+  });
+
+  container.innerHTML = `
+    <svg width="${svgWidth}" height="${svgHeight}" viewBox="0 0 ${svgWidth} ${svgHeight}" style="display: block; font-family: inherit;">
+      <text x="0" y="15" font-size="9" fill="var(--color-text-muted)">Пн</text>
+      <text x="0" y="43" font-size="9" fill="var(--color-text-muted)">Ср</text>
+      <text x="0" y="71" font-size="9" fill="var(--color-text-muted)">Пт</text>
+      <text x="0" y="99" font-size="9" fill="var(--color-text-muted)">Вс</text>
+      ${rectsHtml}
     </svg>
   `;
 }

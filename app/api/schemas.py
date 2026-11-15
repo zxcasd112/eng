@@ -330,6 +330,22 @@ class DailyForecastItem(BaseModel):
     due_cards_count: int
 
 
+class ActivityHeatmapItem(BaseModel):
+    date: str
+    count: int
+    passed_count: int
+    retention_pct: float
+
+
+class AnkiMetrics(BaseModel):
+    true_retention_mature_pct: float
+    mature_cards_count: int
+    total_mature_reviews: int
+    avg_stability: float
+    avg_difficulty: float
+    active_vocabulary_estimate: int
+
+
 class DistributionBucket(BaseModel):
     range_label: str
     count: int
@@ -349,9 +365,12 @@ class UserAnalyticsResponse(BaseModel):
     card_types_breakdown: list[CardTypeAnalyticsItem]
     problem_words: list[ProblemWordItem]
     workload_forecast_7d: list[DailyForecastItem]
+    workload_forecast_30d: list[DailyForecastItem] = []
     stability_stats: ValueDistributionStats
     difficulty_stats: ValueDistributionStats
     reviewed_today: int = 0
+    activity_heatmap_365d: list[ActivityHeatmapItem] = []
+    anki_metrics: AnkiMetrics | None = None
 
 
 class RecommendationItem(BaseModel):
