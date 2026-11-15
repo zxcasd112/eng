@@ -28,18 +28,15 @@ from app.services.quiz_service import (
 router = APIRouter(prefix="/api/v1/quiz", tags=["quiz"])
 
 
-@router.get("/multiple-choice", response_model=MultipleChoiceQuizOut)
+@router.get("/multiple-choice", response_model=MultipleChoiceQuizOut | None)
 async def get_multiple_choice_quiz(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
     llm_service: LLMService = Depends(get_llm_service),
-) -> MultipleChoiceQuizOut:
+) -> MultipleChoiceQuizOut | None:
     q = await create_multiple_choice_quiz(session=session, user_id=user.id, llm_service=llm_service)
     if q is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No cards found for quiz. Add words first.",
-        )
+        return None
     return MultipleChoiceQuizOut(
         quiz_id=q.quiz_id,
         word_id=q.word_id,

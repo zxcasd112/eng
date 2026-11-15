@@ -423,28 +423,35 @@ async function loadDashboardRecommendations() {
     return;
   }
 
-  container.innerHTML = res.data.map(rec => `
+  container.innerHTML = res.data.map(item => {
+    const w = item.word || item;
+    const lemma = w.lemma || w.word || '';
+    const trans = w.translation_ru || w.translation || '';
+    const cefr = w.cefr_level || 'B1';
+    const reason = (item.reasons && item.reasons.length) ? item.reasons.join(', ') : (item.reason || 'Оптимально для вашего словарного запаса');
+    return `
     <div class="word-card">
       <div>
         <div style="display: flex; justify-content: space-between; align-items: baseline;">
-          <div class="word-lemma">${rec.lemma}</div>
-          <span class="cefr-pill">${rec.cefr_level || 'B1'}</span>
+          <div class="word-lemma">${lemma}</div>
+          <span class="cefr-pill">${cefr}</span>
         </div>
-        <div class="word-trans">${rec.translation_ru}</div>
+        <div class="word-trans">${trans}</div>
         <div style="font-size: 0.8125rem; color: var(--color-text-muted); margin-top: 8px;">
-          ${rec.reason || 'Оптимально для вашего словарного запаса'}
+          ${reason}
         </div>
       </div>
       <div style="margin-top: 16px; display: flex; gap: 8px;">
-        <button class="btn btn-primary btn-sm" style="flex: 1;" onclick="addWordToDeck('${rec.lemma.replace(/'/g, "\\'")}', '${rec.translation_ru.replace(/'/g, "\\'")}', '${rec.cefr_level}', this)">
+        <button class="btn btn-primary btn-sm" style="flex: 1;" onclick="addWordToDeck('${lemma.replace(/'/g, "\\'")}', '${trans.replace(/'/g, "\\'")}', '${cefr}', this)">
           В колоду
         </button>
-        <button class="btn btn-secondary btn-sm" onclick="speakWord('${rec.lemma.replace(/'/g, "\\'")}')" aria-label="Озвучить слово">
+        <button class="btn btn-secondary btn-sm" onclick="speakWord('${lemma.replace(/'/g, "\\'")}')" aria-label="Озвучить слово">
           🔊
         </button>
       </div>
     </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
 async function addWordToDeck(lemma, translation, cefr, btn) {
@@ -497,7 +504,17 @@ async function handleAnalyzeSentence() {
     body: JSON.stringify({ sentence: text })
   });
 
-  if (!res.ok || !res.data || !res.data.words || res.data.words.length === 0) {
+  if (!res.ok) {
+    const errorMsg = (res.data && res.data.detail) ? res.data.detail : 'Сервис анализа предложений временно недоступен.';
+    container.innerHTML = `
+      <div style="background: var(--color-surface-subtle); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 16px;">
+        <div style="color: var(--color-danger); font-size: 0.875rem;">${errorMsg}</div>
+      </div>
+    `;
+    return;
+  }
+
+  if (!res.data || !res.data.words || res.data.words.length === 0) {
     container.innerHTML = `
       <div style="background: var(--color-surface-subtle); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 16px;">
         <div style="color: var(--color-text-secondary); font-size: 0.875rem;">Новых незнакомых слов в предложении не обнаружено или они уже есть в вашей колоде.</div>
@@ -1181,7 +1198,7 @@ async function loadAnalytics() {
 
 function renderRetentionSvgChart(container, dailyData) {
   if (!dailyData || dailyData.length === 0) {
-    container.innerHTML = '<div style="color: var(--color-text-muted);">Недостаточно данных для графика.</div>';
+    container.innerHTML = '<div style="color: var(--color-text-muted); padding: 20px 0; text-align: center;">Недостаточно данных для графика.</div>';
     return;
   }
 
@@ -1196,10 +1213,17 @@ function renderRetentionSvgChart(container, dailyData) {
   const chartH = height - padTop - padBottom;
 
   const points = dailyData.map((d, idx) => {
-    const x = padLeft + (idx / Math.max(1, dailyData.length - 1)) * chartW;
-    const rate = d.retention_rate !== null ? d.retention_rate : 100;
+    const denom = Math.max(1, dailyData.length - 1);
+    const x = padLeft + (idx / denom) * chartW;
+    const rawRate = Number(d.retention_rate);
+    const rate = (!isNaN(rawRate) && isFinite(rawRate)) ? Math.max(0, Math.min(100, rawRate)) : 100;
     const y = padTop + chartH - (rate / 100) * chartH;
-    return { x, y, rate, date: d.date };
+    return {
+      x: isNaN(x) ? padLeft : x,
+      y: isNaN(y) ? (padTop + chartH) : y,
+      rate,
+      date: d.date || ''
+    };
   });
 
   const polylineStr = points.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');

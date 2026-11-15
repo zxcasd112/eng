@@ -9,7 +9,13 @@ from sqlalchemy.orm import selectinload
 
 from app.db.models import Card, Example, Review, Source, User, Word
 from app.services.fsrs_service import new_card_state, preview_intervals, review_fsrs_card
-from app.services.llm import LLMService, WordEnrichment, WordExplanation, normalize_text
+from app.services.llm import (
+    LLMNotConfiguredError,
+    LLMService,
+    WordEnrichment,
+    WordExplanation,
+    normalize_text,
+)
 from app.services.review_engine import (
     ALL_CARD_TYPES,
     CARD_TYPE_EN_RU,
@@ -301,16 +307,47 @@ async def extract_new_words_from_sentence(
     sentence: str,
     llm_service: LLMService,
 ) -> list[WordEnrichment]:
-    result = await llm_service.extract_words_from_sentence(
-        session,
-        sentence=sentence,
-        user_level=user.cefr_level,
-    )
+    try:
+        result = await llm_service.extract_words_from_sentence(
+            session,
+            sentence=sentence,
+            user_level=user.cefr_level,
+        )
+        words = result.words
+    except (LLMNotConfiguredError, RuntimeError, OSError, ValueError):
+        import re
+
+        tokens = set(re.findall(r"\b[a-zA-Z]{3,}\b", sentence.lower()))
+        stopwords = {
+            "the", "and", "for", "with", "that", "this", "from", "are", "were", "been",
+            "have", "has", "had", "they", "them", "their", "what", "which", "will", "would",
+            "can", "could", "should", "about", "into", "over", "after", "then", "also",
+            "some", "very", "just", "like", "other", "than", "now", "only", "well"
+        }
+        candidate_tokens = [t for t in tokens if t not in stopwords]
+        words = []
+        if candidate_tokens:
+            stmt = select(Word).where(Word.normalized.in_(candidate_tokens)).limit(6)
+            db_words = (await session.execute(stmt)).scalars().all()
+            for dbw in db_words:
+                words.append(
+                    WordEnrichment(
+                        lemma=dbw.lemma,
+                        transcription=dbw.transcription or "",
+                        part_of_speech=dbw.part_of_speech or "word",
+                        cefr_level=dbw.cefr_level or "B1",
+                        translation_ru=dbw.translation_ru,
+                        definition_en=dbw.definition_en or "",
+                        example_en=sentence,
+                        example_ru="Пример из вашего предложения.",
+                    )
+                )
+
     known_res = await session.execute(
         select(Word.normalized).join(Card, Card.word_id == Word.id).where(Card.user_id == user.id)
     )
     known = set(known_res.scalars().all())
-    return [w for w in result.words if normalize_text(w.lemma) not in known]
+    return [w for w in words if normalize_text(w.lemma) not in known]
 
 
 async def get_due_cards(
