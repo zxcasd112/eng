@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import PyJWTError
 from sqlalchemy import select
@@ -17,16 +17,23 @@ def get_llm_service() -> LLMService:
 
 
 async def get_current_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     session: AsyncSession = Depends(get_db),
 ) -> User:
-    if credentials is None:
+    raw_token: str | None = None
+    if credentials is not None:
+        raw_token = credentials.credentials
+    elif "access_token" in request.cookies:
+        raw_token = request.cookies.get("access_token")
+
+    if not raw_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing authentication token",
+            detail="Missing authentication credentials",
         )
     try:
-        payload = decode_access_token(credentials.credentials)
+        payload = decode_access_token(raw_token)
         user_id = int(payload["sub"])
     except (PyJWTError, KeyError, ValueError) as exc:
         raise HTTPException(
