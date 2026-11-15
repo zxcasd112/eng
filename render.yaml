@@ -9,6 +9,8 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.0
+      - key: APP_ENV
+        value: production
       - key: APP_SECRET_KEY
         generateValue: true
       - key: OPENAI_API_KEY

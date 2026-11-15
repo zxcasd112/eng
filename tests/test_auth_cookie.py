@@ -109,3 +109,38 @@ async def test_telegram_auth_expired_signature(auth_test_client):
     )
     resp = await client.post("/api/v1/auth/telegram", json=old_payload)
     assert resp.status_code == 401
+
+
+async def test_cookie_secure_flag_in_production(monkeypatch):
+    bot_token = "123456:TEST_PROD_AUTH_TOKEN"
+    prod_secret = "super-secret-production-key-at-least-32-chars-long"
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", bot_token)
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("APP_SECRET_KEY", prod_secret)
+    get_settings.cache_clear()
+
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+    async def override_get_db():
+        async with session_factory() as session:
+            yield session
+
+    app = create_app()
+    app.dependency_overrides[get_db] = override_get_db
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        payload = _sign_telegram_payload(
+            {"id": 556677, "first_name": "ProdUser", "auth_date": int(time.time())},
+            bot_token=bot_token,
+        )
+        resp = await client.post("/api/v1/auth/telegram", json=payload)
+        assert resp.status_code == 200
+        set_cookie = resp.headers.get("set-cookie", "")
+        assert "secure" in set_cookie.lower()
+
+    get_settings.cache_clear()
+    await engine.dispose()

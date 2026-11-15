@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
 from app.api.schemas import AuthTokenResponse, TelegramAuthPayload, UserProfileResponse
+from app.config import get_settings
 from app.db.models import User
 from app.db.session import get_db
 from app.services.auth import create_access_token, verify_telegram_login
@@ -36,13 +37,14 @@ async def telegram_login(
     token = create_access_token(user_id=user.id, telegram_id=user.telegram_id, expires_days=30)
 
     # Set httpOnly cookie for web browser session (30 days)
+    settings = get_settings()
     response.set_cookie(
         key="access_token",
         value=token,
         max_age=30 * 86400,
         httponly=True,
         samesite="lax",
-        secure=False,  # Set to True behind HTTPS reverse proxy automatically
+        secure=settings.is_production,
         path="/",
     )
 
@@ -56,15 +58,20 @@ async def telegram_login(
 
 @router.get("/widget-config")
 async def get_widget_config() -> dict[str, str]:
-    from app.config import get_settings
-
     settings = get_settings()
     return {"bot_username": settings.telegram_bot_username or "ENG_Tutor_FSRS_bot"}
 
 
 @router.post("/logout")
 async def logout(response: Response) -> dict:
-    response.delete_cookie(key="access_token", path="/")
+    settings = get_settings()
+    response.delete_cookie(
+        key="access_token",
+        httponly=True,
+        samesite="lax",
+        secure=settings.is_production,
+        path="/",
+    )
     return {"status": "ok", "message": "Successfully logged out"}
 
 
