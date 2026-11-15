@@ -1,627 +1,1130 @@
-// ENG TUTOR Web Client — Cognitive AI Spaced Repetition (Stage 2 & 3)
+// ENG TUTOR Web Client — Spaced Repetition Cabinet & Learning Studio
 
-const API_BASE = window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1')
-  ? `${window.location.origin}/api/v1`
-  : 'http://localhost:8000/api/v1';
+const API_BASE = '/api/v1';
 
-// Global State
-let allLessons = [];
-let allWords = [];
-let allStudyCards = [];
-let currentLessonFilter = 'ALL';
-let currentCardTypeFilter = 'ALL';
-let currentDeckLevelFilter = 'ALL';
-let currentSearchQuery = '';
+// Global App State
+let currentUser = null;
+let currentRoute = '/app';
 
-let activeStudyQueue = [];
-let currentCardIndex = 0;
+// Study Session State
+let studyQueue = [];
+let studyIndex = 0;
 let isAnswerRevealed = false;
+let studyTypeFilter = 'ALL';
+
+// Words Deck State
+const wordsState = {
+  items: [],
+  page: 1,
+  pageSize: 12,
+  total: 0,
+  query: '',
+  cefr: 'ALL',
+  status: 'ALL',
+  searchTimer: null
+};
+
+// Quiz Lab State
 let currentQuiz = null;
 
-// Audio Pronunciation via SpeechSynthesis
+// Audio Pronunciation via Web Speech API
 function speakWord(text) {
   if ('speechSynthesis' in window) {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'en-US';
-    utterance.rate = 0.92;
+    utterance.rate = 0.9;
     window.speechSynthesis.speak(utterance);
   }
 }
 
-// Fetch Lessons and Seed Data
-async function initAppData() {
-  try {
-    const res = await fetch('/lessons.json');
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    allLessons = await res.json();
-    processLessonsData(allLessons);
-  } catch (err) {
-    console.warn('Could not load lessons.json directly, falling back to embedded dataset', err);
-    fallbackInit();
-  }
-}
-
-function processLessonsData(lessons) {
-  allWords = [];
-  allStudyCards = [];
-
-  lessons.forEach(l => {
-    l.items.forEach((item, idx) => {
-      const wordObj = {
-        id: `${l.lesson_id}_${idx + 1}`,
-        lesson_id: l.lesson_id,
-        lesson_title: l.title,
-        lemma: item.lemma,
-        translation_ru: item.translation_ru,
-        transcription: item.transcription || '',
-        part_of_speech: item.part_of_speech || 'prep phrase',
-        cefr_level: item.cefr_level || 'B1',
-        grammar_note: item.grammar_note || '',
-        collocations: item.collocations || [],
-        example: {
-          sentence_en: item.example_en || `This example illustrates "${item.lemma}".`,
-          sentence_ru: item.example_ru || `Этот пример иллюстрирует "${item.translation_ru}".`
-        }
-      };
-
-      allWords.push(wordObj);
-
-      // Create 4 card types for each word
-      const types = ['en_ru', 'ru_en', 'cloze', 'audio'];
-      types.forEach((cType, tIdx) => {
-        allStudyCards.push({
-          id: `${wordObj.id}_${cType}`,
-          word: wordObj,
-          card_type: cType,
-          state: 1, // Learning
-          reps: 0,
-          lapses: 0,
-          due_at: new Date().toISOString()
-        });
-      });
-    });
-  });
-
-  // Interleave study cards: alternate card types and words
-  interleaveCards(allStudyCards);
-
-  // Update DOM components
-  renderLessonPills();
-  applyLessonFilter('ALL');
-  loadMultipleChoiceQuiz();
-  renderVocabularyDeck();
-  updateSummaryCounters();
-}
-
-function interleaveCards(cards) {
-  // Sort into interleaved order: rotate card types across distinct words
-  const buckets = { en_ru: [], cloze: [], ru_en: [], audio: [] };
-  cards.forEach(c => {
-    if (buckets[c.card_type]) buckets[c.card_type].push(c);
-  });
-
-  const interleaved = [];
-  const maxLen = Math.max(...Object.values(buckets).map(b => b.length));
-  const order = ['cloze', 'en_ru', 'ru_en', 'audio'];
-
-  for (let i = 0; i < maxLen; i++) {
-    order.forEach(type => {
-      if (buckets[type][i]) interleaved.push(buckets[type][i]);
-    });
+// Unified API Fetch with Cookie Authentication
+async function fetchAPI(endpoint, options = {}) {
+  const defaultHeaders = {};
+  if (!(options.body instanceof FormData)) {
+    defaultHeaders['Content-Type'] = 'application/json';
   }
 
-  allStudyCards = interleaved;
-}
+  const opts = {
+    ...options,
+    credentials: 'include',
+    headers: {
+      ...defaultHeaders,
+      ...(options.headers || {})
+    }
+  };
 
-function updateSummaryCounters() {
-  const summaryEl = document.getElementById('lessonSummaryCount');
-  if (summaryEl) {
-    summaryEl.innerText = `${allWords.length} выражений · ${allStudyCards.length} FSRS карточек`;
+  const res = await fetch(`${API_BASE}${endpoint}`, opts);
+  if (res.status === 401) {
+    currentUser = null;
+    return { ok: false, status: 401, error: 'Unauthorized' };
   }
-}
 
-// Render Top Lesson Pills
-function renderLessonPills() {
-  const container = document.getElementById('lessonPillsContainer');
-  if (!container) return;
-
-  let html = `
-    <button class="lesson-pill ${currentLessonFilter === 'ALL' ? 'active' : ''}" onclick="applyLessonFilter('ALL', this)">
-      <strong>🌟 Все 7 уроков</strong> (${allWords.length})
-    </button>
-  `;
-
-  allLessons.forEach(l => {
-    const isAct = currentLessonFilter === String(l.lesson_id);
-    // Short title for pill
-    let shortName = `Урок ${l.lesson_id}`;
-    if (l.title.includes('прилагательными')) shortName = `Урок ${l.lesson_id}: Прилагательные`;
-    else if (l.title.includes('глаголами')) shortName = `Урок ${l.lesson_id}: Глаголы`;
-    else if (l.title.includes('существительными')) shortName = `Урок ${l.lesson_id}: Существительные`;
-    else if (l.title.includes('Устойчивые')) shortName = `Урок ${l.lesson_id}: Идиомы & Фразы`;
-
-    html += `
-      <button class="lesson-pill ${isAct ? 'active' : ''}" onclick="applyLessonFilter('${l.lesson_id}', this)">
-        ${shortName} (${l.items.length})
-      </button>
-    `;
-  });
-
-  container.innerHTML = html;
-}
-
-// Switch Active Lesson
-function applyLessonFilter(lessonId, btnEl) {
-  currentLessonFilter = lessonId;
-
-  // Update pills visual state
-  document.querySelectorAll('.lesson-pill').forEach(p => p.classList.remove('active'));
-  if (btnEl) {
-    btnEl.classList.add('active');
+  const contentType = res.headers.get('content-type') || '';
+  let data = null;
+  if (contentType.includes('application/json')) {
+    data = await res.json();
   } else {
-    const first = document.querySelector('.lesson-pill');
-    if (first && lessonId === 'ALL') first.classList.add('active');
+    data = await res.text();
   }
 
-  // Update Study Studio Badge
-  const badge = document.getElementById('studyCurrentLessonBadge');
-  if (badge) {
-    if (lessonId === 'ALL') {
-      badge.innerText = `Урок: Все 7 уроков (${allWords.length} выражений)`;
-    } else {
-      const match = allLessons.find(l => String(l.lesson_id) === String(lessonId));
-      badge.innerText = match ? match.title : `Урок ${lessonId}`;
+  return { ok: res.ok, status: res.status, data };
+}
+
+// Check Authentication Status
+async function checkAuth() {
+  try {
+    const res = await fetchAPI('/auth/me');
+    if (res.ok && res.data) {
+      currentUser = res.data;
+      updateUserUI();
+      return currentUser;
+    }
+  } catch (err) {
+    console.warn('Auth check error:', err);
+  }
+  currentUser = null;
+  updateUserUI();
+  return null;
+}
+
+function updateUserUI() {
+  const badge = document.getElementById('userBadge');
+  const streakBadge = document.getElementById('streakBadge');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const navLinks = document.getElementById('appNavLinks');
+  const mobileSubnav = document.getElementById('mobileSubnav');
+
+  if (currentUser) {
+    if (badge) {
+      badge.style.display = 'inline-flex';
+      badge.textContent = `{ ${currentUser.username ? '@' + currentUser.username : 'TG: ' + currentUser.telegram_id} } _`;
+    }
+    if (logoutBtn) logoutBtn.style.display = 'inline-flex';
+    if (navLinks) navLinks.style.display = 'flex';
+    if (mobileSubnav && window.innerWidth <= 768) mobileSubnav.style.display = 'flex';
+  } else {
+    if (badge) badge.style.display = 'none';
+    if (streakBadge) streakBadge.style.display = 'none';
+    if (logoutBtn) logoutBtn.style.display = 'none';
+    if (navLinks) navLinks.style.display = 'none';
+    if (mobileSubnav) mobileSubnav.style.display = 'none';
+  }
+}
+
+// SPA Router
+function navigate(path) {
+  if (path !== window.location.pathname) {
+    window.history.pushState(null, '', path);
+  }
+  renderRoute();
+}
+
+window.addEventListener('popstate', renderRoute);
+
+async function renderRoute() {
+  const path = window.location.pathname.replace(/\/$/, '') || '/app';
+  currentRoute = path;
+
+  // Views references
+  const loadingView = document.getElementById('loadingView');
+  const loginView = document.getElementById('loginView');
+  const dashboardView = document.getElementById('dashboardView');
+  const studyView = document.getElementById('studyView');
+  const wordsView = document.getElementById('wordsView');
+  const analyticsView = document.getElementById('analyticsView');
+  const profileView = document.getElementById('profileView');
+
+  // Hide all views first
+  [loadingView, loginView, dashboardView, studyView, wordsView, analyticsView, profileView].forEach(v => {
+    if (v) v.style.display = 'none';
+  });
+
+  // Ensure user is authenticated
+  if (!currentUser) {
+    const authUser = await checkAuth();
+    if (!authUser) {
+      if (loginView) loginView.style.display = 'block';
+      updateNavActiveState('/app');
+      return;
     }
   }
 
-  // Filter study queue
-  filterStudyQueue();
-  renderVocabularyDeck();
-  loadMultipleChoiceQuiz();
-}
+  // Update active states on nav buttons
+  updateNavActiveState(path);
 
-function filterStudyQueue() {
-  let cards = [...allStudyCards];
-
-  if (currentLessonFilter !== 'ALL') {
-    cards = cards.filter(c => String(c.word.lesson_id) === String(currentLessonFilter));
+  // Render view
+  if (path === '/app/study') {
+    if (studyView) studyView.style.display = 'block';
+    loadStudyQueue();
+  } else if (path === '/app/words') {
+    if (wordsView) wordsView.style.display = 'block';
+    loadWordsDeck();
+  } else if (path === '/app/analytics') {
+    if (analyticsView) analyticsView.style.display = 'block';
+    loadAnalytics();
+  } else if (path === '/app/profile') {
+    if (profileView) profileView.style.display = 'block';
+    loadProfile();
+  } else {
+    // Default to /app (Dashboard)
+    if (dashboardView) dashboardView.style.display = 'block';
+    loadDashboard();
   }
-
-  if (currentCardTypeFilter !== 'ALL') {
-    cards = cards.filter(c => c.card_type === currentCardTypeFilter);
-  }
-
-  activeStudyQueue = cards;
-  currentCardIndex = 0;
-  isAnswerRevealed = false;
-  renderCurrentCard();
 }
 
-function setCardTypeFilter(cType) {
-  currentCardTypeFilter = cType;
-  document.querySelectorAll('.studio-tab').forEach(t => t.classList.remove('active'));
-  event.target.classList.add('active');
-  filterStudyQueue();
+function updateNavActiveState(currentPath) {
+  document.querySelectorAll('.nav-link-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-route') === currentPath);
+  });
+  document.querySelectorAll('.subnav-pill').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-route') === currentPath);
+  });
 }
 
-// Render Card in Learning Studio
-function renderCurrentCard() {
-  const container = document.getElementById('studioCardContainer');
-  if (!container) return;
+// Authentication Handlers
+async function handleQuickLogin() {
+  const input = document.getElementById('quickLoginId');
+  const idVal = input ? input.value.trim() : '';
+  const tgId = idVal ? parseInt(idVal, 10) : 100001;
 
-  if (activeStudyQueue.length === 0 || currentCardIndex >= activeStudyQueue.length) {
-    container.innerHTML = `
-      <div style="text-align: center; padding: 48px 20px;">
-        <div style="font-size: 48px; margin-bottom: 16px;">🎉</div>
-        <h3 style="font-family: var(--font-display); font-size: 24px; margin-bottom: 8px;">Все карточки повторены!</h3>
-        <p style="color: var(--pewter-text); margin-bottom: 24px;">Ты успешно закрепил порцию карточек по интервальному алгоритму FSRS.</p>
-        <button class="btn-primary" onclick="restartStudySession()">Начать заново</button>
-      </div>
-    `;
+  if (isNaN(tgId)) {
+    alert('Пожалуйста, введи числовой Telegram ID');
     return;
   }
 
-  const card = activeStudyQueue[currentCardIndex];
-  const word = card.word;
-  const ex = word.example || {};
-  const cType = card.card_type || 'en_ru';
-
-  const typeLabels = {
-    'en_ru': 'EN ➔ RU (контекстное воспоминание)',
-    'ru_en': 'RU ➔ EN (активное производство)',
-    'cloze': 'Пропуск в предложении (Cloze Gap)',
-    'audio': 'Аудиокарточка (восприятие на слух)'
+  // Auth mock/dev payload
+  const authPayload = {
+    id: tgId,
+    first_name: 'Learner',
+    username: 'learner_' + tgId,
+    auth_date: Math.floor(Date.now() / 1000),
+    hash: 'quick_login_dev'
   };
 
-  let promptHtml = '';
-  if (cType === 'cloze') {
-    // Robust Cloze masking: mask target lemma or individual prepositions
-    let masked = ex.sentence_en;
-    if (masked) {
-      // Escape special characters in lemma
-      const escaped = word.lemma.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
-      masked = masked.replace(new RegExp(escaped, 'gi'), '<mark>[ ... ]</mark>');
-    } else {
-      masked = `<mark>[ ... ]</mark> — "${word.translation_ru}"`;
-    }
-    promptHtml = `
-      <div class="card-sentence-prompt">${masked}</div>
-      <div class="card-hint">🇷🇺 Значение: <strong>${word.translation_ru}</strong> · Урок: <em>${word.lesson_title.split('—')[0]}</em></div>
-    `;
-  } else if (cType === 'ru_en') {
-    promptHtml = `
-      <div class="card-sentence-prompt" style="color: #ffffff; font-size: 22px;">
-        "${ex.sentence_ru || word.translation_ru}"
-      </div>
-      <div class="card-hint">Вспомни английское выражение: <strong>[ ${word.part_of_speech} · ${word.cefr_level} ]</strong></div>
-    `;
-  } else if (cType === 'audio') {
-    promptHtml = `
-      <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px;">
-        <button class="btn-secondary" onclick="speakWord('${word.lemma}')" style="height: 48px;">
-          🔊 Прослушать фразу
-        </button>
-        <span style="color: var(--pewter-text); font-size: 13px;">Послушай аудио и вспомни значение выражения</span>
-      </div>
-    `;
-  } else {
-    // en_ru
-    promptHtml = `
-      <div class="card-sentence-prompt" style="font-family: var(--font-display); font-size: 28px; font-weight: 600; color: #fff;">
-        ${word.lemma}
-      </div>
-      ${ex.sentence_en ? `<div class="card-sentence-prompt" style="font-size: 16px; color: var(--pewter-text); margin-top: 8px;">"${ex.sentence_en}"</div>` : ''}
-    `;
-  }
-
-  let answerHtml = '';
-  if (isAnswerRevealed) {
-    const collocationsHtml = word.collocations && word.collocations.length
-      ? `<div class="pill-tags">${word.collocations.map(c => `<span class="pill-tag">🔗 ${c}</span>`).join('')}</div>`
-      : '';
-    const grammarHtml = word.grammar_note
-      ? `<div style="font-size: 12px; color: #ffa657; margin-top: 8px;">💡 <strong>Правило / сочетаемость:</strong> ${word.grammar_note}</div>`
-      : '';
-
-    answerHtml = `
-      <div class="card-answer-box">
-        <div style="display: flex; align-items: baseline; justify-content: space-between;">
-          <div>
-            <span class="word-highlight">${word.lemma}</span>
-            <span class="word-transcription">${word.transcription}</span>
-            <span class="pill-tag" style="margin-left: 8px; color: var(--nest-crimson);">${word.cefr_level}</span>
-          </div>
-          <button class="btn-secondary" onclick="speakWord('${word.lemma}')" style="height: 36px; padding: 0 14px; font-size: 13px;">
-            🔊 Озвучить
-          </button>
-        </div>
-        <div class="word-translation-lg">🇷🇺 ${word.translation_ru}</div>
-        ${ex.sentence_en ? `<div style="font-size: 14px; color: #ddd; margin-bottom: 4px;">💬 <em>"${ex.sentence_en}"</em></div>` : ''}
-        ${ex.sentence_ru ? `<div style="font-size: 13px; color: var(--pewter-text);">↳ <em>"${ex.sentence_ru}"</em></div>` : ''}
-        ${collocationsHtml}
-        ${grammarHtml}
-      </div>
-
-      <div class="rating-buttons-grid">
-        <button class="btn-rating btn-again" onclick="handleRate(1)">
-          <span class="label">❌ Не знаю</span>
-          <span class="interval">&lt; 1 мин</span>
-        </button>
-        <button class="btn-rating btn-hard" onclick="handleRate(2)">
-          <span class="label">😓 Сложно</span>
-          <span class="interval">6 мин</span>
-        </button>
-        <button class="btn-rating btn-good" onclick="handleRate(3)">
-          <span class="label">✅ Знаю</span>
-          <span class="interval">10 мин</span>
-        </button>
-        <button class="btn-rating btn-easy" onclick="handleRate(4)">
-          <span class="label">⚡ Легко</span>
-          <span class="interval">4 дня</span>
-        </button>
-      </div>
-    `;
-  } else {
-    answerHtml = `
-      <div style="margin-top: 24px;">
-        <button class="btn-primary" style="width: 100%;" onclick="revealAnswer()">
-          👁 Показать ответ <span style="font-size: 12px; color: #666; margin-left: 8px;">(Space)</span>
-        </button>
-      </div>
-    `;
-  }
-
-  container.innerHTML = `
-    <div>
-      <div style="display: flex; align-items: center; justify-content: space-between;">
-        <span class="card-type-badge">${typeLabels[cType] || cType}</span>
-        <span style="font-size: 12px; color: var(--pewter-text);">Карточка ${currentCardIndex + 1} из ${activeStudyQueue.length}</span>
-      </div>
-      ${promptHtml}
-      ${answerHtml}
-    </div>
-  `;
-}
-
-function revealAnswer() {
-  isAnswerRevealed = true;
-  renderCurrentCard();
-  const card = activeStudyQueue[currentCardIndex];
-  if (card && card.word && card.card_type === 'audio') {
-    speakWord(card.word.lemma);
-  }
-}
-
-function handleRate(rating) {
-  isAnswerRevealed = false;
-  currentCardIndex++;
-  renderCurrentCard();
-}
-
-function restartStudySession() {
-  currentCardIndex = 0;
-  isAnswerRevealed = false;
-  renderCurrentCard();
-}
-
-// Multiple Choice Quiz
-function loadMultipleChoiceQuiz() {
-  const container = document.getElementById('quizContainer');
-  if (!container || allWords.length === 0) return;
-
-  // Filter pool by current lesson if selected
-  const pool = currentLessonFilter === 'ALL'
-    ? allWords
-    : allWords.filter(w => String(w.lesson_id) === String(currentLessonFilter));
-
-  const targetWord = pool[Math.floor(Math.random() * pool.length)] || allWords[0];
-  const correct = targetWord.translation_ru;
-
-  // Pick 3 realistic distractors from allWords
-  const otherWords = allWords
-    .filter(w => w.translation_ru !== correct && w.lemma !== targetWord.lemma)
-    .sort(() => Math.random() - 0.5);
-
-  const distractors = otherWords.slice(0, 3).map(w => w.translation_ru);
-  const options = [correct, ...distractors].sort(() => Math.random() - 0.5);
-
-  currentQuiz = {
-    lemma: targetWord.lemma,
-    correct: correct,
-    lesson_title: targetWord.lesson_title,
-    sentence: targetWord.example ? targetWord.example.sentence_en : null,
-  };
-
-  container.innerHTML = `
-    <div style="margin-bottom: 20px;">
-      <div style="display: flex; justify-content: space-between; align-items: center;">
-        <div class="eyebrow">{ MULTIPLE CHOICE QUIZ } <span class="eyebrow-cursor">_</span></div>
-        <span class="study-lesson-badge" style="margin: 0;">${targetWord.lesson_title.split('—')[0]}</span>
-      </div>
-      <div style="display: flex; align-items: baseline; gap: 12px; margin-top: 8px; margin-bottom: 8px;">
-        <div style="font-family: var(--font-display); font-size: 28px; font-weight: 600; color: #fff;">
-          ${targetWord.lemma}
-        </div>
-        <button onclick="speakWord('${targetWord.lemma}')" style="background: none; border: none; cursor: pointer; color: var(--pewter-text); font-size: 16px;">🔊</button>
-      </div>
-      ${targetWord.example ? `<div style="color: var(--pewter-text); font-size: 14px; margin-bottom: 16px;">💬 "${targetWord.example.sentence_en}"</div>` : ''}
-      <div style="font-size: 13px; color: var(--pewter-text);">Выбери верный русский перевод / значение:</div>
-    </div>
-    <div class="quiz-options-grid">
-      ${options.map(opt => `
-        <button class="quiz-option-card" onclick="selectQuizOption(this, '${opt.replace(/'/g, "\\'")}')">
-          ${opt}
-        </button>
-      `).join('')}
-    </div>
-    <div id="quizFeedback" style="margin-top: 20px;"></div>
-  `;
-}
-
-function selectQuizOption(btn, chosen) {
-  if (!currentQuiz) return;
-  const isCorrect = chosen === currentQuiz.correct;
-  const cards = document.querySelectorAll('.quiz-option-card');
-  cards.forEach(c => {
-    c.style.pointerEvents = 'none';
-    if (c.innerText.trim() === currentQuiz.correct) {
-      c.classList.add('correct');
-    }
+  const res = await fetchAPI('/auth/telegram', {
+    method: 'POST',
+    body: JSON.stringify(authPayload)
   });
 
-  if (!isCorrect) {
-    btn.classList.add('wrong');
+  if (res.ok) {
+    currentUser = res.data.user;
+    updateUserUI();
+    navigate('/app');
+  } else {
+    alert('Ошибка входа: ' + (res.data ? res.data.detail : 'Проверьте соединение'));
+  }
+}
+
+// Callback for Telegram Login Widget
+window.onTelegramAuth = async function(user) {
+  const res = await fetchAPI('/auth/telegram', {
+    method: 'POST',
+    body: JSON.stringify(user)
+  });
+  if (res.ok) {
+    currentUser = res.data.user;
+    updateUserUI();
+    navigate('/app');
+  } else {
+    alert('Ошибка аутентификации Telegram Widget');
+  }
+};
+
+async function handleLogout() {
+  await fetchAPI('/auth/logout', { method: 'POST' });
+  currentUser = null;
+  updateUserUI();
+  navigate('/app');
+}
+
+// ==========================================
+// 1. DASHBOARD VIEW
+// ==========================================
+async function loadDashboard() {
+  // Parallel fetch: stats & due cards, profile, recommendations
+  try {
+    const [dueRes, profRes, anRes] = await Promise.all([
+      fetchAPI('/cards/due?limit=50'),
+      fetchAPI('/profile'),
+      fetchAPI('/profile/analytics')
+    ]);
+
+    // Due Today
+    const dueCount = dueRes.ok && Array.isArray(dueRes.data) ? dueRes.data.length : 0;
+    const dueEl = document.getElementById('dashDueCount');
+    if (dueEl) dueEl.textContent = dueCount;
+
+    // Daily Goal & Streak
+    if (profRes.ok && profRes.data) {
+      const goal = profRes.data.daily_goal || 15;
+      const streak = profRes.data.current_streak || 0;
+      
+      const streakBadge = document.getElementById('streakBadge');
+      if (streakBadge) {
+        streakBadge.style.display = 'inline-flex';
+        streakBadge.textContent = `🔥 ${streak} дн`;
+      }
+      const dashStreak = document.getElementById('dashStreak');
+      if (dashStreak) dashStreak.textContent = `${streak} 🔥`;
+
+      const goalProgress = document.getElementById('dashGoalProgress');
+      const goalBar = document.getElementById('dashGoalBar');
+      // Calculate reviewed today from analytics if present
+      const reviewedToday = Math.min(goal, Math.max(0, goal - dueCount));
+      if (goalProgress) goalProgress.textContent = `${reviewedToday} / ${goal}`;
+      if (goalBar) {
+        const pct = Math.min(100, Math.round((reviewedToday / goal) * 100));
+        goalBar.style.width = `${pct}%`;
+      }
+    }
+
+    // Retention 30d
+    if (anRes.ok && anRes.data) {
+      const retEl = document.getElementById('dashRetention');
+      if (retEl) {
+        const rVal = anRes.data.retention_30d !== undefined ? anRes.data.retention_30d : 95.0;
+        retEl.textContent = `${Number(rVal).toFixed(1)}%`;
+      }
+    }
+
+    // Load recommendations
+    loadDashboardRecommendations();
+    // Load quiz lab question
+    loadInteractiveQuiz();
+  } catch (err) {
+    console.error('Error loading dashboard:', err);
+  }
+}
+
+async function loadDashboardRecommendations() {
+  const container = document.getElementById('dashRecommendationsGrid');
+  if (!container) return;
+
+  container.innerHTML = '<div style="color: var(--pewter-text); padding: 20px;">Подбираем рекомендации по методике Krashen i+1...</div>';
+
+  const res = await fetchAPI('/profile/recommendations?limit=5');
+  if (!res.ok || !Array.isArray(res.data) || res.data.length === 0) {
+    container.innerHTML = '<div style="color: var(--pewter-text); padding: 20px;">Все текущие рекомендации изучены. Добавь новые тексты или слова!</div>';
+    return;
   }
 
-  const feedback = document.getElementById('quizFeedback');
-  if (feedback) {
-    feedback.innerHTML = `
-      <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px; border-radius: 12px; background: ${isCorrect ? 'rgba(63,185,80,0.1)' : 'rgba(234,40,69,0.1)'}; border: 1px solid ${isCorrect ? 'var(--emerald-success)' : 'var(--nest-crimson)'};">
-        <span>${isCorrect ? '🎉 <strong>Отлично!</strong> Абсолютно верно.' : `❌ <strong>Ошибка.</strong> Верный перевод: <strong>${currentQuiz.correct}</strong>`}</span>
-        <button class="btn-primary" style="height: 40px; padding: 0 18px; font-size: 13px;" onclick="loadMultipleChoiceQuiz()">Следующий ➔</button>
+  container.innerHTML = res.data.map(rec => `
+    <div class="word-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+      <div>
+        <div class="word-card-top">
+          <div style="display: flex; justify-content: space-between; align-items: baseline;">
+            <div class="word-card-lemma">${rec.lemma}</div>
+            <span class="pill-tag" style="color: var(--nest-crimson);">${rec.cefr_level || 'B1'}</span>
+          </div>
+          <div class="word-card-trans">${rec.translation_ru}</div>
+        </div>
+        <div style="font-size: 11px; color: var(--pewter-text); margin: 8px 0;">
+          💡 ${rec.reason || 'Оптимально для твоего уровня лексики'}
+        </div>
       </div>
-    `;
+      <div style="margin-top: 14px; display: flex; gap: 8px;">
+        <button class="btn-primary" style="flex: 1; height: 36px; font-size: 12px;" onclick="addWordToDeck('${rec.lemma.replace(/'/g, "\\'")}', '${rec.translation_ru.replace(/'/g, "\\'")}', '${rec.cefr_level}', this)">
+          ➕ В колоду
+        </button>
+        <button class="btn-secondary" style="height: 36px; padding: 0 12px;" onclick="speakWord('${rec.lemma.replace(/'/g, "\\'")}')">
+          🔊
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function addWordToDeck(lemma, translation, cefr, btn) {
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Добавление...';
+  }
+
+  const res = await fetchAPI('/words', {
+    method: 'POST',
+    body: JSON.stringify({
+      lemma: lemma,
+      translation_ru: translation,
+      cefr_level: cefr || 'B1',
+      source: 'recommendation'
+    })
+  });
+
+  if (res.ok) {
+    if (btn) {
+      btn.textContent = 'В колоде ✓';
+      btn.style.background = 'var(--emerald-success)';
+      btn.style.borderColor = 'var(--emerald-success)';
+    }
+  } else {
+    alert('Не удалось добавить слово: ' + (res.data ? res.data.detail : 'Ошибка'));
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '➕ В колоду';
+    }
   }
 }
 
 // Sentence Extractor
-function analyzeSentenceInput() {
-  const input = document.getElementById('sentenceInput');
-  const resultsContainer = document.getElementById('extractorResults');
-  if (!input || !resultsContainer) return;
+async function handleAnalyzeSentence() {
+  const input = document.getElementById('dashSentenceInput');
+  const container = document.getElementById('dashSentenceResults');
+  if (!input || !container) return;
 
   const text = input.value.trim();
   if (text.length < 5) {
-    resultsContainer.innerHTML = '<div style="color: var(--pewter-text);">Введи полное предложение на английском.</div>';
+    container.innerHTML = '<div style="color: var(--pewter-text); font-size: 12px;">Введи полное предложение на английском.</div>';
     return;
   }
 
-  resultsContainer.innerHTML = '<div style="color: var(--pewter-text);">⏳ Анализирую предложение и сверяю с базой 107 предлогов...</div>';
+  container.innerHTML = '<div style="color: var(--pewter-text); font-size: 13px; padding: 12px 0;">⏳ Анализируем текст и извлекаем лексику...</div>';
 
-  setTimeout(() => {
-    // Check if any loaded prepositions match in the sentence
-    const matches = allWords.filter(w => {
-      const regex = new RegExp(`\\b${w.lemma.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}`, 'i');
-      return regex.test(text);
-    });
+  const res = await fetchAPI('/sentences', {
+    method: 'POST',
+    body: JSON.stringify({ sentence: text })
+  });
 
-    if (matches.length > 0) {
-      resultsContainer.innerHTML = `
-        <div style="margin-top: 16px;">
-          <div style="font-size: 12px; color: var(--emerald-success); margin-bottom: 12px;">✅ НАЙДЕНЫ СОВПАДЕНИЯ ИЗ КУРСА:</div>
-          <div style="display: flex; flex-direction: column; gap: 10px;">
-            ${matches.map(w => `
-              <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; background: #181818; border: 1px solid var(--smoke-outline); border-radius: 14px;">
-                <div>
-                  <strong style="font-family: var(--font-display); font-size: 16px;">${w.lemma}</strong>
-                  <span style="color: var(--pewter-text); font-size: 13px; margin-left: 8px;">${w.transcription}</span>
-                  <span class="pill-tag" style="margin-left: 8px; color: var(--nest-crimson);">${w.cefr_level}</span>
-                  <div style="color: var(--emerald-success); font-size: 13px; margin-top: 2px;">🇷🇺 ${w.translation_ru}</div>
-                  <div style="color: var(--pewter-text); font-size: 12px; margin-top: 2px;">📚 ${w.lesson_title}</div>
-                </div>
-                <button class="btn-secondary" style="height: 38px; padding: 0 16px; font-size: 13px;" onclick="speakWord('${w.lemma}')">
-                  🔊 Озвучить
-                </button>
-              </div>
-            `).join('')}
+  if (!res.ok || !res.data || !res.data.words || res.data.words.length === 0) {
+    container.innerHTML = `
+      <div style="background: var(--carbon-panel); border: 1px solid var(--smoke-outline); border-radius: 14px; padding: 16px;">
+        <div style="color: var(--pewter-text);">Новых неизвестных слов в предложении не найдено или они уже есть в колоде.</div>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = `
+    <div style="margin-top: 12px;">
+      <div style="font-size: 12px; color: var(--emerald-success); margin-bottom: 10px;">
+        ✅ ИЗВЛЕЧЕНЫ СЛОВА И КОНСТРУКЦИИ ДЛЯ ИЗУЧЕНИЯ (${res.data.words.length}):
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        ${res.data.words.map(w => `
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--carbon-panel); border: 1px solid var(--smoke-outline); border-radius: 12px;">
+            <div>
+              <strong style="font-family: var(--font-display); font-size: 15px;">${w.lemma}</strong>
+              <span class="pill-tag" style="margin-left: 8px; color: var(--nest-crimson);">${w.cefr_level || 'B2'}</span>
+              <span style="color: var(--pewter-text); margin-left: 8px;">— ${w.translation_ru}</span>
+              ${w.context_sentence ? `<div style="font-size: 11px; color: var(--pewter-text); margin-top: 4px;">💬 "${w.context_sentence}"</div>` : ''}
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn-primary" style="height: 34px; padding: 0 14px; font-size: 12px;" onclick="addWordToDeck('${w.lemma.replace(/'/g, "\\'")}', '${w.translation_ru.replace(/'/g, "\\'")}', '${w.cefr_level}', this)">
+                ➕ В колоду
+              </button>
+              <button class="btn-secondary" style="height: 34px; padding: 0 10px;" onclick="speakWord('${w.lemma.replace(/'/g, "\\'")}')">
+                🔊
+              </button>
+            </div>
           </div>
-        </div>
-      `;
-    } else {
-      resultsContainer.innerHTML = `
-        <div style="margin-top: 16px; padding: 16px; background: #181818; border: 1px solid var(--smoke-outline); border-radius: 14px;">
-          <div style="color: var(--pewter-text); margin-bottom: 8px;">Предложение проверено. Прямых совпадений с 107 предложными конструкциями не обнаружено.</div>
-          <div style="font-size: 13px; color: #fff;">💡 Попробуй предложения со словами: <em>typical of, responsible for, keen on, depend on, influence on, in the beginning...</em></div>
-        </div>
-      `;
-    }
-  }, 350);
+        `).join('')}
+      </div>
+    </div>
+  `;
 }
 
-// Vocabulary Deck Rendering
-function renderVocabularyDeck() {
-  const container = document.getElementById('deckGrid');
+// Interactive Quiz Lab
+async function loadInteractiveQuiz() {
+  const container = document.getElementById('dashQuizContainer');
   if (!container) return;
 
-  let filtered = [...allWords];
+  container.innerHTML = '<div style="color: var(--pewter-text); text-align: center; padding: 30px;">Загружаем вопрос квиза...</div>';
 
-  // Filter by lesson
-  if (currentLessonFilter !== 'ALL') {
-    filtered = filtered.filter(w => String(w.lesson_id) === String(currentLessonFilter));
-  }
-
-  // Filter by CEFR
-  if (currentDeckLevelFilter !== 'ALL') {
-    filtered = filtered.filter(w => w.cefr_level === currentDeckLevelFilter);
-  }
-
-  // Filter by search query
-  if (currentSearchQuery.trim()) {
-    const q = currentSearchQuery.toLowerCase().trim();
-    filtered = filtered.filter(w => 
-      w.lemma.toLowerCase().includes(q) ||
-      w.translation_ru.toLowerCase().includes(q) ||
-      (w.collocations && w.collocations.some(c => c.toLowerCase().includes(q)))
-    );
-  }
-
-  if (filtered.length === 0) {
-    container.innerHTML = `
-      <div style="grid-column: 1 / -1; text-align: center; padding: 48px 20px; color: var(--pewter-text);">
-        По вашему запросу ничего не найдено.
-      </div>
-    `;
+  const res = await fetchAPI('/quiz/multiple-choice');
+  if (!res.ok || !res.data) {
+    container.innerHTML = '<div style="color: var(--pewter-text); text-align: center; padding: 24px;">Для квиза нужно добавить хотя бы несколько слов в колоду.</div>';
     return;
   }
 
-  container.innerHTML = filtered.map(w => {
-    const collocationsHtml = w.collocations && w.collocations.length
-      ? `<div class="pill-tags" style="margin-top: 8px;">${w.collocations.slice(0, 2).map(c => `<span class="pill-tag" style="font-size: 11px;">🔗 ${c}</span>`).join('')}</div>`
-      : '';
-    const grammarHtml = w.grammar_note
-      ? `<div style="font-size: 11px; color: #ffa657; margin-top: 6px; line-height: 1.4;">💡 ${w.grammar_note}</div>`
-      : '';
+  currentQuiz = res.data;
 
-    return `
-      <div class="word-card">
-        <div class="word-card-top">
-          <div style="display: flex; justify-content: space-between; align-items: baseline;">
-            <div class="word-card-lemma">${w.lemma}</div>
-            <span class="pill-tag" style="color: var(--nest-crimson); font-size: 10px;">${w.cefr_level}</span>
-          </div>
-          <div style="color: var(--pewter-text); font-size: 12px; margin-top: 2px;">${w.transcription}</div>
-          <div class="word-card-ru">🇷🇺 ${w.translation_ru}</div>
-          ${collocationsHtml}
-          ${grammarHtml}
-        </div>
-        <div class="word-card-meta">
-          <span>${w.lesson_title.split('—')[0]}</span>
-          <button onclick="speakWord('${w.lemma}')" style="background: none; border: none; cursor: pointer; color: var(--pewter-text); font-size: 14px;">🔊</button>
-        </div>
+  container.innerHTML = `
+    <div style="margin-bottom: 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <span class="eyebrow">{ MULTIPLE CHOICE }</span>
+        <span class="pill-tag" style="color: var(--nest-crimson);">${currentQuiz.cefr_level || 'B1'}</span>
       </div>
-    `;
-  }).join('');
+      <div style="display: flex; align-items: baseline; gap: 12px; margin: 10px 0;">
+        <div style="font-family: var(--font-display); font-size: 26px; font-weight: 700;">${currentQuiz.lemma}</div>
+        <button onclick="speakWord('${currentQuiz.lemma.replace(/'/g, "\\'")}')" style="background: none; border: none; cursor: pointer; color: var(--pewter-text); font-size: 18px;">🔊</button>
+      </div>
+      ${currentQuiz.context_sentence ? `<div style="color: var(--pewter-text); font-size: 13px; margin-bottom: 12px;">💬 "${currentQuiz.context_sentence}"</div>` : ''}
+      <div style="font-size: 12px; color: var(--pewter-text);">Выбери подходящий перевод:</div>
+    </div>
+
+    <div class="quiz-options-grid" id="quizOptionsGrid">
+      ${currentQuiz.options.map(opt => `
+        <button class="quiz-option-card" onclick="submitQuizAnswer('${opt.replace(/'/g, "\\'")}', this)">
+          ${opt}
+        </button>
+      `).join('')}
+    </div>
+    <div id="quizFeedbackContainer" style="margin-top: 18px;"></div>
+  `;
 }
 
-function handleDeckSearch(query) {
-  currentSearchQuery = query;
-  renderVocabularyDeck();
-}
+async function submitQuizAnswer(chosenOption, btn) {
+  if (!currentQuiz) return;
 
-function filterDeckByLevel(level, btn) {
-  currentDeckLevelFilter = level;
-  document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
-  if (btn) btn.classList.add('active');
-  renderVocabularyDeck();
-}
+  // Disable options
+  document.querySelectorAll('.quiz-option-card').forEach(b => {
+    b.style.pointerEvents = 'none';
+  });
 
-function scrollToSection(id) {
-  const el = document.getElementById(id);
-  if (el) el.scrollIntoView({ behavior: 'smooth' });
-}
+  const res = await fetchAPI('/quiz/multiple-choice/answer', {
+    method: 'POST',
+    body: JSON.stringify({
+      quiz_id: currentQuiz.quiz_id,
+      chosen_option: chosenOption
+    })
+  });
 
-// Keyboard shortcuts
-document.addEventListener('keydown', (e) => {
-  if (['input', 'textarea'].includes(document.activeElement.tagName.toLowerCase())) {
-    return;
-  }
-  if (e.code === 'Space') {
-    if (!isAnswerRevealed) {
-      e.preventDefault();
-      revealAnswer();
+  const feedback = document.getElementById('quizFeedbackContainer');
+  if (res.ok && res.data) {
+    const isCorrect = res.data.is_correct;
+    if (isCorrect) {
+      btn.classList.add('correct');
+    } else {
+      btn.classList.add('wrong');
+      // Highlight correct answer button
+      document.querySelectorAll('.quiz-option-card').forEach(b => {
+        if (b.innerText.trim() === res.data.correct_answer) {
+          b.classList.add('correct');
+        }
+      });
     }
-  } else if (isAnswerRevealed && ['Digit1', 'Digit2', 'Digit3', 'Digit4'].includes(e.code)) {
-    const rating = parseInt(e.code.replace('Digit', ''), 10);
-    handleRate(rating);
+
+    if (feedback) {
+      feedback.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-radius: 12px; background: ${isCorrect ? 'rgba(63,185,80,0.1)' : 'rgba(234,40,69,0.1)'}; border: 1px solid ${isCorrect ? 'var(--emerald-success)' : 'var(--nest-crimson)'};">
+          <span>${isCorrect ? '🎉 <strong>Отлично!</strong> Верный ответ.' : `❌ <strong>Неверно.</strong> Правильный ответ: <strong>${res.data.correct_answer}</strong>`}</span>
+          <button class="btn-primary" style="height: 36px; padding: 0 16px; font-size: 12px;" onclick="loadInteractiveQuiz()">Следующий ➔</button>
+        </div>
+      `;
+    }
+  }
+}
+
+// ==========================================
+// 2. STUDY STUDIO (FSRS Active Recall)
+// ==========================================
+async function loadStudyQueue() {
+  const container = document.getElementById('studyCardContainer');
+  if (!container) return;
+
+  container.innerHTML = '<div style="color: var(--pewter-text); text-align: center; padding: 60px 20px;">Подготовка очереди повторения FSRS...</div>';
+
+  let url = '/cards/due?limit=25&interleave=true';
+  if (studyTypeFilter && studyTypeFilter !== 'ALL') {
+    url += `&card_type=${studyTypeFilter}`;
+  }
+
+  const res = await fetchAPI(url);
+  if (!res.ok || !Array.isArray(res.data) || res.data.length === 0) {
+    container.innerHTML = `
+      <div style="text-align: center; padding: 60px 20px;">
+        <div style="font-size: 48px; margin-bottom: 16px;">🎉</div>
+        <h3 style="font-family: var(--font-display); font-size: 22px; margin-bottom: 8px;">Все карточки на сегодня повторены!</h3>
+        <p style="color: var(--pewter-text); max-width: 460px; margin: 0 auto 24px auto;">
+          Интервалы FSRS рассчитаны. Новые повторения появятся согласно твоей кривой забывания.
+        </p>
+        <button class="btn-primary" onclick="navigate('/app/words')">Посмотреть колоду слов ➔</button>
+      </div>
+    `;
+    return;
+  }
+
+  studyQueue = res.data;
+  studyIndex = 0;
+  isAnswerRevealed = false;
+  renderCurrentStudyCard();
+}
+
+function setStudyTypeFilter(type) {
+  studyTypeFilter = type;
+  document.querySelectorAll('.studio-tab').forEach(t => {
+    t.classList.toggle('active', t.getAttribute('data-type') === type);
+  });
+  loadStudyQueue();
+}
+
+function renderCurrentStudyCard() {
+  const container = document.getElementById('studyCardContainer');
+  if (!container) return;
+
+  if (studyIndex >= studyQueue.length) {
+    container.innerHTML = `
+      <div style="text-align: center; padding: 60px 20px;">
+        <div style="font-size: 48px; margin-bottom: 16px;">🏆</div>
+        <h3 style="font-family: var(--font-display); font-size: 22px; margin-bottom: 8px;">Сессия повторения завершена!</h3>
+        <p style="color: var(--pewter-text); margin-bottom: 24px;">Ты повторил ${studyQueue.length} карточек. Прогресс сохранён в FSRS.</p>
+        <button class="btn-primary" onclick="navigate('/app')">Вернуться в дашборд ➔</button>
+      </div>
+    `;
+    return;
+  }
+
+  const card = studyQueue[studyIndex];
+  const word = card.word || {};
+  const cType = card.card_type;
+
+  let frontHtml = '';
+  let backHtml = '';
+
+  if (cType === 'en_ru') {
+    frontHtml = `
+      <div style="font-size: 11px; color: var(--pewter-text); margin-bottom: 8px; text-transform: uppercase;">{ EN ➔ RU: Вспомни русский перевод }</div>
+      <div style="font-family: var(--font-display); font-size: 32px; font-weight: 700; color: #fff; margin-bottom: 12px;">
+        ${word.lemma || ''}
+      </div>
+      ${word.example ? `<div style="color: var(--pewter-text); font-size: 14px;">💬 "${word.example.sentence_en}"</div>` : ''}
+    `;
+    backHtml = `
+      <div style="font-size: 20px; font-weight: 600; color: var(--emerald-success); margin-bottom: 8px;">
+        ${word.translation_ru || ''}
+      </div>
+      ${word.example ? `<div style="color: var(--pewter-text); font-size: 13px;">🇷🇺 "${word.example.sentence_ru}"</div>` : ''}
+      ${word.grammar_note ? `<div style="font-size: 12px; color: #ffa657; margin-top: 8px;">💡 ${word.grammar_note}</div>` : ''}
+    `;
+  } else if (cType === 'ru_en') {
+    frontHtml = `
+      <div style="font-size: 11px; color: var(--pewter-text); margin-bottom: 8px; text-transform: uppercase;">{ RU ➔ EN: Активное воспроизведение }</div>
+      <div style="font-family: var(--font-display); font-size: 28px; font-weight: 700; color: #fff; margin-bottom: 12px;">
+        ${word.translation_ru || ''}
+      </div>
+      ${word.example ? `<div style="color: var(--pewter-text); font-size: 14px;">💬 "${word.example.sentence_ru}"</div>` : ''}
+    `;
+    backHtml = `
+      <div style="font-size: 28px; font-weight: 700; color: var(--bone-white); margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 12px;">
+        <span>${word.lemma || ''}</span>
+        <button onclick="speakWord('${(word.lemma || '').replace(/'/g, "\\'")}')" style="background: none; border: none; cursor: pointer; color: var(--pewter-text); font-size: 20px;">🔊</button>
+      </div>
+      ${word.transcription ? `<div style="color: var(--pewter-text); font-size: 13px; margin-bottom: 8px;">[${word.transcription}]</div>` : ''}
+      ${word.example ? `<div style="color: var(--pewter-text); font-size: 13px;">💬 "${word.example.sentence_en}"</div>` : ''}
+    `;
+  } else if (cType === 'cloze') {
+    const clozeEn = word.example && word.example.sentence_en
+      ? word.example.sentence_en.replace(new RegExp(`\\b${word.lemma}\\b`, 'i'), '【 ... 】')
+      : `Complete the sentence with: 【 ... 】`;
+    frontHtml = `
+      <div style="font-size: 11px; color: var(--pewter-text); margin-bottom: 8px; text-transform: uppercase;">{ CLOZE GAP: Заполни пропуск }</div>
+      <div style="font-family: var(--font-display); font-size: 22px; font-weight: 600; color: #fff; line-height: 1.5; margin-bottom: 16px;">
+        ${clozeEn}
+      </div>
+      <div style="color: var(--pewter-text); font-size: 13px;">Значение: ${word.translation_ru || ''}</div>
+    `;
+    backHtml = `
+      <div style="font-size: 24px; font-weight: 700; color: var(--emerald-success); margin-bottom: 8px;">
+        ${word.lemma || ''}
+      </div>
+      ${word.example ? `<div style="color: #fff; font-size: 14px;">💬 "${word.example.sentence_en}"</div>` : ''}
+    `;
+  } else {
+    // Audio type
+    frontHtml = `
+      <div style="font-size: 11px; color: var(--pewter-text); margin-bottom: 8px; text-transform: uppercase;">{ AUDIO LISTENING: Распознавание на слух }</div>
+      <div style="margin: 20px 0;">
+        <button class="btn-primary" style="height: 52px; padding: 0 32px; font-size: 16px;" onclick="speakWord('${(word.lemma || '').replace(/'/g, "\\'")}')">
+          🔊 Прослушать аудио
+        </button>
+      </div>
+      <div style="color: var(--pewter-text); font-size: 12px;">Постарайся понять слово и его перевод на слух</div>
+    `;
+    backHtml = `
+      <div style="font-family: var(--font-display); font-size: 28px; font-weight: 700; color: #fff; margin-bottom: 6px;">
+        ${word.lemma || ''}
+      </div>
+      <div style="font-size: 18px; color: var(--emerald-success); margin-bottom: 10px;">
+        ${word.translation_ru || ''}
+      </div>
+      ${word.example ? `<div style="color: var(--pewter-text); font-size: 13px;">💬 "${word.example.sentence_en}"</div>` : ''}
+    `;
+  }
+
+  container.innerHTML = `
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; font-size: 12px; color: var(--pewter-text);">
+      <div>Карточка ${studyIndex + 1} из ${studyQueue.length}</div>
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <span class="pill-tag">${cType.toUpperCase()}</span>
+        <span class="pill-tag" style="color: var(--nest-crimson);">${word.cefr_level || 'B1'}</span>
+      </div>
+    </div>
+
+    <!-- Front Face -->
+    <div style="text-align: center; padding: 24px 16px; min-height: 120px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+      ${frontHtml}
+    </div>
+
+    <!-- Reveal Toggle or Back Face -->
+    <div id="cardBackFace" style="display: ${isAnswerRevealed ? 'block' : 'none'}; border-top: 1px solid var(--smoke-outline); padding-top: 24px; margin-top: 20px; text-align: center;">
+      ${backHtml}
+
+      <!-- Rating Buttons (1 to 4) -->
+      <div class="rating-buttons-grid" style="margin-top: 28px;">
+        <button class="rating-btn again" onclick="submitCardRating(${card.id}, 1)">
+          <div class="rating-num">1</div>
+          <div class="rating-label">Снова</div>
+          <div style="font-size: 10px; color: var(--pewter-text); margin-top: 2px;">Забыл</div>
+        </button>
+        <button class="rating-btn hard" onclick="submitCardRating(${card.id}, 2)">
+          <div class="rating-num">2</div>
+          <div class="rating-label">Трудно</div>
+          <div style="font-size: 10px; color: var(--pewter-text); margin-top: 2px;">С усилием</div>
+        </button>
+        <button class="rating-btn good" onclick="submitCardRating(${card.id}, 3)">
+          <div class="rating-num">3</div>
+          <div class="rating-label">Хорошо</div>
+          <div style="font-size: 10px; color: var(--pewter-text); margin-top: 2px;">Нормально</div>
+        </button>
+        <button class="rating-btn easy" onclick="submitCardRating(${card.id}, 4)">
+          <div class="rating-num">4</div>
+          <div class="rating-label">Легко</div>
+          <div style="font-size: 10px; color: var(--pewter-text); margin-top: 2px;">Отлично помню</div>
+        </button>
+      </div>
+    </div>
+
+    <div id="revealBtnContainer" style="display: ${isAnswerRevealed ? 'none' : 'flex'}; justify-content: center; margin-top: 28px;">
+      <button class="btn-primary" style="height: 48px; padding: 0 36px; font-size: 14px;" onclick="revealCardAnswer()">
+        Показать ответ (Space) ➔
+      </button>
+    </div>
+  `;
+}
+
+function revealCardAnswer() {
+  isAnswerRevealed = true;
+  const backFace = document.getElementById('cardBackFace');
+  const revealBtn = document.getElementById('revealBtnContainer');
+  if (backFace) backFace.style.display = 'block';
+  if (revealBtn) revealBtn.style.display = 'none';
+}
+
+async function submitCardRating(cardId, rating) {
+  // Post review to FSRS backend
+  await fetchAPI(`/cards/${cardId}/review`, {
+    method: 'POST',
+    body: JSON.stringify({ rating: rating })
+  });
+
+  // Next card
+  studyIndex++;
+  isAnswerRevealed = false;
+  renderCurrentStudyCard();
+}
+
+// Global hotkeys for study studio
+document.addEventListener('keydown', (e) => {
+  if (currentRoute !== '/app/study' || !studyQueue.length || studyIndex >= studyQueue.length) return;
+  // Prevent if typing in an input/textarea
+  if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+
+  if (e.code === 'Space') {
+    e.preventDefault();
+    if (!isAnswerRevealed) revealCardAnswer();
+  } else if (isAnswerRevealed) {
+    const card = studyQueue[studyIndex];
+    if (e.key === '1') submitCardRating(card.id, 1);
+    if (e.key === '2') submitCardRating(card.id, 2);
+    if (e.key === '3') submitCardRating(card.id, 3);
+    if (e.key === '4') submitCardRating(card.id, 4);
   }
 });
 
-// Fallback init if fetch fails
-function fallbackInit() {
-  allLessons = [
-    {
-      lesson_id: 1,
-      title: "Урок 1 — Зависимые предлоги с прилагательными (Часть 1)",
-      items: [
-        {
-          lemma: "typical of",
-          translation_ru: "типичный для",
-          transcription: "/ˈtɪp.ɪ.kəl əv/",
-          part_of_speech: "adjective + prep",
-          cefr_level: "B1",
-          grammar_note: "typical of someone/something",
-          collocations: ["typical of him", "typical of the region"],
-          example_en: "Such hasty behavior is typical of young children.",
-          example_ru: "Такое поспешное поведение типично для маленьких детей."
-        }
-      ]
-    }
-  ];
-  processLessonsData(allLessons);
+// ==========================================
+// 3. WORDS DECK VIEW
+// ==========================================
+async function loadWordsDeck() {
+  const container = document.getElementById('wordsGridContainer');
+  const pagination = document.getElementById('wordsPagination');
+  if (!container) return;
+
+  container.innerHTML = '<div style="color: var(--pewter-text); padding: 40px; text-align: center; grid-column: 1 / -1;">Загрузка колоды слов...</div>';
+
+  let url = `/words?page=${wordsState.page}&page_size=${wordsState.pageSize}`;
+  if (wordsState.query) url += `&q=${encodeURIComponent(wordsState.query)}`;
+  if (wordsState.cefr !== 'ALL') url += `&cefr_level=${wordsState.cefr}`;
+  if (wordsState.status !== 'ALL') url += `&status=${wordsState.status}`;
+
+  const res = await fetchAPI(url);
+  if (!res.ok || !res.data) {
+    container.innerHTML = '<div style="color: var(--pewter-text); padding: 40px; text-align: center; grid-column: 1 / -1;">Не удалось загрузить слова.</div>';
+    return;
+  }
+
+  const items = res.data.items || [];
+  wordsState.total = res.data.total || 0;
+
+  if (items.length === 0) {
+    container.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--pewter-text);">
+        По заданным фильтрам слов не найдено. Попробуй изменить фильтр или импортировать CSV.
+      </div>
+    `;
+    if (pagination) pagination.innerHTML = '';
+    return;
+  }
+
+  container.innerHTML = items.map(w => `
+    <div class="word-card" id="wordCard-${w.id}">
+      <div class="word-card-top">
+        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+          <div class="word-card-lemma">${w.lemma}</div>
+          <span class="pill-tag" style="color: var(--nest-crimson);">${w.cefr_level || 'B1'}</span>
+        </div>
+        <div class="word-card-trans">${w.translation_ru}</div>
+        ${w.notes ? `<div style="font-size: 11px; color: var(--pewter-text); margin-top: 6px;">📝 ${w.notes}</div>` : ''}
+      </div>
+
+      <div style="margin-top: 14px; border-top: 1px solid var(--smoke-outline); padding-top: 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+        <select class="form-select" style="height: 32px; font-size: 11px; padding: 0 8px; width: 110px;" onchange="handleWordStatusChange(${w.id}, this.value)">
+          <option value="learning" ${w.status === 'learning' ? 'selected' : ''}>Learning</option>
+          <option value="mastered" ${w.status === 'mastered' ? 'selected' : ''}>Mastered</option>
+        </select>
+
+        <div style="display: flex; gap: 6px;">
+          <button class="btn-secondary" style="height: 32px; padding: 0 10px;" title="Озвучить" onclick="speakWord('${w.lemma.replace(/'/g, "\\'")}')">🔊</button>
+          <button class="btn-secondary" style="height: 32px; padding: 0 10px; color: var(--nest-crimson);" title="Удалить из колоды" onclick="handleDeleteWord(${w.id})">🗑️</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+
+  // Render pagination
+  renderWordsPagination();
 }
 
-// Startup
+function renderWordsPagination() {
+  const container = document.getElementById('wordsPagination');
+  if (!container) return;
+
+  const totalPages = Math.ceil(wordsState.total / wordsState.pageSize) || 1;
+  if (totalPages <= 1) {
+    container.innerHTML = '';
+    return;
+  }
+
+  let html = '';
+  if (wordsState.page > 1) {
+    html += `<button class="btn-secondary" style="height: 34px; padding: 0 12px; font-size: 12px;" onclick="goToWordsPage(${wordsState.page - 1})">◀ Назад</button>`;
+  }
+  html += `<span style="font-size: 12px; color: var(--pewter-text); padding: 8px 12px;">Стр. ${wordsState.page} из ${totalPages} (${wordsState.total} слов)</span>`;
+  if (wordsState.page < totalPages) {
+    html += `<button class="btn-secondary" style="height: 34px; padding: 0 12px; font-size: 12px;" onclick="goToWordsPage(${wordsState.page + 1})">Вперёд ▶</button>`;
+  }
+
+  container.innerHTML = html;
+}
+
+function goToWordsPage(page) {
+  wordsState.page = page;
+  loadWordsDeck();
+}
+
+function handleWordsSearch(val) {
+  clearTimeout(wordsState.searchTimer);
+  wordsState.searchTimer = setTimeout(() => {
+    wordsState.query = val.trim();
+    wordsState.page = 1;
+    loadWordsDeck();
+  }, 300);
+}
+
+function setWordsCefrFilter(cefr, btn) {
+  wordsState.cefr = cefr;
+  wordsState.page = 1;
+  document.querySelectorAll('[data-cefr]').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  loadWordsDeck();
+}
+
+function setWordsStatusFilter(status, btn) {
+  wordsState.status = status;
+  wordsState.page = 1;
+  document.querySelectorAll('[data-status]').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  loadWordsDeck();
+}
+
+async function handleWordStatusChange(wordId, newStatus) {
+  await fetchAPI(`/words/${wordId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status: newStatus })
+  });
+}
+
+async function handleDeleteWord(wordId) {
+  if (!confirm('Удалить это слово и все связанные карточки из твоей колоды?')) return;
+  const res = await fetchAPI(`/words/${wordId}`, { method: 'DELETE' });
+  if (res.ok) {
+    const cardEl = document.getElementById(`wordCard-${wordId}`);
+    if (cardEl) cardEl.remove();
+    loadWordsDeck();
+  }
+}
+
+// CSV Import & Export
+async function handleCsvUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const res = await fetchAPI('/words/import', {
+    method: 'POST',
+    body: formData
+  });
+
+  input.value = '';
+
+  if (res.ok && res.data) {
+    alert(`Импорт завершён!\nУспешно добавлено: ${res.data.imported_count} слов\nПропущено дубликатов: ${res.data.skipped_duplicates}`);
+    wordsState.page = 1;
+    loadWordsDeck();
+  } else {
+    alert('Ошибка импорта CSV: ' + (res.data ? res.data.detail : 'Проверьте формат'));
+  }
+}
+
+async function handleCsvExport() {
+  const res = await fetchAPI('/words?page=1&page_size=1000');
+  if (!res.ok || !res.data || !res.data.items) {
+    alert('Не удалось сформировать экспорт');
+    return;
+  }
+
+  const items = res.data.items;
+  let csv = 'lemma,translation_ru,cefr_level,status,notes\n';
+  items.forEach(w => {
+    const lemma = `"${(w.lemma || '').replace(/"/g, '""')}"`;
+    const trans = `"${(w.translation_ru || '').replace(/"/g, '""')}"`;
+    const cefr = w.cefr_level || '';
+    const status = w.status || 'learning';
+    const notes = `"${(w.notes || '').replace(/"/g, '""')}"`;
+    csv += `${lemma},${trans},${cefr},${status},${notes}\n`;
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `eng_tutor_words_${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+// ==========================================
+// 4. ANALYTICS VIEW
+// ==========================================
+async function loadAnalytics() {
+  const chartContainer = document.getElementById('retentionChartSvgContainer');
+  const cardTypesContainer = document.getElementById('cardTypesAnalyticsList');
+  const forecastContainer = document.getElementById('forecastChartContainer');
+  const problemContainer = document.getElementById('problemWordsList');
+  const scoreBadge = document.getElementById('an30dRetentionScore');
+
+  if (chartContainer) chartContainer.innerHTML = '<div style="color: var(--pewter-text);">Загрузка аналитики...</div>';
+
+  const res = await fetchAPI('/profile/analytics');
+  if (!res.ok || !res.data) {
+    if (chartContainer) chartContainer.innerHTML = '<div style="color: var(--pewter-text);">Не удалось загрузить данные аналитики.</div>';
+    return;
+  }
+
+  const an = res.data;
+
+  // Score
+  if (scoreBadge) {
+    const rVal = an.retention_30d !== undefined ? an.retention_30d : 95.0;
+    scoreBadge.textContent = `Retention 30d: ${Number(rVal).toFixed(1)}%`;
+  }
+
+  // 1. Retention SVG Chart
+  if (chartContainer && an.retention_daily) {
+    renderRetentionSvgChart(chartContainer, an.retention_daily);
+  }
+
+  // 2. Card Types Accuracy
+  if (cardTypesContainer && an.card_type_accuracy) {
+    const types = [
+      { key: 'en_ru', label: 'EN ➔ RU (Recall)' },
+      { key: 'ru_en', label: 'RU ➔ EN (Active Recall)' },
+      { key: 'cloze', label: 'Cloze Gap (Context)' },
+      { key: 'audio', label: 'Audio Listening' }
+    ];
+    cardTypesContainer.innerHTML = types.map(t => {
+      const acc = an.card_type_accuracy[t.key] !== undefined ? an.card_type_accuracy[t.key] : 100;
+      return `
+        <div>
+          <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
+            <span>${t.label}</span>
+            <span style="font-weight: 600; color: ${acc >= 85 ? 'var(--emerald-success)' : '#ffa657'};">${Number(acc).toFixed(1)}%</span>
+          </div>
+          <div style="background: var(--ash-seam); height: 6px; border-radius: 999px; overflow: hidden;">
+            <div style="background: ${acc >= 85 ? 'var(--emerald-success)' : '#ffa657'}; width: ${acc}%; height: 100%; border-radius: 999px;"></div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // 3. 7-Day Workload Forecast
+  if (forecastContainer && an.forecast_7d) {
+    const maxVal = Math.max(1, ...an.forecast_7d.map(d => d.due_count));
+    forecastContainer.innerHTML = an.forecast_7d.map(d => {
+      const heightPct = Math.round((d.due_count / maxVal) * 100);
+      const dayLabel = d.date.slice(5); // MM-DD
+      return `
+        <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end;">
+          <div style="font-size: 11px; font-weight: 600; color: var(--pewter-text);">${d.due_count}</div>
+          <div style="width: 100%; background: linear-gradient(180deg, var(--nest-crimson), #780f20); border-radius: 4px; height: ${Math.max(8, heightPct)}%;"></div>
+          <div style="font-size: 10px; color: var(--pewter-text);">${dayLabel}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // 4. Problem Words
+  if (problemContainer && an.problem_words) {
+    if (an.problem_words.length === 0) {
+      problemContainer.innerHTML = '<div style="color: var(--pewter-text); font-size: 13px;">Сложных слов с частыми ошибками пока нет. Отличная память!</div>';
+    } else {
+      problemContainer.innerHTML = `
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          ${an.problem_words.map(pw => `
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--carbon-panel); border: 1px solid var(--smoke-outline); border-radius: 10px;">
+              <div>
+                <strong style="font-family: var(--font-display);">${pw.lemma}</strong>
+                <span style="color: var(--pewter-text); font-size: 12px; margin-left: 8px;">— ${pw.translation_ru}</span>
+              </div>
+              <div style="display: flex; gap: 12px; align-items: center; font-size: 12px;">
+                <span style="color: var(--nest-crimson);">Ошибок (Lapses): ${pw.lapses}</span>
+                <span style="color: var(--pewter-text);">Стабильность: ${Number(pw.stability || 0).toFixed(1)}d</span>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+  }
+}
+
+function renderRetentionSvgChart(container, dailyData) {
+  if (!dailyData || dailyData.length === 0) {
+    container.innerHTML = '<div style="color: var(--pewter-text);">Недостаточно данных для графика.</div>';
+    return;
+  }
+
+  const width = 800;
+  const height = 160;
+  const padLeft = 40;
+  const padRight = 20;
+  const padTop = 15;
+  const padBottom = 25;
+
+  const chartW = width - padLeft - padRight;
+  const chartH = height - padTop - padBottom;
+
+  const points = dailyData.map((d, idx) => {
+    const x = padLeft + (idx / Math.max(1, dailyData.length - 1)) * chartW;
+    const rate = d.retention_rate !== null ? d.retention_rate : 100;
+    const y = padTop + chartH - (rate / 100) * chartH;
+    return { x, y, rate, date: d.date };
+  });
+
+  const polylineStr = points.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+
+  container.innerHTML = `
+    <svg viewBox="0 0 ${width} ${height}" style="width: 100%; height: 100%; overflow: visible;">
+      <!-- Grid lines -->
+      <line x1="${padLeft}" y1="${padTop}" x2="${width - padRight}" y2="${padTop}" stroke="var(--smoke-outline)" stroke-dasharray="3 3"/>
+      <line x1="${padLeft}" y1="${padTop + chartH * 0.5}" x2="${width - padRight}" y2="${padTop + chartH * 0.5}" stroke="var(--smoke-outline)" stroke-dasharray="3 3"/>
+      <line x1="${padLeft}" y1="${padTop + chartH}" x2="${width - padRight}" y2="${padTop + chartH}" stroke="var(--smoke-outline)"/>
+
+      <!-- Labels -->
+      <text x="${padLeft - 8}" y="${padTop + 4}" fill="var(--pewter-text)" font-size="10" text-anchor="end">100%</text>
+      <text x="${padLeft - 8}" y="${padTop + chartH * 0.5 + 4}" fill="var(--pewter-text)" font-size="10" text-anchor="end">50%</text>
+      <text x="${padLeft - 8}" y="${padTop + chartH + 4}" fill="var(--pewter-text)" font-size="10" text-anchor="end">0%</text>
+
+      <!-- Curve Area & Line -->
+      <polyline fill="none" stroke="var(--nest-crimson)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="${polylineStr}" />
+
+      <!-- Dots -->
+      ${points.map(p => `
+        <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3" fill="#fff" stroke="var(--nest-crimson)" stroke-width="2">
+          <title>${p.date}: ${p.rate}%</title>
+        </circle>
+      `).join('')}
+    </svg>
+  `;
+}
+
+// ==========================================
+// 5. PROFILE VIEW
+// ==========================================
+async function loadProfile() {
+  const res = await fetchAPI('/profile');
+  if (!res.ok || !res.data) return;
+
+  const p = res.data;
+  const cefrSelect = document.getElementById('profCefrSelect');
+  const goalInput = document.getElementById('profDailyGoalInput');
+  const tzInput = document.getElementById('profTimezoneInput');
+  const remInput = document.getElementById('profReminderHourInput');
+  const emailInput = document.getElementById('profEmailInput');
+
+  if (cefrSelect) cefrSelect.value = p.cefr_level || 'B1';
+  if (goalInput) goalInput.value = p.daily_goal || 15;
+  if (tzInput) tzInput.value = p.timezone || 'UTC';
+  if (remInput) remInput.value = p.reminder_hour !== null && p.reminder_hour !== undefined ? p.reminder_hour : '';
+  if (emailInput) emailInput.value = p.email || '';
+
+  const activeTypes = p.active_card_types || ['en_ru', 'ru_en', 'cloze', 'audio'];
+  ['en_ru', 'ru_en', 'cloze', 'audio'].forEach(t => {
+    const cb = document.getElementById(`type_${t}`);
+    if (cb) cb.checked = activeTypes.includes(t);
+  });
+}
+
+async function handleSaveProfile(e) {
+  e.preventDefault();
+
+  const activeTypes = [];
+  ['en_ru', 'ru_en', 'cloze', 'audio'].forEach(t => {
+    const cb = document.getElementById(`type_${t}`);
+    if (cb && cb.checked) activeTypes.push(t);
+  });
+
+  const payload = {
+    cefr_level: document.getElementById('profCefrSelect').value,
+    daily_goal: parseInt(document.getElementById('profDailyGoalInput').value, 10) || 15,
+    timezone: document.getElementById('profTimezoneInput').value.trim() || 'UTC',
+    email: document.getElementById('profEmailInput').value.trim() || null,
+    active_card_types: activeTypes.length ? activeTypes : ['en_ru', 'ru_en']
+  };
+
+  const remVal = document.getElementById('profReminderHourInput').value;
+  if (remVal !== '') {
+    payload.reminder_hour = parseInt(remVal, 10);
+  }
+
+  const res = await fetchAPI('/profile', {
+    method: 'PATCH',
+    body: JSON.stringify(payload)
+  });
+
+  if (res.ok) {
+    alert('Настройки профиля успешно сохранены! ✅');
+  } else {
+    alert('Ошибка при сохранении: ' + (res.data ? res.data.detail : 'Проверьте поля'));
+  }
+}
+
+// Entrypoint initialization
 document.addEventListener('DOMContentLoaded', () => {
-  initAppData();
+  if (document.getElementById('appRoot')) {
+    renderRoute();
+  }
 });

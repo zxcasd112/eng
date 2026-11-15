@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ENG Tutor — Личный кабинет</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="app-body">
+  <div class="noise-overlay"></div>
+  <div class="ambient-glow"></div>
+
+  <!-- App Header / Glass Nav -->
+  <header class="app-nav-wrapper">
+    <nav class="glass-nav app-glass-nav">
+      <div style="display: flex; align-items: center; gap: 16px;">
+        <a href="/" class="nav-brand">
+          <div class="brand-icon">E</div>
+          <span class="brand-title">ENG Tutor</span>
+        </a>
+        <span class="eyebrow app-badge" style="margin: 0; display: none;" id="userBadge">{ USER } _</span>
+      </div>
+
+      <!-- App Desktop Navigation -->
+      <ul class="nav-links app-nav-links" id="appNavLinks" style="display: none;">
+        <li><button class="nav-link-btn" data-route="/app" onclick="navigate('/app')">{ DASHBOARD } _</button></li>
+        <li><button class="nav-link-btn" data-route="/app/study" onclick="navigate('/app/study')">{ STUDY } _</button></li>
+        <li><button class="nav-link-btn" data-route="/app/words" onclick="navigate('/app/words')">{ WORDS } _</button></li>
+        <li><button class="nav-link-btn" data-route="/app/analytics" onclick="navigate('/app/analytics')">{ ANALYTICS } _</button></li>
+        <li><button class="nav-link-btn" data-route="/app/profile" onclick="navigate('/app/profile')">{ PROFILE } _</button></li>
+      </ul>
+
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div id="streakBadge" class="ticker-item" style="display: none; padding: 6px 14px; font-size: 12px; background: rgba(234,40,69,0.1); border: 1px solid rgba(234,40,69,0.3); border-radius: 999px;">
+          🔥 0 дн
+        </div>
+        <button id="logoutBtn" class="btn-secondary" style="height: 38px; padding: 0 16px; font-size: 12px; display: none;" onclick="handleLogout()">
+          Выйти
+        </button>
+      </div>
+    </nav>
+
+    <!-- Mobile Nav Bar (below top bar on small screens) -->
+    <div class="mobile-subnav" id="mobileSubnav" style="display: none;">
+      <button class="subnav-pill" data-route="/app" onclick="navigate('/app')">Дашборд</button>
+      <button class="subnav-pill" data-route="/app/study" onclick="navigate('/app/study')">Повторение</button>
+      <button class="subnav-pill" data-route="/app/words" onclick="navigate('/app/words')">Словарь</button>
+      <button class="subnav-pill" data-route="/app/analytics" onclick="navigate('/app/analytics')">Аналитика</button>
+      <button class="subnav-pill" data-route="/app/profile" onclick="navigate('/app/profile')">Профиль</button>
+    </div>
+  </header>
+
+  <!-- Main View Container -->
+  <main class="page-container app-container" id="appRoot">
+    <!-- Loading Spinner Screen -->
+    <div id="loadingView" style="text-align: center; padding: 100px 20px;">
+      <div style="font-size: 36px; margin-bottom: 16px;" class="spinner-rot">⏳</div>
+      <div style="color: var(--pewter-text); font-family: var(--font-mono);">Инициализация кабинета...</div>
+    </div>
+
+    <!-- 1. LOGIN VIEW -->
+    <div id="loginView" style="display: none; max-width: 520px; margin: 40px auto;">
+      <div class="section-frame" style="text-align: center; padding: 40px 24px;">
+        <div class="eyebrow">{ TELEGRAM AUTH } <span class="eyebrow-cursor">_</span></div>
+        <h2 style="font-family: var(--font-display); font-size: 28px; margin-bottom: 12px;">Вход в ENG Tutor</h2>
+        <p style="color: var(--pewter-text); font-size: 14px; margin-bottom: 28px; line-height: 1.6;">
+          Войди через свой Telegram-аккаунт. Все слова, добавленные в боте или в веб-кабинете, будут мгновенно синхронизированы в единой базе.
+        </p>
+
+        <!-- Official Telegram Login Widget Container -->
+        <div id="telegramLoginWidgetContainer" style="margin-bottom: 24px; min-height: 48px;">
+          <!-- Loaded dynamically or script tag injected -->
+        </div>
+
+        <div style="margin: 20px 0; display: flex; align-items: center; gap: 12px;">
+          <div style="flex: 1; height: 1px; background: var(--smoke-outline);"></div>
+          <span style="font-size: 11px; color: var(--pewter-text); text-transform: uppercase;">Или быстрый вход</span>
+          <div style="flex: 1; height: 1px; background: var(--smoke-outline);"></div>
+        </div>
+
+        <!-- Dev / Direct ID Fast Login -->
+        <div style="display: flex; gap: 8px;">
+          <input type="text" id="quickLoginId" class="deck-search-input" style="flex: 1; height: 44px;" placeholder="Telegram ID (например 123456)">
+          <button class="btn-primary" style="height: 44px; padding: 0 20px; font-size: 13px;" onclick="handleQuickLogin()">Войти ➔</button>
+        </div>
+        <div style="font-size: 11px; color: var(--pewter-text); margin-top: 8px; text-align: left;">
+          * Для локального тестирования без подключенного бота Telegram Login Widget.
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. DASHBOARD VIEW (/app) -->
+    <div id="dashboardView" style="display: none;">
+      <!-- Hero Metric Ticker -->
+      <div class="dashboard-hero-grid">
+        <div class="dash-metric-card">
+          <div class="eyebrow">{ DUE TODAY } <span class="eyebrow-cursor">_</span></div>
+          <div class="metric-val" id="dashDueCount">0</div>
+          <div class="metric-sub">карточек к повторению</div>
+          <button class="btn-primary" style="height: 38px; padding: 0 18px; font-size: 12px; margin-top: 14px; width: 100%;" onclick="navigate('/app/study')">
+            Начать повторение ➔
+          </button>
+        </div>
+
+        <div class="dash-metric-card">
+          <div class="eyebrow">{ DAILY GOAL } <span class="eyebrow-cursor">_</span></div>
+          <div class="metric-val" id="dashGoalProgress">0 / 15</div>
+          <div class="metric-sub">слов сегодня</div>
+          <div class="progress-bar-bg">
+            <div id="dashGoalBar" class="progress-bar-fill" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <div class="dash-metric-card">
+          <div class="eyebrow">{ RETENTION } <span class="eyebrow-cursor">_</span></div>
+          <div class="metric-val" id="dashRetention">94.8%</div>
+          <div class="metric-sub">успешных ответов (30 дней)</div>
+        </div>
+
+        <div class="dash-metric-card">
+          <div class="eyebrow">{ CURRENT STREAK } <span class="eyebrow-cursor">_</span></div>
+          <div class="metric-val" id="dashStreak">0 🔥</div>
+          <div class="metric-sub">дней регулярного обучения</div>
+        </div>
+      </div>
+
+      <!-- Recommendations Section -->
+      <section class="section-frame" style="margin-top: 24px;">
+        <div class="section-header">
+          <div>
+            <div class="eyebrow">{ COGNITIVE AI RECOMMENDATIONS } <span class="eyebrow-cursor">_</span></div>
+            <h2 class="section-title">Что выучить дальше (i+1)</h2>
+          </div>
+          <button class="btn-secondary" style="height: 38px; padding: 0 16px; font-size: 12px;" onclick="loadDashboardRecommendations()">
+            Обновить 🔄
+          </button>
+        </div>
+
+        <p style="color: var(--pewter-text); margin-bottom: 20px; font-size: 13px;">
+          Алгоритм подбирает слова на основе твоего уровня CEFR, лексики из добавленных текстов и ещё не повторенных слов.
+        </p>
+
+        <div class="words-grid" id="dashRecommendationsGrid">
+          <!-- Loaded dynamically -->
+        </div>
+      </section>
+
+      <!-- Sentence Extractor -->
+      <section class="section-frame" style="margin-top: 24px;">
+        <div class="section-header">
+          <div>
+            <div class="eyebrow">{ CONTEXTUAL PARSER } <span class="eyebrow-cursor">_</span></div>
+            <h2 class="section-title">Выделение новых слов из текста</h2>
+          </div>
+        </div>
+        <p style="color: var(--pewter-text); margin-bottom: 16px; font-size: 13px;">
+          Вставь предложение на английском — AI выделит неизвестные для твоей колоды слова с уровнями CEFR:
+        </p>
+        <textarea id="dashSentenceInput" class="extractor-textarea" placeholder="Например: Technological resilience in modern distributed software engineering is vital and crucial."></textarea>
+        <div style="display: flex; justify-content: flex-end;">
+          <button class="btn-primary" style="height: 44px; padding: 0 24px; font-size: 13px;" onclick="handleAnalyzeSentence()">
+            Анализировать предложение ➔
+          </button>
+        </div>
+        <div id="dashSentenceResults" style="margin-top: 16px;"></div>
+      </section>
+
+      <!-- Interactive Quiz Lab -->
+      <section class="section-frame" style="margin-top: 24px;">
+        <div class="section-header">
+          <div>
+            <div class="eyebrow">{ QUIZ LAB } <span class="eyebrow-cursor">_</span></div>
+            <h2 class="section-title">Интерактивный тест колоды</h2>
+          </div>
+          <button class="btn-secondary" style="height: 38px; padding: 0 16px; font-size: 12px;" onclick="loadInteractiveQuiz()">
+            Сменить вопрос 🔄
+          </button>
+        </div>
+        <div id="dashQuizContainer" class="studio-window" style="padding: 28px;">
+          <!-- Loaded dynamically -->
+        </div>
+      </section>
+    </div>
+
+    <!-- 3. STUDY VIEW (/app/study) -->
+    <div id="studyView" style="display: none;">
+      <section class="section-frame">
+        <div class="section-header">
+          <div>
+            <div class="eyebrow">{ ACTIVE RECALL STUDIO } <span class="eyebrow-cursor">_</span></div>
+            <h2 class="section-title">Интервальное повторение FSRS</h2>
+          </div>
+          <div style="text-align: right;">
+            <span style="font-size: 12px; color: var(--pewter-text);">Синхронизировано с Telegram-ботом</span>
+          </div>
+        </div>
+
+        <div class="studio-window">
+          <div class="studio-tabs">
+            <button class="studio-tab active" data-type="ALL" onclick="setStudyTypeFilter('ALL')">Все типы (Interleaving)</button>
+            <button class="studio-tab" data-type="en_ru" onclick="setStudyTypeFilter('en_ru')">EN ➔ RU</button>
+            <button class="studio-tab" data-type="ru_en" onclick="setStudyTypeFilter('ru_en')">RU ➔ EN</button>
+            <button class="studio-tab" data-type="cloze" onclick="setStudyTypeFilter('cloze')">Cloze Gap</button>
+            <button class="studio-tab" data-type="audio" onclick="setStudyTypeFilter('audio')">Audio Listening</button>
+          </div>
+
+          <div class="studio-body" id="studyCardContainer">
+            <!-- Dynamic card content rendered here -->
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- 4. WORDS VIEW (/app/words) -->
+    <div id="wordsView" style="display: none;">
+      <section class="section-frame">
+        <div class="section-header" style="flex-wrap: wrap; gap: 16px;">
+          <div>
+            <div class="eyebrow">{ VOCABULARY REPOSITORY } <span class="eyebrow-cursor">_</span></div>
+            <h2 class="section-title">Твоя колода слов</h2>
+          </div>
+
+          <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <input type="text" id="wordsSearchInput" class="deck-search-input" placeholder="🔍 Поиск слова или перевода..." oninput="handleWordsSearch(this.value)">
+
+            <!-- CSV Import Button -->
+            <label class="btn-secondary" style="height: 38px; padding: 0 16px; font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+              📥 Импорт CSV
+              <input type="file" id="csvFileInput" accept=".csv,text/csv" style="display: none;" onchange="handleCsvUpload(this)">
+            </label>
+
+            <!-- Export CSV link -->
+            <button class="btn-secondary" style="height: 38px; padding: 0 16px; font-size: 12px;" onclick="handleCsvExport()">
+              📤 Экспорт
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="words-filter-bar">
+          <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+            <span style="font-size: 12px; color: var(--pewter-text);">CEFR:</span>
+            <button class="filter-pill active" data-cefr="ALL" onclick="setWordsCefrFilter('ALL', this)">Все</button>
+            <button class="filter-pill" data-cefr="A1" onclick="setWordsCefrFilter('A1', this)">A1</button>
+            <button class="filter-pill" data-cefr="A2" onclick="setWordsCefrFilter('A2', this)">A2</button>
+            <button class="filter-pill" data-cefr="B1" onclick="setWordsCefrFilter('B1', this)">B1</button>
+            <button class="filter-pill" data-cefr="B2" onclick="setWordsCefrFilter('B2', this)">B2</button>
+            <button class="filter-pill" data-cefr="C1" onclick="setWordsCefrFilter('C1', this)">C1</button>
+            <button class="filter-pill" data-cefr="C2" onclick="setWordsCefrFilter('C2', this)">C2</button>
+          </div>
+
+          <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+            <span style="font-size: 12px; color: var(--pewter-text);">Статус:</span>
+            <button class="filter-pill active" data-status="ALL" onclick="setWordsStatusFilter('ALL', this)">Все</button>
+            <button class="filter-pill" data-status="learning" onclick="setWordsStatusFilter('learning', this)">Learning</button>
+            <button class="filter-pill" data-status="mastered" onclick="setWordsStatusFilter('mastered', this)">Mastered</button>
+          </div>
+        </div>
+
+        <!-- Words Table / Grid -->
+        <div id="wordsGridContainer" class="words-grid" style="margin-top: 20px;">
+          <!-- Loaded dynamically -->
+        </div>
+
+        <!-- Pagination -->
+        <div id="wordsPagination" style="margin-top: 28px; display: flex; justify-content: center; gap: 8px;"></div>
+      </section>
+    </div>
+
+    <!-- 5. ANALYTICS VIEW (/app/analytics) -->
+    <div id="analyticsView" style="display: none;">
+      <section class="section-frame">
+        <div class="section-header">
+          <div>
+            <div class="eyebrow">{ COGNITIVE DATA SCIENCE } <span class="eyebrow-cursor">_</span></div>
+            <h2 class="section-title">Аналитика и кривая удержания</h2>
+          </div>
+        </div>
+
+        <!-- Retention Chart -->
+        <div class="studio-window" style="padding: 28px; margin-bottom: 24px;">
+          <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px;">
+            <div style="font-family: var(--font-display); font-size: 18px; font-weight: 600;">Retention за последние 30 дней</div>
+            <div style="font-size: 12px; color: var(--emerald-success);" id="an30dRetentionScore">Retention: 95.0%</div>
+          </div>
+          <div id="retentionChartSvgContainer" style="width: 100%; height: 180px;">
+            <!-- SVG Line Chart injected dynamically -->
+          </div>
+        </div>
+
+        <div class="dashboard-hero-grid" style="margin-bottom: 24px;">
+          <!-- Breakdown by card type -->
+          <div class="studio-window" style="padding: 24px; grid-column: span 2;">
+            <div class="eyebrow">{ BY CARD TYPE } <span class="eyebrow-cursor">_</span></div>
+            <h3 style="font-size: 16px; margin-bottom: 16px;">Точность по типам карточек</h3>
+            <div id="cardTypesAnalyticsList" style="display: flex; flex-direction: column; gap: 12px;"></div>
+          </div>
+
+          <!-- 7-day forecast -->
+          <div class="studio-window" style="padding: 24px; grid-column: span 2;">
+            <div class="eyebrow">{ WORKLOAD FORECAST } <span class="eyebrow-cursor">_</span></div>
+            <h3 style="font-size: 16px; margin-bottom: 16px;">Прогноз повторений на 7 дней</h3>
+            <div id="forecastChartContainer" style="display: flex; align-items: flex-end; gap: 8px; height: 140px; padding-top: 10px;"></div>
+          </div>
+        </div>
+
+        <!-- Problem words table -->
+        <div class="studio-window" style="padding: 24px;">
+          <div class="eyebrow">{ WEAK WORDS } <span class="eyebrow-cursor">_</span></div>
+          <h3 style="font-size: 16px; margin-bottom: 16px;">Слова, требующие внимания (частые ошибки)</h3>
+          <div id="problemWordsList"></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- 6. PROFILE VIEW (/app/profile) -->
+    <div id="profileView" style="display: none; max-width: 640px; margin: 0 auto;">
+      <section class="section-frame" style="padding: 36px 28px;">
+        <div class="section-header">
+          <div>
+            <div class="eyebrow">{ USER SETTINGS } <span class="eyebrow-cursor">_</span></div>
+            <h2 class="section-title">Настройки профиля</h2>
+          </div>
+        </div>
+
+        <form id="profileForm" onsubmit="handleSaveProfile(event)" style="display: flex; flex-direction: column; gap: 20px;">
+          <div>
+            <label class="form-label">Уровень английского (CEFR):</label>
+            <select id="profCefrSelect" class="form-select">
+              <option value="A1">A1 — Beginner</option>
+              <option value="A2">A2 — Elementary</option>
+              <option value="B1">B1 — Intermediate</option>
+              <option value="B2">B2 — Upper-Intermediate</option>
+              <option value="C1">C1 — Advanced</option>
+              <option value="C2">C2 — Proficiency</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="form-label">Дневная цель (карточек в день):</label>
+            <input type="number" id="profDailyGoalInput" class="form-input" min="5" max="100" value="15">
+          </div>
+
+          <div>
+            <label class="form-label">Часовой пояс:</label>
+            <input type="text" id="profTimezoneInput" class="form-input" placeholder="UTC или Europe/Moscow" value="UTC">
+          </div>
+
+          <div>
+            <label class="form-label">Время напоминаний (час UTC):</label>
+            <input type="number" id="profReminderHourInput" class="form-input" min="0" max="23" placeholder="19">
+          </div>
+
+          <div>
+            <label class="form-label">Email (для будущих уведомлений):</label>
+            <input type="email" id="profEmailInput" class="form-input" placeholder="you@example.com">
+          </div>
+
+          <div>
+            <label class="form-label">Активные типы карточек в тренировках:</label>
+            <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
+              <label class="checkbox-label"><input type="checkbox" id="type_en_ru" value="en_ru"> <strong>EN ➔ RU</strong> (контекстное воспоминание)</label>
+              <label class="checkbox-label"><input type="checkbox" id="type_ru_en" value="ru_en"> <strong>RU ➔ EN</strong> (активное воспроизведение)</label>
+              <label class="checkbox-label"><input type="checkbox" id="type_cloze" value="cloze"> <strong>Cloze Gap</strong> (пропуски в предложениях)</label>
+              <label class="checkbox-label"><input type="checkbox" id="type_audio" value="audio"> <strong>Audio Listening</strong> (распознавание на слух)</label>
+            </div>
+          </div>
+
+          <div style="margin-top: 10px;">
+            <button type="submit" class="btn-primary" style="width: 100%; height: 48px;">Сохранить настройки ➔</button>
+          </div>
+        </form>
+      </section>
+    </div>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>

@@ -134,3 +134,21 @@ async def test_full_api_flow(api_client):
     assert stats["total_cards"] == 4
     assert stats["reviewed_today"] == 1
     assert stats["retention_percent"] == 100.0
+
+
+async def test_spa_app_routes(api_client):
+    client, _ = api_client
+    # /app root
+    resp_app = await client.get("/app")
+    assert resp_app.status_code == 200
+    assert "ENG Tutor" in resp_app.text
+    assert "appRoot" in resp_app.text
+
+    # /app/study subroute
+    resp_study = await client.get("/app/study")
+    assert resp_study.status_code == 200
+    assert "ENG Tutor" in resp_study.text
+
+    # /app/words subroute
+    resp_words = await client.get("/app/words")
+    assert resp_words.status_code == 200

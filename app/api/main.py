@@ -4,6 +4,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.api.routes.auth import router as auth_router
@@ -72,6 +73,19 @@ def create_app() -> FastAPI:
     ]
     for web_dir in candidates:
         if web_dir.exists():
+            app_html = web_dir / "app.html"
+            if app_html.exists():
+
+                def _make_app_handler(target_file: Path):
+                    async def serve_app(full_path: str = ""):
+                        return FileResponse(target_file)
+
+                    return serve_app
+
+                handler = _make_app_handler(app_html)
+                app.get("/app")(handler)
+                app.get("/app/{full_path:path}")(handler)
+
             app.mount("/", StaticFiles(directory=str(web_dir), html=True), name="web")
             break
 
