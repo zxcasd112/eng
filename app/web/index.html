@@ -62,7 +62,7 @@
           Telegram-бот
         </a>
         <a href="/app" class="btn btn-primary btn-sm">
-          Войти в кабинет ➔
+          Войти в кабинет →
         </a>
       </div>
     </div>
@@ -90,7 +90,7 @@
             Открыть в Telegram
           </a>
           <a href="/app" class="btn btn-secondary btn-lg">
-            Войти в веб-кабинет ➔
+            Войти в веб-кабинет →
           </a>
         </div>
 
@@ -98,7 +98,10 @@
         <div class="hero-demo-wrapper">
           <div class="hero-demo-card">
             <div class="demo-card-header">
-              <span>Синхронизация Telegram и Web-кабинета в реальном времени</span>
+              <span style="display: flex; align-items: center; gap: 8px;">
+                <span class="live-dot" style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #22c55e;"></span>
+                Синхронизация Telegram и Web-кабинета в реальном времени
+              </span>
               <span style="font-family: var(--font-mono); font-size: 0.75rem;">FSRS v4 Scheduler</span>
             </div>
 
@@ -108,7 +111,10 @@
                   1. Отправлено боту в Telegram
                 </div>
                 <div class="demo-telegram-bubble">
-                  <strong>resilience</strong>
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <strong>resilience</strong>
+                    <button onclick="speakDemoWord('resilience')" style="background: none; border: none; cursor: pointer; color: var(--color-text-muted); font-size: 1rem;" title="Озвучить" aria-label="Озвучить resilience">🔊</button>
+                  </div>
                   <div style="font-size: 0.8125rem; color: var(--color-text-secondary); margin-top: 4px;">
                     «Technological resilience is essential in engineering.»
                   </div>
@@ -119,19 +125,32 @@
               </div>
 
               <div class="demo-box">
-                <div style="font-size: 0.8125rem; font-weight: 600; color: var(--color-text-muted); text-transform: uppercase;">
-                  2. Появилось в веб-кабинете FSRS
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <div style="font-size: 0.8125rem; font-weight: 600; color: var(--color-text-muted); text-transform: uppercase;">
+                    2. Появилось в веб-кабинете FSRS
+                  </div>
+                  <span style="font-size: 0.6875rem; color: var(--color-text-muted);">Кликните для переворота</span>
                 </div>
-                <div style="margin-top: 12px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 12px 16px;">
-                  <div style="display: flex; justify-content: space-between; align-items: baseline;">
-                    <strong style="font-size: 1.0625rem;">resilience</strong>
-                    <span class="cefr-pill">B2</span>
+                <div id="heroInteractiveCard" onclick="toggleHeroCardFlip()" style="cursor: pointer; margin-top: 12px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 14px 16px; transition: var(--transition);">
+                  <div id="heroCardFront">
+                    <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                      <strong style="font-size: 1.0625rem;">resilience</strong>
+                      <span class="cefr-pill">B2</span>
+                    </div>
+                    <div style="font-size: 0.875rem; color: var(--color-text-secondary); margin-top: 4px;">
+                      устойчивость, способность восстанавливаться
+                    </div>
+                    <div style="margin-top: 8px; font-size: 0.75rem; color: var(--color-text-muted); border-top: 1px solid var(--color-border); padding-top: 6px; display: flex; justify-content: space-between;">
+                      <span>Интервал памяти FSRS:</span>
+                      <strong>+3 дня</strong>
+                    </div>
                   </div>
-                  <div style="font-size: 0.875rem; color: var(--color-text-secondary); margin-top: 2px;">
-                    устойчивость, способность восстанавливаться
-                  </div>
-                  <div style="margin-top: 8px; font-size: 0.75rem; color: var(--color-text-muted); border-top: 1px solid var(--color-border); padding-top: 6px;">
-                    Следующее повторение: через 3 дня
+                  <div id="heroCardBack" style="display: none;">
+                    <div style="font-size: 0.75rem; color: var(--color-text-muted); text-transform: uppercase; margin-bottom: 4px;">Обратная сторона (Карточка №2):</div>
+                    <strong style="font-size: 0.9375rem; color: var(--color-text-primary);">«Способность системы сохранять работоспособность»</strong>
+                    <div style="margin-top: 8px; font-size: 0.8125rem; color: var(--color-success);">
+                      Ответ: <em>resilience</em>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -165,7 +184,7 @@
             <div class="step-number">02</div>
             <h3 class="step-heading">Повторяйте по науке</h3>
             <p class="step-text">
-              Алгоритм FSRS чередует 4 типа карточек: прямой перевод (EN➔RU), обратный (RU➔EN), пропуск в предложении и аудирование, исключая механическое заучивание.
+              Алгоритм FSRS чередует 4 типа карточек: прямой перевод (EN → RU), обратный (RU → EN), пропуск в предложении и аудирование, исключая механическое заучивание.
             </p>
           </div>
 
@@ -239,22 +258,36 @@
           <!-- 5. Writing -->
           <div class="feature-card">
             <div class="feature-top">
-              <span class="feature-badge-dev">В разработке</span>
+              <span class="feature-badge-available">Доступно</span>
               <h3 style="font-size: 1.125rem; font-weight: 600; margin-top: 12px; margin-bottom: 6px;">Рецензирование письма</h3>
-              <p style="font-size: 0.9375rem; color: var(--color-text-secondary);">
-                Проверка эссе и коротких письменных ответов с анализом стилистических ошибок и предложением более естественных формулировок.
+              <p style="font-size: 0.9375rem; color: var(--color-text-secondary); margin-bottom: 14px;">
+                Проверка эссе и текстов: автоматическое выявление грамматических неточностей, расчет уровня CEFR и предложения естественных формулировок от носителей.
               </p>
+              <a href="/app/practice" class="btn btn-secondary btn-sm">Открыть тренажер →</a>
             </div>
           </div>
 
           <!-- 6. Speaking -->
           <div class="feature-card">
             <div class="feature-top">
-              <span class="feature-badge-dev">В разработке</span>
+              <span class="feature-badge-available">Доступно</span>
               <h3 style="font-size: 1.125rem; font-weight: 600; margin-top: 12px; margin-bottom: 6px;">Разговорный тренажер</h3>
-              <p style="font-size: 0.9375rem; color: var(--color-text-secondary);">
-                Голосовой диалог с AI для преодоления языкового барьера и отработки спонтанной связной речи в реальных ситуациях.
+              <p style="font-size: 0.9375rem; color: var(--color-text-secondary); margin-bottom: 14px;">
+                Интерактивный диалог с AI по реальным сценариям (собеседование, аэропорт, кафе, IT-архитектура) с озвучиванием и мгновенной обратной связью.
               </p>
+              <a href="/app/practice" class="btn btn-secondary btn-sm">Начать диалог →</a>
+            </div>
+          </div>
+
+          <!-- 7. Interactive Reading Studio -->
+          <div class="feature-card">
+            <div class="feature-top">
+              <span class="feature-badge-available">Доступно</span>
+              <h3 style="font-size: 1.125rem; font-weight: 600; margin-top: 12px; margin-bottom: 6px;">Интерактивное чтение</h3>
+              <p style="font-size: 0.9375rem; color: var(--color-text-secondary); margin-bottom: 14px;">
+                Чтение текстов любого уровня с кликом по слову для моментального перевода, озвучивания и добавления в персональную FSRS-колоду.
+              </p>
+              <a href="/app/reading" class="btn btn-secondary btn-sm">Перейти к чтению →</a>
             </div>
           </div>
         </div>
@@ -365,7 +398,7 @@
             Открыть бота в Telegram
           </a>
           <a href="/app" class="btn btn-secondary btn-lg">
-            Войти в веб-кабинет ➔
+            Войти в веб-кабинет →
           </a>
         </div>
       </div>
@@ -442,6 +475,29 @@
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape') closePrivacyModal();
     });
+
+    function toggleHeroCardFlip() {
+      const front = document.getElementById('heroCardFront');
+      const back = document.getElementById('heroCardBack');
+      if (!front || !back) return;
+      if (front.style.display === 'none') {
+        front.style.display = 'block';
+        back.style.display = 'none';
+      } else {
+        front.style.display = 'none';
+        back.style.display = 'block';
+      }
+    }
+
+    function speakDemoWord(text) {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = 'en-US';
+        u.rate = 0.9;
+        window.speechSynthesis.speak(u);
+      }
+    }
   </script>
 </body>
 </html>

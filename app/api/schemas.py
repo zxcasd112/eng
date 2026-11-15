@@ -30,8 +30,20 @@ class EmailAuthPayload(BaseModel):
     email: str = Field(min_length=5, max_length=255, description="Gmail or email address")
 
 
+class EmailSendCodeRequest(BaseModel):
+    email: str = Field(min_length=5, max_length=255, description="Gmail address")
+
+
+class EmailVerifyCodeRequest(BaseModel):
+    email: str = Field(min_length=5, max_length=255, description="Gmail address")
+    code: str = Field(min_length=4, max_length=10, description="Verification code")
+
+
 class AddWordRequest(BaseModel):
-    text: str = Field(min_length=1, max_length=200)
+    text: str | None = None
+    lemma: str | None = None
+    translation_ru: str | None = None
+    cefr_level: str | None = None
     source_title: str | None = None
     source: str = "web"  # bot / web / reading / sentence / import
 
@@ -345,3 +357,37 @@ class RecommendationItem(BaseModel):
     word: WordOut
     score: float
     reasons: list[str]
+
+
+# === Writing Review & Speaking Practice Schemas ===
+
+class WritingReviewRequest(BaseModel):
+    text: str = Field(min_length=5, max_length=4000, description="English text or essay")
+    topic: str | None = None
+
+
+class WritingCorrection(BaseModel):
+    original: str
+    improved: str
+    explanation: str
+
+
+class WritingReviewResponse(BaseModel):
+    score: int
+    cefr_estimate: str
+    summary_ru: str
+    corrections: list[WritingCorrection] = []
+    better_phrasings: list[str] = []
+    useful_vocab: list[dict[str, str]] = []
+
+
+class SpeakingRespondRequest(BaseModel):
+    scenario: str
+    history: list[dict[str, str]] = []
+    user_message: str
+
+
+class SpeakingRespondResponse(BaseModel):
+    ai_message: str
+    feedback_ru: str | None = None
+    suggested_phrasing: str | None = None

@@ -91,6 +91,10 @@ class LLMService:
         self._settings = get_settings()
         self._client = client
 
+    def is_configured(self) -> bool:
+        key = self._settings.openai_api_key.strip()
+        return bool(key) and not key.startswith("your_")
+
     def _get_client(self) -> AsyncOpenAI:
         if self._client is not None:
             return self._client

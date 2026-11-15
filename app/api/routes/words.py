@@ -16,8 +16,9 @@ from app.api.schemas import (
 )
 from app.db.models import Card, User
 from app.db.session import get_db
-from app.services.llm import LLMNotConfiguredError, LLMService
+from app.services.llm import LLMNotConfiguredError, LLMService, WordEnrichment
 from app.services.vocabulary import (
+    add_word_from_enrichment,
     add_word_or_phrase,
     delete_user_word,
     get_user_word_detail,
@@ -98,21 +99,47 @@ async def add_word(
     session: AsyncSession = Depends(get_db),
     llm_service: LLMService = Depends(get_llm_service),
 ) -> AddWordResponse:
-    try:
-        result = await add_word_or_phrase(
+    target_text = (payload.text or payload.lemma or "").strip()
+    if not target_text:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Необходимо указать слово для добавления (text или lemma)",
+        )
+
+    # If translation_ru is already provided (e.g. from recommendations), add directly without demanding LLM API key
+    if payload.translation_ru and payload.translation_ru.strip():
+        enrichment = WordEnrichment(
+            lemma=target_text,
+            translation_ru=payload.translation_ru.strip(),
+            cefr_level=payload.cefr_level or "B1",
+            example_en="",
+            example_ru="",
+        )
+        result = await add_word_from_enrichment(
             session=session,
             user=user,
-            text=payload.text,
-            llm_service=llm_service,
+            enrichment=enrichment,
             source_title=payload.source_title,
             source_type=payload.source or "web",
+            is_ai_generated=False,
         )
         await session.commit()
-    except LLMNotConfiguredError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=str(exc),
-        ) from exc
+    else:
+        try:
+            result = await add_word_or_phrase(
+                session=session,
+                user=user,
+                text=target_text,
+                llm_service=llm_service,
+                source_title=payload.source_title,
+                source_type=payload.source or "web",
+            )
+            await session.commit()
+        except LLMNotConfiguredError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=str(exc),
+            ) from exc
 
     result.card.word = result.word
     result.card.example = result.example

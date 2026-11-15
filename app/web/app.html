@@ -33,6 +33,8 @@
           <button class="app-nav-pill active" data-route="/app" onclick="navigate('/app')">Дашборд</button>
           <button class="app-nav-pill" data-route="/app/study" onclick="navigate('/app/study')">Повторение</button>
           <button class="app-nav-pill" data-route="/app/words" onclick="navigate('/app/words')">Словарь</button>
+          <button class="app-nav-pill" data-route="/app/reading" onclick="navigate('/app/reading')">Чтение</button>
+          <button class="app-nav-pill" data-route="/app/practice" onclick="navigate('/app/practice')">Тренажеры</button>
           <button class="app-nav-pill" data-route="/app/analytics" onclick="navigate('/app/analytics')">Аналитика</button>
           <button class="app-nav-pill" data-route="/app/profile" onclick="navigate('/app/profile')">Профиль</button>
         </nav>
@@ -55,6 +57,8 @@
     <button class="app-nav-pill" data-route="/app" onclick="navigate('/app')">Дашборд</button>
     <button class="app-nav-pill" data-route="/app/study" onclick="navigate('/app/study')">Повторение</button>
     <button class="app-nav-pill" data-route="/app/words" onclick="navigate('/app/words')">Словарь</button>
+    <button class="app-nav-pill" data-route="/app/reading" onclick="navigate('/app/reading')">Чтение</button>
+    <button class="app-nav-pill" data-route="/app/practice" onclick="navigate('/app/practice')">Тренажеры</button>
     <button class="app-nav-pill" data-route="/app/analytics" onclick="navigate('/app/analytics')">Аналитика</button>
     <button class="app-nav-pill" data-route="/app/profile" onclick="navigate('/app/profile')">Профиль</button>
   </nav>
@@ -112,19 +116,36 @@
           <!-- Google Identity Services Container (if client ID is configured) -->
           <div id="googleSignInContainer" style="display: flex; justify-content: center; margin-bottom: var(--space-4);"></div>
 
-          <!-- Direct Gmail form -->
-          <form onsubmit="handleEmailLogin(event)" style="display: flex; flex-direction: column; gap: var(--space-3); text-align: left;">
+          <!-- Step 1: Request Code -->
+          <form id="emailSendCodeForm" onsubmit="handleSendEmailCode(event)" style="display: flex; flex-direction: column; gap: var(--space-3); text-align: left;">
             <div>
               <label class="metric-label" style="display: block; margin-bottom: 6px;">Адрес Gmail / Email:</label>
               <input type="email" id="emailLoginInput" class="input-field" placeholder="your.name@gmail.com" required style="width: 100%; height: 42px;">
             </div>
-            <button type="submit" class="btn btn-primary" id="emailLoginBtn" style="width: 100%; height: 42px;">
-              Войти через Gmail ➔
+            <button type="submit" class="btn btn-primary" id="emailSendCodeBtn" style="width: 100%; height: 42px;">
+              Получить код подтверждения ➔
+            </button>
+          </form>
+
+          <!-- Step 2: Enter Code (hidden initially) -->
+          <form id="emailVerifyCodeForm" onsubmit="handleVerifyEmailCode(event)" style="display: none; flex-direction: column; gap: var(--space-3); text-align: left;">
+            <div id="emailSentNotification" style="padding: 10px 14px; background: var(--color-success-bg); border: 1px solid var(--color-success-border); border-radius: var(--radius-md); font-size: 0.8125rem; color: var(--color-success);">
+              Код подтверждения отправлен на почту!
+            </div>
+            <div>
+              <label class="metric-label" style="display: block; margin-bottom: 6px;">Код подтверждения (6 цифр):</label>
+              <input type="text" id="emailCodeInput" class="input-field" placeholder="123456" maxlength="6" required style="width: 100%; height: 44px; font-size: 1.25rem; letter-spacing: 4px; text-align: center;">
+            </div>
+            <button type="submit" class="btn btn-primary" id="emailVerifyBtn" style="width: 100%; height: 42px;">
+              Подтвердить и войти ➔
+            </button>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="resetEmailAuth()" style="text-align: center;">
+              ← Ввести другой email
             </button>
           </form>
 
           <div style="font-size: 0.8125rem; color: var(--color-text-muted); margin-top: var(--space-4);">
-            Быстрый вход без пароля. Все сохранённые карточки и прогресс FSRS будут привязаны к вашему аккаунту.
+            Безопасный вход с одноразовым кодом подтверждения. Пароли не требуются.
           </div>
         </div>
 
@@ -292,6 +313,10 @@
             <button class="btn btn-secondary btn-sm" onclick="handleCsvExport()">
               Экспорт CSV
             </button>
+
+            <button class="btn btn-secondary btn-sm" onclick="handleAnkiExport()">
+              Экспорт Anki (.txt)
+            </button>
           </div>
         </div>
 
@@ -323,6 +348,112 @@
 
         <!-- Pagination -->
         <div id="wordsPagination" style="margin-top: var(--space-6); display: flex; justify-content: center; gap: var(--space-2);"></div>
+      </div>
+    </div>
+
+    <!-- READING VIEW (/app/reading) -->
+    <div id="readingView" style="display: none;">
+      <div class="panel-card">
+        <div class="panel-header">
+          <div>
+            <h1 class="panel-title" style="font-size: 1.5rem;">Интерактивное чтение</h1>
+            <div style="font-size: 0.875rem; color: var(--color-text-secondary);">
+              Кликайте по любому слову в тексте для мгновенного перевода и добавления в FSRS-колоду
+            </div>
+          </div>
+          <div style="display: flex; gap: var(--space-2); flex-wrap: wrap;">
+            <button class="app-nav-pill active reading-preset-btn" onclick="loadReadingPreset('habits', this)">Привычки (B1)</button>
+            <button class="app-nav-pill reading-preset-btn" onclick="loadReadingPreset('ai_tech', this)">Технологии (B2)</button>
+            <button class="app-nav-pill reading-preset-btn" onclick="loadReadingPreset('space', this)">Космос (B2)</button>
+            <button class="app-nav-pill reading-preset-btn" onclick="toggleCustomTextInput()">Свой текст ✎</button>
+          </div>
+        </div>
+
+        <div id="customTextContainer" style="display: none; margin-bottom: var(--space-6);">
+          <textarea id="customTextInput" class="textarea-field" style="min-height: 100px;" placeholder="Вставьте любой текст на английском языке..."></textarea>
+          <div style="display: flex; justify-content: flex-end; margin-top: var(--space-2);">
+            <button class="btn btn-primary btn-sm" onclick="applyCustomText()">Начать чтение с переводом</button>
+          </div>
+        </div>
+
+        <!-- Interactive Text Article Box -->
+        <div style="padding: var(--space-6); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); line-height: 1.9; font-size: 1.0625rem;" id="readingArticleContent">
+          <!-- Text with clickable word tokens injected dynamically -->
+        </div>
+
+        <!-- Floating Word Popover -->
+        <div id="readingWordPopover" style="display: none; position: fixed; background: var(--color-surface); border: 1px solid var(--color-border-active); border-radius: var(--radius-md); padding: 14px 18px; box-shadow: var(--shadow-lg); z-index: 1000; min-width: 220px;">
+          <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px;">
+            <strong id="popoverWord" style="font-size: 1.125rem;"></strong>
+            <span id="popoverCefr" class="cefr-pill">B1</span>
+          </div>
+          <div id="popoverTrans" style="font-size: 0.9375rem; color: var(--color-text-secondary); margin-bottom: 12px;"></div>
+          <div style="display: flex; gap: 6px;">
+            <button id="popoverAddBtn" class="btn btn-primary btn-sm" style="flex: 1;">В колоду FSRS ✓</button>
+            <button id="popoverSpeakBtn" class="btn btn-secondary btn-sm" title="Озвучить">🔊</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PRACTICE VIEW (/app/practice) -->
+    <div id="practiceView" style="display: none;">
+      <div class="panel-card">
+        <div class="panel-header">
+          <div>
+            <h1 class="panel-title" style="font-size: 1.5rem;">Тренажеры письма и речи</h1>
+            <div style="font-size: 0.875rem; color: var(--color-text-secondary);">
+              Искусственный интеллект для проверки текстов и разговорной практики
+            </div>
+          </div>
+          <div style="display: flex; gap: var(--space-2);">
+            <button id="practiceTabWritingBtn" class="app-nav-pill active" onclick="switchPracticeTab('writing')">Рецензирование письма</button>
+            <button id="practiceTabSpeakingBtn" class="app-nav-pill" onclick="switchPracticeTab('speaking')">Разговорный тренажер</button>
+          </div>
+        </div>
+
+        <!-- Section 1: Writing Review -->
+        <div id="practiceWritingSection">
+          <p style="font-size: 0.9375rem; color: var(--color-text-secondary); margin-bottom: var(--space-4);">
+            Напишите эссе, ответ на вопрос или рабочее письмо на английском языке. Система проверит грамматику, оценит уровень CEFR и предложит более естественные формулировки.
+          </p>
+
+          <textarea id="writingTextInput" class="textarea-field" style="min-height: 140px;" placeholder="Write your paragraph or short essay here in English..."></textarea>
+
+          <div style="display: flex; justify-content: flex-end; margin-top: var(--space-3);">
+            <button class="btn btn-primary" id="writingSubmitBtn" onclick="handleWritingSubmit()">
+              Проверить текст ➔
+            </button>
+          </div>
+
+          <div id="writingResultsContainer" style="display: none; margin-top: var(--space-6);">
+            <!-- Review results injected dynamically -->
+          </div>
+        </div>
+
+        <!-- Section 2: Speaking Dialogue -->
+        <div id="practiceSpeakingSection" style="display: none;">
+          <p style="font-size: 0.9375rem; color: var(--color-text-secondary); margin-bottom: var(--space-4);">
+            Отрабатывайте спонтанную речь в реалистичных диалогах с AI-собеседником.
+          </p>
+
+          <!-- Scenario Chooser -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-3); margin-bottom: var(--space-6);" id="speakingScenariosList">
+            <!-- Scenarios injected dynamically -->
+          </div>
+
+          <!-- Chat Box -->
+          <div style="border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); overflow: hidden;">
+            <div id="speakingChatHistory" style="padding: var(--space-4); max-height: 380px; overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-3);">
+              <!-- Chat turns injected dynamically -->
+            </div>
+
+            <div style="border-top: 1px solid var(--color-border); padding: var(--space-3); display: flex; gap: var(--space-2); background: var(--color-surface-subtle);">
+              <input type="text" id="speakingUserInput" class="input-field" placeholder="Ответьте собеседнику на английском..." style="flex: 1;" onkeydown="if(event.key==='Enter')handleSendSpeakingMessage()">
+              <button class="btn btn-primary" onclick="handleSendSpeakingMessage()" id="speakingSendBtn">Отправить</button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 

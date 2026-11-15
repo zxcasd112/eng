@@ -1126,3 +1126,73 @@ button, input, select, textarea {
 .input-field:focus, .select-field:focus, .textarea-field:focus {
   border-color: var(--color-border-focus);
 }
+
+/* ==========================================================================
+   LIVE PULSE & INTERACTIVE ANIMATIONS
+   ========================================================================== */
+.live-dot {
+  animation: livePulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes livePulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(1.15);
+  }
+}
+
+/* ==========================================================================
+   READING STUDIO: TOKEN INTERACTIVITY & POPOVER
+   ========================================================================== */
+.read-token {
+  display: inline;
+  padding: 1px 3px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.read-token:hover {
+  background-color: var(--color-surface-subtle);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.read-token.active-token {
+  background-color: var(--color-primary);
+  color: var(--color-text-inverted);
+  border-radius: 4px;
+}
+
+#readingWordPopover {
+  animation: popoverFadeIn 0.15s ease-out;
+  backdrop-filter: blur(8px);
+}
+
+@keyframes popoverFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ==========================================================================
+   PRACTICE STUDIO: SCENARIOS & CHAT
+   ========================================================================== */
+.scenario-card:hover {
+  border-color: var(--color-border-hover) !important;
+  transform: translateY(-1px);
+}
+
+.scenario-card.active {
+  border-color: var(--color-primary) !important;
+  background: var(--color-surface-raised) !important;
+}

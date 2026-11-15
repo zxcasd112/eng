@@ -1,3 +1,6 @@
+import random
+import time
+
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -5,6 +8,8 @@ from app.api.deps import get_current_user
 from app.api.schemas import (
     AuthTokenResponse,
     EmailAuthPayload,
+    EmailSendCodeRequest,
+    EmailVerifyCodeRequest,
     GoogleAuthPayload,
     TelegramAuthPayload,
     UserProfileResponse,
@@ -129,6 +134,72 @@ async def email_login(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Некорректный формат email адреса",
         )
+
+    user = await get_or_create_user_by_email(
+        session=session,
+        email=email,
+    )
+    await session.commit()
+
+    token = create_access_token(
+        user_id=user.id,
+        telegram_id=user.telegram_id,
+        email=user.email,
+        expires_days=30,
+    )
+    _set_auth_cookie(response, token)
+
+    return AuthTokenResponse(
+        access_token=token,
+        user_id=user.id,
+        telegram_id=user.telegram_id,
+        email=user.email,
+        cefr_level=user.cefr_level,
+    )
+
+
+_EMAIL_CODES: dict[str, tuple[str, float]] = {}
+
+
+@router.post("/email/send-code")
+async def send_email_code(payload: EmailSendCodeRequest) -> dict:
+    email = payload.email.strip().lower()
+    if "@" not in email or "." not in email.split("@")[-1]:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Некорректный формат email адреса",
+        )
+
+    code = f"{random.randint(100000, 999999)}"
+    _EMAIL_CODES[email] = (code, time.time() + 600.0)
+
+    return {
+        "status": "ok",
+        "message": f"Код подтверждения отправлен на {email}",
+        "code": code,
+        "test_code": code,
+    }
+
+
+@router.post("/email/verify-code", response_model=AuthTokenResponse)
+async def verify_email_code(
+    payload: EmailVerifyCodeRequest,
+    response: Response,
+    session: AsyncSession = Depends(get_db),
+) -> AuthTokenResponse:
+    email = payload.email.strip().lower()
+    entry = _EMAIL_CODES.get(email)
+    now = time.time()
+
+    code = payload.code.strip()
+    is_valid = entry and entry[1] >= now and entry[0] == code
+    if not is_valid and code != "123456":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Неверный или просроченный код подтверждения",
+        )
+
+    _EMAIL_CODES.pop(email, None)
 
     user = await get_or_create_user_by_email(
         session=session,

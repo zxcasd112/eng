@@ -140,11 +140,13 @@ async function renderRoute() {
   const dashboardView = document.getElementById('dashboardView');
   const studyView = document.getElementById('studyView');
   const wordsView = document.getElementById('wordsView');
+  const readingView = document.getElementById('readingView');
+  const practiceView = document.getElementById('practiceView');
   const analyticsView = document.getElementById('analyticsView');
   const profileView = document.getElementById('profileView');
 
   // Hide all views first
-  [loadingView, loginView, dashboardView, studyView, wordsView, analyticsView, profileView].forEach(v => {
+  [loadingView, loginView, dashboardView, studyView, wordsView, readingView, practiceView, analyticsView, profileView].forEach(v => {
     if (v) v.style.display = 'none';
   });
 
@@ -174,6 +176,12 @@ async function renderRoute() {
   } else if (path === '/app/words') {
     if (wordsView) wordsView.style.display = 'block';
     loadWordsDeck();
+  } else if (path === '/app/reading') {
+    if (readingView) readingView.style.display = 'block';
+    loadReading();
+  } else if (path === '/app/practice') {
+    if (practiceView) practiceView.style.display = 'block';
+    loadPractice();
   } else if (path === '/app/analytics') {
     if (analyticsView) analyticsView.style.display = 'block';
     loadAnalytics();
@@ -213,41 +221,116 @@ function switchAuthTab(tab) {
   }
 }
 
-// Direct Email / Gmail login
-async function handleEmailLogin(e) {
+// Direct Email / Gmail OTP login
+let pendingAuthEmail = '';
+
+async function handleSendEmailCode(e) {
   if (e) e.preventDefault();
   const input = document.getElementById('emailLoginInput');
-  const btn = document.getElementById('emailLoginBtn');
+  const btn = document.getElementById('emailSendCodeBtn');
   if (!input || !input.value.trim()) return;
 
   const email = input.value.trim().toLowerCase();
+  pendingAuthEmail = email;
+
   if (btn) {
     btn.disabled = true;
-    btn.textContent = 'Вход...';
+    btn.textContent = 'Отправка кода...';
   }
 
   try {
-    const res = await fetchAPI('/auth/email', {
+    const res = await fetchAPI('/auth/email/send-code', {
       method: 'POST',
       body: JSON.stringify({ email })
     });
 
     if (res.ok) {
+      const sendForm = document.getElementById('emailSendCodeForm');
+      const verifyForm = document.getElementById('emailVerifyCodeForm');
+      const notif = document.getElementById('emailSentNotification');
+      if (sendForm) sendForm.style.display = 'none';
+      if (verifyForm) verifyForm.style.display = 'flex';
+
+      if (res.data && res.data.test_code) {
+        if (notif) {
+          notif.innerHTML = `Код подтверждения: <strong>${res.data.test_code}</strong> (тестовый режим)`;
+        }
+        const codeInput = document.getElementById('emailCodeInput');
+        if (codeInput) {
+          codeInput.value = res.data.test_code;
+        }
+      } else if (notif) {
+        notif.innerHTML = `Код подтверждения отправлен на <strong>${email}</strong>! Проверьте входящие или папку Спам.`;
+      }
+      const codeInput = document.getElementById('emailCodeInput');
+      if (codeInput) codeInput.focus();
+    } else {
+      let msg = res.data && res.data.detail ? res.data.detail : 'Не удалось отправить код';
+      alert('Ошибка: ' + (typeof msg === 'string' ? msg : JSON.stringify(msg)));
+    }
+  } catch (err) {
+    alert('Сетевая ошибка при отправке кода подтверждения');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Получить код подтверждения ➔';
+    }
+  }
+}
+
+async function handleVerifyEmailCode(e) {
+  if (e) e.preventDefault();
+  const codeInput = document.getElementById('emailCodeInput');
+  const btn = document.getElementById('emailVerifyBtn');
+  if (!codeInput || !codeInput.value.trim()) return;
+
+  const code = codeInput.value.trim();
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Проверка...';
+  }
+
+  try {
+    const res = await fetchAPI('/auth/email/verify-code', {
+      method: 'POST',
+      body: JSON.stringify({
+        email: pendingAuthEmail,
+        code: code
+      })
+    });
+
+    if (res.ok && res.data) {
       currentUser = res.data;
       updateUserUI();
       checkAndShowOnboarding();
       navigate('/app');
     } else {
-      alert('Ошибка входа: ' + (res.data ? res.data.detail : 'Проверьте email'));
+      let msg = res.data && res.data.detail ? res.data.detail : 'Неверный или истекший код';
+      alert('Ошибка авторизации: ' + (typeof msg === 'string' ? msg : JSON.stringify(msg)));
     }
   } catch (err) {
-    alert('Сетевая ошибка при входе');
+    alert('Сетевая ошибка при проверке кода');
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.textContent = 'Войти через Gmail ➔';
+      btn.textContent = 'Подтвердить и войти ➔';
     }
   }
+}
+
+function resetEmailAuth() {
+  const sendForm = document.getElementById('emailSendCodeForm');
+  const verifyForm = document.getElementById('emailVerifyCodeForm');
+  if (sendForm) sendForm.style.display = 'flex';
+  if (verifyForm) verifyForm.style.display = 'none';
+  const input = document.getElementById('emailLoginInput');
+  if (input) input.focus();
+}
+
+// Fallback direct email login
+async function handleEmailLogin(e) {
+  if (e) e.preventDefault();
+  await handleSendEmailCode(e);
 }
 
 // Telegram & Google Login Widget Loader
@@ -463,6 +546,7 @@ async function addWordToDeck(lemma, translation, cefr, btn) {
   const res = await fetchAPI('/words', {
     method: 'POST',
     body: JSON.stringify({
+      text: lemma,
       lemma: lemma,
       translation_ru: translation,
       cefr_level: cefr || 'B1',
@@ -477,7 +561,15 @@ async function addWordToDeck(lemma, translation, cefr, btn) {
       btn.classList.add('btn-secondary');
     }
   } else {
-    alert('Не удалось добавить слово: ' + (res.data ? res.data.detail : 'Ошибка'));
+    let msg = 'Ошибка при добавлении слова';
+    if (res.data) {
+      if (typeof res.data.detail === 'string') {
+        msg = res.data.detail;
+      } else if (Array.isArray(res.data.detail) && res.data.detail.length > 0) {
+        msg = res.data.detail.map(d => d.msg || d.type).join(', ');
+      }
+    }
+    alert('Не удалось добавить слово: ' + msg);
     if (btn) {
       btn.disabled = false;
       btn.textContent = 'В колоду';
@@ -1094,6 +1186,32 @@ async function handleCsvExport() {
   document.body.removeChild(a);
 }
 
+async function handleAnkiExport() {
+  const res = await fetchAPI('/words?page=1&page_size=1000');
+  if (!res.ok || !res.data || !res.data.items) {
+    alert('Не удалось сформировать экспорт для Anki');
+    return;
+  }
+
+  const items = res.data.items;
+  let txt = '#separator:tab\n#html:false\n#tags column:3\n';
+  items.forEach(w => {
+    const front = (w.lemma || '').replace(/\t/g, ' ');
+    const back = `${w.translation_ru || ''}`.replace(/\t/g, ' ');
+    const tag = `CEFR_${w.cefr_level || 'B1'}`;
+    txt += `${front}\t${back}\t${tag}\n`;
+  });
+
+  const blob = new Blob([txt], { type: 'text/plain;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `eng_tutor_anki_${new Date().toISOString().slice(0, 10)}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
 // ==========================================
 // 4. ANALYTICS VIEW
 // ==========================================
@@ -1376,6 +1494,527 @@ function skipOnboarding() {
   localStorage.setItem('eng_onboarding_completed', 'true');
   const modal = document.getElementById('onboardingModal');
   if (modal) modal.style.display = 'none';
+}
+
+// ==========================================
+// 6. READING STUDIO (/app/reading)
+// ==========================================
+const READING_PRESETS = {
+  habits: {
+    title: "The Science of Habits",
+    cefr: "B1",
+    text: `Building meaningful habits requires deliberate consistency rather than extraordinary motivation. According to cognitive neuroscience, repetitive behaviors gradually form strong neural pathways in the human brain.
+
+When you perform an action repeatedly in response to a specific contextual cue, the basal ganglia takes over the execution. Over time, this natural neurological transition substantially reduces the cognitive effort needed to sustain the routine, turning complex tasks into automatic actions.`
+  },
+  ai_tech: {
+    title: "How Neural Networks Understand Language",
+    cefr: "B2",
+    text: `Modern language models do not memorize sentences word by word. Instead, they transform words into high-dimensional numerical vectors known as embeddings. In this continuous mathematical space, concepts with similar contextual meanings reside exceptionally close to each other.
+
+Transformer architectures utilize attention mechanisms to evaluate which surrounding tokens are most relevant to every other term in a paragraph. This sophisticated mathematical representation allows machines to comprehend nuances, summarize technical documents, and translate between human languages.`
+  },
+  space: {
+    title: "Deep Space Exploration",
+    cefr: "B2",
+    text: `Human exploration of deep space represents one of the most ambitious engineering endeavors in modern history. Robotic probes equipped with autonomous navigation algorithms venture billions of kilometers beyond Earth, transmitting unprecedented astronomical observations back across the solar system.
+
+To establish permanent human settlements on distant celestial bodies, scientists must overcome formidable challenges, including cosmic radiation, microgravity health effects, and closed-loop life support systems.`
+  }
+};
+
+const QUICK_DICT = {
+  habits: { ru: "привычки", cefr: "A2" },
+  habit: { ru: "привычка", cefr: "A2" },
+  deliberate: { ru: "осознанный, намеренный", cefr: "B2" },
+  consistency: { ru: "постоянство, последовательность", cefr: "B2" },
+  motivation: { ru: "мотивация", cefr: "B1" },
+  cognitive: { ru: "когнитивный, познавательный", cefr: "B2" },
+  neuroscience: { ru: "нейронаука", cefr: "C1" },
+  pathways: { ru: "пути, нейронные цепочки", cefr: "B2" },
+  pathway: { ru: "путь, связь", cefr: "B2" },
+  neural: { ru: "нейронный, нервный", cefr: "B2" },
+  substantially: { ru: "существенно, значительно", cefr: "B2" },
+  execution: { ru: "выполнение, исполнение", cefr: "B2" },
+  transition: { ru: "переход", cefr: "B2" },
+  sustain: { ru: "поддерживать, сохранять", cefr: "B2" },
+  routine: { ru: "рутина, привычный распорядок", cefr: "B1" },
+  automatic: { ru: "автоматический", cefr: "A2" },
+  vectors: { ru: "векторы", cefr: "B2" },
+  embeddings: { ru: "векторные представления (эмбеддинги)", cefr: "C1" },
+  continuous: { ru: "непрерывный", cefr: "B2" },
+  contextual: { ru: "контекстуальный", cefr: "B2" },
+  mechanisms: { ru: "механизмы", cefr: "B2" },
+  evaluate: { ru: "оценивать", cefr: "B2" },
+  sophisticated: { ru: "передовой, комплексный", cefr: "B2" },
+  comprehend: { ru: "понимать, постигать", cefr: "B2" },
+  exploration: { ru: "исследование, освоение", cefr: "B1" },
+  endeavors: { ru: "начинания, стремления", cefr: "C1" },
+  endeavor: { ru: "начинание, попытка", cefr: "C1" },
+  autonomous: { ru: "автономный", cefr: "B2" },
+  navigation: { ru: "навигация", cefr: "B1" },
+  unprecedented: { ru: "беспрецедентный", cefr: "C1" },
+  observations: { ru: "наблюдения", cefr: "B2" },
+  settlements: { ru: "поселения", cefr: "B2" },
+  challenges: { ru: "трудности, вызовы", cefr: "B1" },
+  radiation: { ru: "излучение, радиация", cefr: "B2" },
+  furthermore: { ru: "более того, кроме того", cefr: "B2" },
+  consequently: { ru: "следовательно", cefr: "B2" }
+};
+
+let currentReadingText = READING_PRESETS.habits.text;
+let currentActiveToken = null;
+let readingPopoverListenerAdded = false;
+
+function loadReading() {
+  loadReadingPreset('habits');
+  if (!readingPopoverListenerAdded) {
+    document.addEventListener('click', onDocumentClickReadingPopover);
+    readingPopoverListenerAdded = true;
+  }
+}
+
+function onDocumentClickReadingPopover(e) {
+  const popover = document.getElementById('readingWordPopover');
+  if (!popover || popover.style.display === 'none') return;
+  if (!popover.contains(e.target) && !e.target.classList.contains('read-token')) {
+    hideReadingPopover();
+  }
+}
+
+function hideReadingPopover() {
+  const popover = document.getElementById('readingWordPopover');
+  if (popover) popover.style.display = 'none';
+  if (currentActiveToken) {
+    currentActiveToken.classList.remove('active-token');
+    currentActiveToken = null;
+  }
+}
+
+function loadReadingPreset(presetKey, btn) {
+  if (btn) {
+    document.querySelectorAll('.reading-preset-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  const customBox = document.getElementById('customTextContainer');
+  if (customBox) customBox.style.display = 'none';
+
+  const preset = READING_PRESETS[presetKey] || READING_PRESETS.habits;
+  currentReadingText = preset.text;
+  renderReadingContent(currentReadingText);
+}
+
+function toggleCustomTextInput() {
+  const customBox = document.getElementById('customTextContainer');
+  if (!customBox) return;
+  const isHidden = customBox.style.display === 'none';
+  customBox.style.display = isHidden ? 'block' : 'none';
+  if (isHidden) {
+    document.querySelectorAll('.reading-preset-btn').forEach(b => b.classList.remove('active'));
+    const input = document.getElementById('customTextInput');
+    if (input) input.focus();
+  }
+}
+
+function applyCustomText() {
+  const input = document.getElementById('customTextInput');
+  if (!input || !input.value.trim()) return;
+  currentReadingText = input.value.trim();
+  renderReadingContent(currentReadingText);
+}
+
+function renderReadingContent(rawText) {
+  const container = document.getElementById('readingArticleContent');
+  if (!container) return;
+  hideReadingPopover();
+
+  const paragraphs = rawText.split(/\n\s*\n/);
+  let html = '';
+
+  paragraphs.forEach(para => {
+    const trimmed = para.trim();
+    if (!trimmed) return;
+
+    const tokens = trimmed.split(/([a-zA-Z0-9'-]+)/g);
+    let paraHtml = '<p style="margin-bottom: var(--space-4);">';
+
+    tokens.forEach(tok => {
+      if (/^[a-zA-Z0-9'-]+$/.test(tok)) {
+        paraHtml += `<span class="read-token" onclick="handleReadWordClick(this, '${tok.replace(/'/g, "\\'")}')">${tok}</span>`;
+      } else {
+        paraHtml += tok.replace(/\n/g, '<br>');
+      }
+    });
+
+    paraHtml += '</p>';
+    html += paraHtml;
+  });
+
+  container.innerHTML = html;
+}
+
+async function handleReadWordClick(element, rawWord) {
+  const cleanWord = rawWord.toLowerCase().replace(/[^a-z'-]/g, '');
+  if (!cleanWord) return;
+
+  hideReadingPopover();
+  currentActiveToken = element;
+  element.classList.add('active-token');
+
+  const popover = document.getElementById('readingWordPopover');
+  const wordEl = document.getElementById('popoverWord');
+  const cefrEl = document.getElementById('popoverCefr');
+  const transEl = document.getElementById('popoverTrans');
+  const addBtn = document.getElementById('popoverAddBtn');
+  const speakBtn = document.getElementById('popoverSpeakBtn');
+
+  if (!popover || !wordEl || !transEl) return;
+
+  wordEl.textContent = cleanWord;
+  let quick = QUICK_DICT[cleanWord] || QUICK_DICT[cleanWord.replace(/s$/, '')] || QUICK_DICT[cleanWord.replace(/ed$/, '')] || QUICK_DICT[cleanWord.replace(/ing$/, '')];
+  let trans = quick ? quick.ru : 'Перевод...';
+  let cefr = quick ? quick.cefr : (cleanWord.length > 8 ? 'B2' : (cleanWord.length > 5 ? 'B1' : 'A2'));
+
+  cefrEl.textContent = cefr;
+  transEl.textContent = trans;
+
+  addBtn.disabled = false;
+  addBtn.textContent = 'В колоду FSRS ✓';
+  addBtn.onclick = () => addWordToDeck(cleanWord, transEl.textContent, cefrEl.textContent, addBtn);
+  speakBtn.onclick = () => speakWord(cleanWord);
+
+  popover.style.display = 'block';
+  const rect = element.getBoundingClientRect();
+  const popoverRect = popover.getBoundingClientRect();
+
+  let top = rect.bottom + 8;
+  let left = rect.left + (rect.width / 2) - (popoverRect.width / 2);
+
+  if (left < 16) left = 16;
+  if (left + popoverRect.width > window.innerWidth - 16) {
+    left = window.innerWidth - popoverRect.width - 16;
+  }
+  if (top + popoverRect.height > window.innerHeight - 16) {
+    top = rect.top - popoverRect.height - 8;
+  }
+
+  popover.style.top = `${top}px`;
+  popover.style.left = `${left}px`;
+
+  if (!quick) {
+    try {
+      const res = await fetchAPI('/words/analyze', {
+        method: 'POST',
+        body: JSON.stringify({ sentence: `I would like to learn about ${cleanWord}.` })
+      });
+      if (res.ok && res.data && res.data.extracted_words) {
+        const found = res.data.extracted_words.find(w => (w.lemma || '').toLowerCase() === cleanWord || (w.text || '').toLowerCase() === cleanWord);
+        if (found) {
+          transEl.textContent = found.translation_ru || cleanWord;
+          cefrEl.textContent = found.cefr_level || cefr;
+        } else {
+          transEl.textContent = `Слово: ${cleanWord}`;
+        }
+      } else {
+        transEl.textContent = `Слово: ${cleanWord}`;
+      }
+    } catch (err) {
+      transEl.textContent = `Слово: ${cleanWord}`;
+    }
+  }
+}
+
+// ==========================================
+// 7. PRACTICE STUDIO (/app/practice)
+// ==========================================
+let currentPracticeTab = 'writing';
+let currentSpeakingScenario = null;
+let speakingChatHistoryData = [];
+let speakingScenarios = [];
+
+function switchPracticeTab(tab) {
+  currentPracticeTab = tab;
+  const writingSec = document.getElementById('practiceWritingSection');
+  const speakingSec = document.getElementById('practiceSpeakingSection');
+  const writingBtn = document.getElementById('practiceTabWritingBtn');
+  const speakingBtn = document.getElementById('practiceTabSpeakingBtn');
+
+  if (tab === 'speaking') {
+    if (writingSec) writingSec.style.display = 'none';
+    if (speakingSec) speakingSec.style.display = 'block';
+    if (writingBtn) writingBtn.classList.remove('active');
+    if (speakingBtn) speakingBtn.classList.add('active');
+    loadSpeakingScenarios();
+  } else {
+    if (writingSec) writingSec.style.display = 'block';
+    if (speakingSec) speakingSec.style.display = 'none';
+    if (writingBtn) writingBtn.classList.add('active');
+    if (speakingBtn) speakingBtn.classList.remove('active');
+  }
+}
+
+function loadPractice() {
+  switchPracticeTab(currentPracticeTab || 'writing');
+}
+
+async function handleWritingSubmit() {
+  const input = document.getElementById('writingTextInput');
+  const btn = document.getElementById('writingSubmitBtn');
+
+  if (!input || !input.value.trim()) {
+    alert('Пожалуйста, введите текст для проверки.');
+    return;
+  }
+
+  const text = input.value.trim();
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Анализ текста AI...';
+  }
+
+  try {
+    const res = await fetchAPI('/practice/writing/review', {
+      method: 'POST',
+      body: JSON.stringify({ text })
+    });
+
+    if (res.ok && res.data) {
+      renderWritingResults(res.data);
+    } else {
+      let msg = res.data && res.data.detail ? res.data.detail : 'Ошибка при анализе текста';
+      alert('Ошибка: ' + (typeof msg === 'string' ? msg : JSON.stringify(msg)));
+    }
+  } catch (err) {
+    alert('Сетевая ошибка при анализе текста');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Проверить текст ➔';
+    }
+  }
+}
+
+function renderWritingResults(data) {
+  const container = document.getElementById('writingResultsContainer');
+  if (!container) return;
+  container.style.display = 'block';
+
+  let correctionsHtml = '';
+  if (data.corrections && data.corrections.length > 0) {
+    correctionsHtml = `
+      <div style="margin-bottom: var(--space-4);">
+        <h4 style="font-size: 0.9375rem; font-weight: 600; margin-bottom: var(--space-2); color: var(--color-danger);">Найденные неточности и исправления:</h4>
+        <div style="display: flex; flex-direction: column; gap: var(--space-2);">
+          ${data.corrections.map(c => `
+            <div style="padding: 10px 14px; background: var(--color-surface-subtle); border-left: 3px solid var(--color-danger); border-radius: var(--radius-sm); font-size: 0.875rem;">
+              <div style="display: flex; gap: 8px; align-items: baseline; margin-bottom: 2px;">
+                <span style="text-decoration: line-through; color: var(--color-text-muted);">${c.original}</span>
+                <span>→</span>
+                <strong style="color: var(--color-success);">${c.improved}</strong>
+              </div>
+              <div style="color: var(--color-text-secondary); font-size: 0.8125rem;">${c.explanation}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  } else {
+    correctionsHtml = `
+      <div style="padding: 12px 16px; background: var(--color-success-bg); border: 1px solid var(--color-success-border); border-radius: var(--radius-md); font-size: 0.875rem; color: var(--color-success); margin-bottom: var(--space-4);">
+        ✓ Серьезных грамматических ошибок не обнаружено. Текст чистый и связный.
+      </div>
+    `;
+  }
+
+  let betterPhrasingsHtml = '';
+  if (data.better_phrasings && data.better_phrasings.length > 0) {
+    betterPhrasingsHtml = `
+      <div style="margin-bottom: var(--space-4);">
+        <h4 style="font-size: 0.9375rem; font-weight: 600; margin-bottom: var(--space-2);">Как сказал бы носитель языка:</h4>
+        <ul style="padding-left: 20px; font-size: 0.875rem; color: var(--color-text-secondary); display: flex; flex-direction: column; gap: 4px;">
+          ${data.better_phrasings.map(p => `<li><em>"${p}"</em></li>`).join('')}
+        </ul>
+      </div>
+    `;
+  }
+
+  let vocabHtml = '';
+  if (data.useful_vocab && data.useful_vocab.length > 0) {
+    vocabHtml = `
+      <div>
+        <h4 style="font-size: 0.9375rem; font-weight: 600; margin-bottom: var(--space-2);">Рекомендуемые слова в колоду:</h4>
+        <div style="display: flex; gap: var(--space-2); flex-wrap: wrap;">
+          ${data.useful_vocab.map(v => `
+            <div style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-full); font-size: 0.8125rem;">
+              <strong>${v.lemma}</strong>
+              <span style="color: var(--color-text-secondary);">${v.translation_ru}</span>
+              <button class="btn btn-primary btn-sm" style="padding: 2px 8px; font-size: 0.75rem; height: 24px;" onclick="addWordToDeck('${v.lemma.replace(/'/g, "\\'")}', '${v.translation_ru.replace(/'/g, "\\'")}', 'B2', this)">+ Колода</button>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  container.innerHTML = `
+    <div style="padding: var(--space-5); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg);">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-4); border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-3);">
+        <div>
+          <span style="font-size: 0.8125rem; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Оценка текста</span>
+          <div style="display: flex; align-items: baseline; gap: 8px;">
+            <span style="font-size: 2rem; font-weight: 700; color: var(--color-text-primary);">${data.score}</span>
+            <span style="font-size: 1rem; color: var(--color-text-muted);">/ 100</span>
+          </div>
+        </div>
+        <div style="text-align: right;">
+          <span style="font-size: 0.8125rem; color: var(--color-text-muted);">Примерный уровень</span>
+          <div><span class="cefr-pill" style="font-size: 0.9375rem; padding: 4px 10px;">${data.cefr_estimate || 'B2'}</span></div>
+        </div>
+      </div>
+
+      <div style="font-size: 0.9375rem; color: var(--color-text-primary); margin-bottom: var(--space-4); font-weight: 500;">
+        ${data.summary_ru}
+      </div>
+
+      ${correctionsHtml}
+      ${betterPhrasingsHtml}
+      ${vocabHtml}
+    </div>
+  `;
+
+  container.scrollIntoView({ behavior: 'smooth' });
+}
+
+async function loadSpeakingScenarios() {
+  const container = document.getElementById('speakingScenariosList');
+  if (!container) return;
+
+  if (speakingScenarios.length === 0) {
+    try {
+      const res = await fetchAPI('/practice/scenarios');
+      if (res.ok && res.data) {
+        speakingScenarios = res.data;
+      }
+    } catch (err) {
+      console.warn('Failed to load scenarios:', err);
+    }
+  }
+
+  if (speakingScenarios.length === 0) return;
+
+  container.innerHTML = speakingScenarios.map(sc => `
+    <div class="scenario-card ${currentSpeakingScenario && currentSpeakingScenario.id === sc.id ? 'active' : ''}" 
+         onclick="selectSpeakingScenario('${sc.id}')"
+         style="cursor: pointer; padding: 14px 16px; background: var(--color-surface); border: 1px solid ${currentSpeakingScenario && currentSpeakingScenario.id === sc.id ? 'var(--color-primary)' : 'var(--color-border)'}; border-radius: var(--radius-md); transition: var(--transition);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <span style="font-size: 1.5rem;">${sc.icon || '💬'}</span>
+        <span class="cefr-pill">${sc.level || 'B1'}</span>
+      </div>
+      <strong style="display: block; font-size: 0.9375rem; margin-bottom: 4px;">${sc.title}</strong>
+    </div>
+  `).join('');
+
+  if (!currentSpeakingScenario && speakingScenarios.length > 0) {
+    selectSpeakingScenario(speakingScenarios[0].id);
+  }
+}
+
+function selectSpeakingScenario(scenarioId) {
+  const scenario = speakingScenarios.find(s => s.id === scenarioId);
+  if (!scenario) return;
+  currentSpeakingScenario = scenario;
+  speakingChatHistoryData = [];
+
+  document.querySelectorAll('.scenario-card').forEach(el => {
+    el.style.borderColor = 'var(--color-border)';
+  });
+
+  const chat = document.getElementById('speakingChatHistory');
+  if (chat) {
+    chat.innerHTML = '';
+    appendSpeakingChatMessage('ai', scenario.prompt);
+  }
+}
+
+function appendSpeakingChatMessage(role, text, feedback, suggestion) {
+  const chat = document.getElementById('speakingChatHistory');
+  if (!chat) return;
+
+  speakingChatHistoryData.push({ role, content: text });
+
+  const isAi = role === 'ai';
+  const msgEl = document.createElement('div');
+  msgEl.style.display = 'flex';
+  msgEl.style.flexDirection = 'column';
+  msgEl.style.alignItems = isAi ? 'flex-start' : 'flex-end';
+  msgEl.style.gap = '4px';
+
+  let feedbackSnippet = '';
+  if (feedback || suggestion) {
+    feedbackSnippet = `
+      <div style="font-size: 0.75rem; color: var(--color-text-muted); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 4px 8px; margin-top: 4px; max-width: 320px;">
+        ${feedback ? `<div>💡 ${feedback}</div>` : ''}
+        ${suggestion ? `<div style="font-style: italic;">${suggestion}</div>` : ''}
+      </div>
+    `;
+  }
+
+  msgEl.innerHTML = `
+    <div style="display: flex; align-items: center; gap: 6px; flex-direction: ${isAi ? 'row' : 'row-reverse'}; max-width: 80%;">
+      <div style="padding: 10px 16px; border-radius: ${isAi ? '16px 16px 16px 4px' : '16px 16px 4px 16px'}; background: ${isAi ? 'var(--color-surface-subtle)' : 'var(--color-primary)'}; color: ${isAi ? 'var(--color-text-primary)' : 'var(--color-text-inverted)'}; font-size: 0.9375rem; line-height: 1.5;">
+        ${text}
+      </div>
+      ${isAi ? `<button onclick="speakWord('${text.replace(/'/g, "\\'")}')" style="background: none; border: none; cursor: pointer; color: var(--color-text-muted); font-size: 1rem;" title="Озвучить ответ">🔊</button>` : ''}
+    </div>
+    ${feedbackSnippet}
+  `;
+
+  chat.appendChild(msgEl);
+  chat.scrollTop = chat.scrollHeight;
+
+  if (isAi && speakingChatHistoryData.length > 1) {
+    speakWord(text);
+  }
+}
+
+async function handleSendSpeakingMessage() {
+  const input = document.getElementById('speakingUserInput');
+  const btn = document.getElementById('speakingSendBtn');
+  if (!input || !input.value.trim() || !currentSpeakingScenario) return;
+
+  const userText = input.value.trim();
+  input.value = '';
+
+  appendSpeakingChatMessage('user', userText);
+
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '...';
+  }
+
+  try {
+    const res = await fetchAPI('/practice/speaking/respond', {
+      method: 'POST',
+      body: JSON.stringify({
+        scenario: currentSpeakingScenario.id,
+        user_message: userText,
+        history: speakingChatHistoryData.slice(-6)
+      })
+    });
+
+    if (res.ok && res.data) {
+      appendSpeakingChatMessage('ai', res.data.ai_message, res.data.feedback_ru, res.data.suggested_phrasing);
+    } else {
+      appendSpeakingChatMessage('ai', "I hear you! That's an interesting thought. Could you tell me more?");
+    }
+  } catch (err) {
+    appendSpeakingChatMessage('ai', "I understand. Let's keep practicing!");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Отправить';
+    }
+  }
 }
 
 // Entrypoint initialization
