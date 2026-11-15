@@ -249,11 +249,12 @@ async function renderRoute() {
   const wordsView = document.getElementById('wordsView');
   const readingView = document.getElementById('readingView');
   const practiceView = document.getElementById('practiceView');
+  const mistakesView = document.getElementById('mistakesView');
   const analyticsView = document.getElementById('analyticsView');
   const profileView = document.getElementById('profileView');
 
   // Hide all views first
-  [loadingView, loginView, dashboardView, studyView, wordsView, readingView, practiceView, analyticsView, profileView].forEach(v => {
+  [loadingView, loginView, dashboardView, studyView, wordsView, readingView, practiceView, mistakesView, analyticsView, profileView].forEach(v => {
     if (v) v.style.display = 'none';
   });
 
@@ -289,6 +290,9 @@ async function renderRoute() {
   } else if (path === '/app/practice') {
     if (practiceView) practiceView.style.display = 'block';
     loadPractice();
+  } else if (path === '/app/mistakes') {
+    if (mistakesView) mistakesView.style.display = 'block';
+    loadMistakes();
   } else if (path === '/app/analytics') {
     if (analyticsView) analyticsView.style.display = 'block';
     loadAnalytics();
@@ -2186,6 +2190,96 @@ async function handleSendSpeakingMessage() {
       btn.disabled = false;
       btn.textContent = 'Отправить';
     }
+  }
+}
+
+// ==========================================
+// 8. MISTAKES JOURNAL (/app/mistakes)
+// ==========================================
+let mistakeSourceFilter = 'ALL';
+
+async function loadMistakes() {
+  const container = document.getElementById('mistakesListContainer');
+  if (!container) return;
+
+  container.innerHTML = '<div style="color: var(--color-text-muted); text-align: center; padding: 40px 0;">Загрузка журнала ошибок...</div>';
+
+  let url = '/mistakes?limit=50';
+  if (mistakeSourceFilter && mistakeSourceFilter !== 'ALL') {
+    url += `&source=${mistakeSourceFilter}`;
+  }
+
+  const res = await fetchAPI(url);
+  if (!res.ok || !Array.isArray(res.data) || res.data.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">✓</div>
+        <h3 class="empty-title">Журнал ошибок пуст</h3>
+        <p class="empty-desc">Здесь будут сохраняться неточности из проверки письма, квизов и повторения слов для дальнейшей отработки.</p>
+      </div>
+    `;
+    return;
+  }
+
+  const sourceLabels = {
+    writing: 'Письмо',
+    quiz: 'Квиз',
+    review: 'Повторение',
+    tutor: 'Репетитор'
+  };
+
+  container.innerHTML = res.data.map(m => {
+    const sLabel = sourceLabels[m.source] || m.source;
+    const dateStr = m.created_at ? new Date(m.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : '';
+    const hasCardBtn = m.has_card
+      ? '<span style="color: var(--color-success); font-size: 0.8125rem; font-weight: 500;">Карточка создана ✓</span>'
+      : `<button class="btn btn-secondary btn-sm" onclick="convertMistakeToCard(${m.id}, this)">Сделать карточкой (Cloze) →</button>`;
+
+    return `
+      <div style="padding: 16px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <span class="cefr-pill" style="font-size: 0.75rem;">${sLabel}</span>
+            <span style="font-size: 0.75rem; color: var(--color-text-muted);">${dateStr}</span>
+          </div>
+          <div>${hasCardBtn}</div>
+        </div>
+        <div style="display: flex; gap: 10px; align-items: baseline; font-size: 0.9375rem; flex-wrap: wrap;">
+          <span style="color: var(--color-danger); text-decoration: line-through;">${m.original}</span>
+          <span>→</span>
+          <strong style="color: var(--color-success);">${m.correction}</strong>
+        </div>
+        ${m.explanation ? `<div style="font-size: 0.8125rem; color: var(--color-text-secondary);">${m.explanation}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function setMistakeFilter(source, btn) {
+  mistakeSourceFilter = source;
+  document.querySelectorAll('.mistake-filter-btn').forEach(b => {
+    b.classList.toggle('active', b.getAttribute('data-source') === source);
+  });
+  loadMistakes();
+}
+
+async function convertMistakeToCard(mistakeId, btn) {
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Создание...';
+  }
+  const res = await fetchAPI(`/mistakes/${mistakeId}/to-cards`, { method: 'POST' });
+  if (res.ok) {
+    showToast('Карточка с пропуском успешно создана!', 'success');
+    if (btn) {
+      btn.outerHTML = '<span style="color: var(--color-success); font-size: 0.8125rem; font-weight: 500;">Карточка создана ✓</span>';
+    }
+  } else {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Сделать карточкой (Cloze) →';
+    }
+    showToast('Не удалось создать карточку: ' + (res.data ? res.data.detail : 'Ошибка'), 'error');
   }
 }
 

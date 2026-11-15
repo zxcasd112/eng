@@ -13,7 +13,7 @@ from app.api.schemas import (
     SentenceScrambleAnswerResponse,
     SentenceScrambleQuizOut,
 )
-from app.db.models import User
+from app.db.models import Mistake, User
 from app.db.session import get_db
 from app.services.llm import LLMService
 from app.services.quiz_service import (
@@ -50,7 +50,8 @@ async def get_multiple_choice_quiz(
 @router.post("/multiple-choice/answer", response_model=MultipleChoiceAnswerResponse)
 async def answer_multiple_choice(
     payload: MultipleChoiceAnswerRequest,
-    _user: User = Depends(get_current_user),
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
 ) -> MultipleChoiceAnswerResponse:
     res = verify_multiple_choice_answer(payload.quiz_id, payload.chosen_option)
     if not res.get("valid"):
@@ -58,6 +59,18 @@ async def answer_multiple_choice(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=res.get("error", "Invalid or expired quiz"),
         )
+    if not res.get("is_correct"):
+        session.add(
+            Mistake(
+                user_id=user.id,
+                source="quiz",
+                original=payload.chosen_option,
+                correction=res["correct_answer"],
+                explanation=f"Тест на выбор значения слова: {res.get('lemma')}",
+            )
+        )
+        await session.commit()
+
     return MultipleChoiceAnswerResponse(
         is_correct=res["is_correct"],
         correct_answer=res["correct_answer"],

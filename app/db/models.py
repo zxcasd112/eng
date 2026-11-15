@@ -34,6 +34,7 @@ class User(Base):
     daily_goal: Mapped[int] = mapped_column(Integer, default=15, nullable=False)
     timezone: Mapped[str] = mapped_column(String(64), default="UTC", nullable=False)
     reminder_hour: Mapped[int | None] = mapped_column(Integer, default=19, nullable=True)
+    reminder_channel: Mapped[str] = mapped_column(String(16), default="telegram", nullable=False)
     active_card_types: Mapped[list[str]] = mapped_column(
         JSON, default=lambda: ["en_ru", "ru_en", "cloze", "audio"], nullable=False
     )
@@ -46,6 +47,12 @@ class User(Base):
         back_populates="user", cascade="all, delete-orphan"
     )
     reviews: Mapped[list["Review"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+    mistakes: Mapped[list["Mistake"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+    texts: Mapped[list["SavedText"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
 
@@ -186,3 +193,58 @@ class LLMCache(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, nullable=False
     )
+
+
+class Mistake(Base):
+    __tablename__ = "mistakes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    word_id: Mapped[int | None] = mapped_column(
+        ForeignKey("words.id", ondelete="SET NULL"), index=True, nullable=True
+    )
+    source: Mapped[str] = mapped_column(String(32), index=True, nullable=False)  # writing | quiz | review | tutor
+    original: Mapped[str] = mapped_column(Text, nullable=False)
+    correction: Mapped[str] = mapped_column(Text, nullable=False)
+    explanation: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, index=True, nullable=False
+    )
+
+    user: Mapped["User"] = relationship(back_populates="mistakes")
+    word: Mapped["Word | None"] = relationship()
+
+
+class SavedText(Base):
+    __tablename__ = "texts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    cefr_level: Mapped[str] = mapped_column(String(8), nullable=False)
+    topic: Mapped[str] = mapped_column(String(128), nullable=False)
+    source_type: Mapped[str] = mapped_column(String(32), default="generated", nullable=False)  # generated | url | custom
+    url_or_ref: Mapped[str | None] = mapped_column(Text, nullable=True)
+    comprehension_questions: Mapped[list[dict[str, Any]] | None] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, index=True, nullable=False
+    )
+
+    user: Mapped["User"] = relationship(back_populates="texts")
+
+
+class LLMUsage(Base):
+    __tablename__ = "llm_usage"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    model: Mapped[str] = mapped_column(String(64), nullable=False)
+    tokens_in: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    tokens_out: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    task_type: Mapped[str] = mapped_column(String(32), default="chat", index=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, index=True, nullable=False
+    )
+
+    user: Mapped["User"] = relationship()

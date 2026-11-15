@@ -13,7 +13,7 @@ from app.api.schemas import (
     WritingReviewRequest,
     WritingReviewResponse,
 )
-from app.db.models import User
+from app.db.models import Mistake, User
 from app.db.session import get_db
 from app.services.llm import LLMService
 
@@ -95,11 +95,25 @@ async def review_writing(
             import json
 
             data = json.loads(raw)
+            parsed_corrections = [WritingCorrection(**c) for c in data.get("corrections", [])]
+            for c in parsed_corrections:
+                session.add(
+                    Mistake(
+                        user_id=user.id,
+                        source="writing",
+                        original=c.original,
+                        correction=c.improved,
+                        explanation=c.explanation,
+                    )
+                )
+            if parsed_corrections:
+                await session.commit()
+
             return WritingReviewResponse(
                 score=int(data.get("score", 85)),
                 cefr_estimate=str(data.get("cefr_estimate", user.cefr_level)),
                 summary_ru=str(data.get("summary_ru", "Хороший текст, понятная структура.")),
-                corrections=[WritingCorrection(**c) for c in data.get("corrections", [])],
+                corrections=parsed_corrections,
                 better_phrasings=list(data.get("better_phrasings", [])),
                 useful_vocab=list(data.get("useful_vocab", [])),
             )
@@ -123,6 +137,19 @@ async def review_writing(
 
     score = min(95, max(60, 70 + (word_count // 5)))
     cefr_est = "B1" if word_count < 30 else ("B2" if word_count < 80 else "C1")
+
+    for c in corrections:
+        session.add(
+            Mistake(
+                user_id=user.id,
+                source="writing",
+                original=c.original,
+                correction=c.improved,
+                explanation=c.explanation,
+            )
+        )
+    if corrections:
+        await session.commit()
 
     return WritingReviewResponse(
         score=score,

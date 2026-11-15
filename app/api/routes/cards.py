@@ -18,7 +18,7 @@ from app.api.schemas import (
     UserStatsResponse,
     WordOut,
 )
-from app.db.models import Card, User
+from app.db.models import Card, Mistake, User
 from app.db.session import get_db
 from app.services.llm import LLMNotConfiguredError, LLMService
 from app.services.review_engine import ALL_CARD_TYPES
@@ -194,6 +194,17 @@ async def review_card(
             rating=payload.rating,
             response_time_ms=payload.response_time_ms,
         )
+        if payload.rating == 1 and card.word:
+            session.add(
+                Mistake(
+                    user_id=user.id,
+                    word_id=card.word_id,
+                    source="review",
+                    original=f"Забыл(а) слово '{card.word.lemma}'",
+                    correction=card.word.lemma,
+                    explanation=card.word.translation_ru,
+                )
+            )
         await session.commit()
     except ValueError as exc:
         raise HTTPException(
