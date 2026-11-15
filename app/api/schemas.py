@@ -256,3 +256,83 @@ class ImportWordsResponse(BaseModel):
     added: int
     duplicates: int
     errors: list[str] = []
+
+
+class UserProfileResponse(BaseModel):
+    id: int
+    telegram_id: int
+    username: str | None = None
+    first_name: str | None = None
+    email: str | None = None
+    cefr_level: str
+    daily_goal: int
+    timezone: str
+    reminder_hour: int | None = None
+    active_card_types: list[str]
+
+
+class UpdateProfileRequest(BaseModel):
+    cefr_level: str | None = None
+    daily_goal: int | None = None
+    timezone: str | None = None
+    reminder_hour: int | None = None
+    active_card_types: list[str] | None = None
+    email: str | None = None
+
+
+class DailyRetentionItem(BaseModel):
+    date: str
+    reviews_count: int
+    passed_count: int
+    retention_pct: float
+
+
+class CardTypeAnalyticsItem(BaseModel):
+    card_type: str
+    cards_count: int
+    reviews_count: int
+    passed_count: int
+    accuracy_pct: float
+
+
+class ProblemWordItem(BaseModel):
+    word_id: int
+    lemma: str
+    translation_ru: str
+    lapses: int
+    again_count: int
+    avg_rating: float
+
+
+class DailyForecastItem(BaseModel):
+    date: str
+    due_cards_count: int
+
+
+class DistributionBucket(BaseModel):
+    range_label: str
+    count: int
+
+
+class ValueDistributionStats(BaseModel):
+    mean: float
+    min: float
+    max: float
+    median: float
+    distribution: list[DistributionBucket] = []
+
+
+class UserAnalyticsResponse(BaseModel):
+    retention_30d: float
+    retention_daily: list[DailyRetentionItem]
+    card_types_breakdown: list[CardTypeAnalyticsItem]
+    problem_words: list[ProblemWordItem]
+    workload_forecast_7d: list[DailyForecastItem]
+    stability_stats: ValueDistributionStats
+    difficulty_stats: ValueDistributionStats
+
+
+class RecommendationItem(BaseModel):
+    word: WordOut
+    score: float
+    reasons: list[str]

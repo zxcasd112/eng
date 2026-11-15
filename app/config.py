@@ -43,6 +43,12 @@ class Settings(BaseSettings):
     review_reminder_enabled: bool = True
     default_reminder_hour: int = 19
 
+    # Recommendations Weights
+    rec_weight_source: float = 3.0
+    rec_weight_cefr: float = 2.5
+    rec_weight_frequency: float = 2.0
+    rec_weight_unreviewed: float = 1.5
+
     @property
     def audio_dir(self) -> Path:
         return self.data_dir / "audio"
