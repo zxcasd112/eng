@@ -70,11 +70,12 @@
 
   <main>
     <!-- Hero Section -->
-    <section class="hero-section">
-      <div class="site-container">
+    <section class="hero-section" style="position: relative;">
+      <div class="hero-glow-bg"></div>
+      <div class="site-container" style="position: relative; z-index: 1;">
         <div class="hero-badge">
           <span class="hero-badge-dot"></span>
-          <span>Научно доказанное интервальное повторение</span>
+          <span>Научно доказанное интервальное повторение FSRS</span>
         </div>
 
         <h1 class="hero-headline">
@@ -102,54 +103,81 @@
                 <span class="live-dot" style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #22c55e;"></span>
                 Синхронизация Telegram и Web-кабинета в реальном времени
               </span>
-              <span style="font-family: var(--font-mono); font-size: 0.75rem;">FSRS v4 Scheduler</span>
+              <div style="display: flex; gap: 6px; align-items: center;">
+                <span style="font-size: 0.75rem; color: var(--color-text-muted);">Примеры:</span>
+                <button class="demo-word-pill active" onclick="switchDemoWord(0)">resilience (B2)</button>
+                <button class="demo-word-pill" onclick="switchDemoWord(1)">ubiquitous (C1)</button>
+                <button class="demo-word-pill" onclick="switchDemoWord(2)">serendipity (C2)</button>
+              </div>
             </div>
 
             <div class="demo-step-row">
+              <!-- Column 1: Telegram Bot Message -->
               <div class="demo-box">
-                <div style="font-size: 0.8125rem; font-weight: 600; color: var(--color-text-muted); text-transform: uppercase;">
-                  1. Отправлено боту в Telegram
-                </div>
-                <div class="demo-telegram-bubble">
-                  <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <strong>resilience</strong>
-                    <button onclick="speakDemoWord('resilience')" style="background: none; border: none; cursor: pointer; color: var(--color-text-muted); font-size: 1rem;" title="Озвучить" aria-label="Озвучить resilience">🔊</button>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                  <div style="font-size: 0.8125rem; font-weight: 600; color: var(--color-text-muted); text-transform: uppercase;">
+                    1. Отправлено боту в Telegram
                   </div>
-                  <div style="font-size: 0.8125rem; color: var(--color-text-secondary); margin-top: 4px;">
+                  <span style="font-size: 0.75rem; color: #22c55e; display: inline-flex; align-items: center; gap: 4px;">
+                    ● онлайн
+                  </span>
+                </div>
+                
+                <div class="demo-telegram-bubble" id="demoTelegramBubble">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <strong id="demoWordText" style="font-size: 1.125rem;">resilience</strong>
+                    <button onclick="speakDemoWord(currentDemoWord.lemma)" style="background: none; border: none; cursor: pointer; color: var(--color-text-muted); font-size: 1rem;" title="Озвучить" aria-label="Озвучить слово">🔊</button>
+                  </div>
+                  <div id="demoWordExample" style="font-size: 0.8125rem; color: var(--color-text-secondary); margin-top: 4px;">
                     «Technological resilience is essential in engineering.»
                   </div>
                 </div>
-                <div style="margin-top: 12px; font-size: 0.8125rem; color: var(--color-success); display: flex; align-items: center; gap: 6px;">
-                  <span>✓</span> Бот определил уровень B2 и создал 4 карточки
+
+                <div id="demoBotStatus" style="margin-top: 12px; font-size: 0.8125rem; color: var(--color-success); display: flex; align-items: center; gap: 6px;">
+                  <span>✓</span> Бот сохранил слово и создал 4 карточки FSRS
                 </div>
               </div>
 
+              <!-- Column 2: Web Cabinet FSRS Spaced Card -->
               <div class="demo-box">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                   <div style="font-size: 0.8125rem; font-weight: 600; color: var(--color-text-muted); text-transform: uppercase;">
-                    2. Появилось в веб-кабинете FSRS
+                    2. Веб-кабинет FSRS
                   </div>
-                  <span style="font-size: 0.6875rem; color: var(--color-text-muted);">Кликните для переворота</span>
+                  <span style="font-size: 0.6875rem; color: var(--color-text-muted);">Кликните или Пробел</span>
                 </div>
-                <div id="heroInteractiveCard" onclick="toggleHeroCardFlip()" style="cursor: pointer; margin-top: 12px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 14px 16px; transition: var(--transition);">
-                  <div id="heroCardFront">
-                    <div style="display: flex; justify-content: space-between; align-items: baseline;">
-                      <strong style="font-size: 1.0625rem;">resilience</strong>
-                      <span class="cefr-pill">B2</span>
+
+                <div class="flip-card-container">
+                  <div id="heroInteractiveCard" class="flip-card-inner" onclick="toggleHeroCardFlip()" style="cursor: pointer; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 14px 16px; min-height: 145px; transition: var(--transition);">
+                    <!-- Front -->
+                    <div id="heroCardFront" class="flip-card-front">
+                      <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                        <strong id="demoCardLemma" style="font-size: 1.125rem;">resilience</strong>
+                        <span id="demoCardCefr" class="cefr-pill">B2</span>
+                      </div>
+                      <div id="demoCardTrans" style="font-size: 0.875rem; color: var(--color-text-secondary); margin-top: 4px;">
+                        устойчивость, способность восстанавливаться
+                      </div>
+                      <div style="margin-top: 12px; font-size: 0.75rem; color: var(--color-text-muted); border-top: 1px solid var(--color-border); padding-top: 8px; display: flex; justify-content: space-between; align-items: center;">
+                        <span id="demoCardInterval">Интервал FSRS: <strong>+3 дня</strong></span>
+                        <span style="color: var(--color-primary); font-weight: 500;">Показать ответ ➔</span>
+                      </div>
                     </div>
-                    <div style="font-size: 0.875rem; color: var(--color-text-secondary); margin-top: 4px;">
-                      устойчивость, способность восстанавливаться
-                    </div>
-                    <div style="margin-top: 8px; font-size: 0.75rem; color: var(--color-text-muted); border-top: 1px solid var(--color-border); padding-top: 6px; display: flex; justify-content: space-between;">
-                      <span>Интервал памяти FSRS:</span>
-                      <strong>+3 дня</strong>
-                    </div>
-                  </div>
-                  <div id="heroCardBack" style="display: none;">
-                    <div style="font-size: 0.75rem; color: var(--color-text-muted); text-transform: uppercase; margin-bottom: 4px;">Обратная сторона (Карточка №2):</div>
-                    <strong style="font-size: 0.9375rem; color: var(--color-text-primary);">«Способность системы сохранять работоспособность»</strong>
-                    <div style="margin-top: 8px; font-size: 0.8125rem; color: var(--color-success);">
-                      Ответ: <em>resilience</em>
+
+                    <!-- Back -->
+                    <div id="heroCardBack" class="flip-card-back" style="display: none;">
+                      <div style="font-size: 0.75rem; color: var(--color-text-muted); text-transform: uppercase; margin-bottom: 4px;">Проверка извлечения (Active Recall):</div>
+                      <div id="demoCardPrompt" style="font-size: 0.875rem; color: var(--color-text-primary); margin-bottom: 8px;">«Способность восстанавливаться после трудностей»</div>
+                      
+                      <!-- Rating choices -->
+                      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 8px;" onclick="event.stopPropagation();">
+                        <button onclick="handleDemoRate(1)" class="btn btn-secondary btn-sm" style="font-size: 0.6875rem; padding: 4px 2px;">1: Снова</button>
+                        <button onclick="handleDemoRate(2)" class="btn btn-secondary btn-sm" style="font-size: 0.6875rem; padding: 4px 2px;">2: Трудно</button>
+                        <button onclick="handleDemoRate(3)" class="btn btn-secondary btn-sm" style="font-size: 0.6875rem; padding: 4px 2px; border-color: var(--color-primary);">3: Хорошо</button>
+                        <button onclick="handleDemoRate(4)" class="btn btn-secondary btn-sm" style="font-size: 0.6875rem; padding: 4px 2px;">4: Легко</button>
+                      </div>
+
+                      <div id="demoRateFeedback" style="display: none; margin-top: 8px; font-size: 0.75rem; color: var(--color-success); text-align: center;"></div>
                     </div>
                   </div>
                 </div>
@@ -326,6 +354,61 @@
             </ul>
           </div>
         </div>
+
+        <!-- Interactive Animated Forgetting Curve SVG -->
+        <div style="margin-top: var(--space-6); padding: var(--space-5); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
+            <strong style="font-size: 0.9375rem;">Кривая забывания Эббингауза vs Алгоритм FSRS</strong>
+            <div style="display: flex; gap: 16px; font-size: 0.8125rem; flex-wrap: wrap;">
+              <span style="display: inline-flex; align-items: center; gap: 6px; color: #ef4444;">
+                <span style="width: 14px; height: 2px; background: #ef4444; display: inline-block;"></span> Без повторений (потеря 80% за 3 дня)
+              </span>
+              <span style="display: inline-flex; align-items: center; gap: 6px; color: #22c55e;">
+                <span style="width: 14px; height: 2px; background: #22c55e; display: inline-block;"></span> Интервалы FSRS (удержание 95%+)
+              </span>
+            </div>
+          </div>
+
+          <svg viewBox="0 0 700 200" style="width: 100%; height: auto; display: block; overflow: visible;">
+            <!-- Grid lines -->
+            <line x1="45" y1="20" x2="680" y2="20" stroke="var(--color-border)" stroke-dasharray="3,3" />
+            <line x1="45" y1="65" x2="680" y2="65" stroke="var(--color-border)" stroke-dasharray="3,3" />
+            <line x1="45" y1="110" x2="680" y2="110" stroke="var(--color-border)" stroke-dasharray="3,3" />
+            <line x1="45" y1="155" x2="680" y2="155" stroke="var(--color-border)" />
+
+            <!-- Labels Y -->
+            <text x="36" y="24" fill="var(--color-text-muted)" font-size="11" text-anchor="end">100%</text>
+            <text x="36" y="69" fill="var(--color-text-muted)" font-size="11" text-anchor="end">75%</text>
+            <text x="36" y="114" fill="var(--color-text-muted)" font-size="11" text-anchor="end">50%</text>
+            <text x="36" y="159" fill="var(--color-text-muted)" font-size="11" text-anchor="end">0%</text>
+
+            <!-- Labels X -->
+            <text x="45" y="180" fill="var(--color-text-muted)" font-size="11" text-anchor="middle">День 0</text>
+            <text x="150" y="180" fill="var(--color-text-muted)" font-size="11" text-anchor="middle">День 1</text>
+            <text x="270" y="180" fill="var(--color-text-muted)" font-size="11" text-anchor="middle">День 3</text>
+            <text x="430" y="180" fill="var(--color-text-muted)" font-size="11" text-anchor="middle">День 8</text>
+            <text x="640" y="180" fill="var(--color-text-muted)" font-size="11" text-anchor="middle">День 21+</text>
+
+            <!-- Traditional Forgetting Curve (Steep drop to 20%) -->
+            <path d="M 45 20 Q 90 120 180 142 T 640 152" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-dasharray="5,4" opacity="0.85" />
+
+            <!-- FSRS Adaptive Curve with Spikes -->
+            <path d="M 45 20 Q 95 38 150 48 L 150 20 Q 210 32 270 42 L 270 20 Q 350 28 430 36 L 430 20 Q 535 24 640 28" fill="none" stroke="#22c55e" stroke-width="3" stroke-linecap="round" />
+
+            <!-- Review nodes -->
+            <circle cx="150" cy="20" r="4.5" fill="#22c55e" stroke="var(--color-surface)" stroke-width="2" />
+            <text x="150" y="12" fill="#22c55e" font-size="10" font-weight="600" text-anchor="middle">1-е повторение</text>
+
+            <circle cx="270" cy="20" r="4.5" fill="#22c55e" stroke="var(--color-surface)" stroke-width="2" />
+            <text x="270" y="12" fill="#22c55e" font-size="10" font-weight="600" text-anchor="middle">2-е повторение</text>
+
+            <circle cx="430" cy="20" r="4.5" fill="#22c55e" stroke="var(--color-surface)" stroke-width="2" />
+            <text x="430" y="12" fill="#22c55e" font-size="10" font-weight="600" text-anchor="middle">3-е повторение</text>
+
+            <circle cx="640" cy="28" r="4.5" fill="#22c55e" stroke="var(--color-surface)" stroke-width="2" />
+            <text x="640" y="48" fill="#22c55e" font-size="10" font-weight="600" text-anchor="middle">Долговременная память</text>
+          </svg>
+        </div>
       </div>
     </section>
 
@@ -476,17 +559,145 @@
       if (e.key === 'Escape') closePrivacyModal();
     });
 
+    const demoWords = [
+      {
+        lemma: "resilience",
+        transcription: "/rɪˈzɪl.jəns/",
+        cefr: "B2",
+        trans: "устойчивость, способность восстанавливаться",
+        example: "«Technological resilience is essential in engineering.»",
+        prompt: "«Способность восстанавливаться после трудностей»",
+        interval: "+3 дня"
+      },
+      {
+        lemma: "ubiquitous",
+        transcription: "/juːˈbɪk.wɪ.təs/",
+        cefr: "C1",
+        trans: "вездесущий, повсеместный",
+        example: "«Smartphones have become ubiquitous in modern society.»",
+        prompt: "«Присутствующий или встречающийся повсюду»",
+        interval: "+4 дня"
+      },
+      {
+        lemma: "serendipity",
+        transcription: "/ˌser.ənˈdɪp.ə.ti/",
+        cefr: "C2",
+        trans: "счастливая случайность, интуитивная прозорливость",
+        example: "«Finding this project was pure serendipity.»",
+        prompt: "«Удачное открытие, сделанное случайно»",
+        interval: "+5 дней"
+      }
+    ];
+    let currentDemoIndex = 0;
+    let currentDemoWord = demoWords[0];
+
+    function switchDemoWord(idx) {
+      if (idx < 0 || idx >= demoWords.length) return;
+      currentDemoIndex = idx;
+      currentDemoWord = demoWords[idx];
+
+      document.querySelectorAll('.demo-word-pill').forEach((pill, i) => {
+        if (i === idx) pill.classList.add('active');
+        else pill.classList.remove('active');
+      });
+
+      // Typing animation simulation
+      const bubble = document.getElementById('demoTelegramBubble');
+      const statusEl = document.getElementById('demoBotStatus');
+      if (bubble) {
+        bubble.innerHTML = '<div style="display: flex; align-items: center; gap: 8px; color: var(--color-text-muted); font-size: 0.8125rem;"><em>nigerbbbit_bot печатает</em> <span class="typing-dots"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></span></div>';
+      }
+      if (statusEl) {
+        statusEl.innerHTML = '<span style="color: var(--color-text-muted);">Синхронизация FSRS...</span>';
+      }
+
+      setTimeout(() => {
+        if (bubble) {
+          bubble.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <strong id="demoWordText" style="font-size: 1.125rem;">${currentDemoWord.lemma}</strong>
+              <button onclick="speakDemoWord('${currentDemoWord.lemma}')" style="background: none; border: none; cursor: pointer; color: var(--color-text-muted); font-size: 1rem;" title="Озвучить" aria-label="Озвучить слово">🔊</button>
+            </div>
+            <div id="demoWordExample" style="font-size: 0.8125rem; color: var(--color-text-secondary); margin-top: 4px;">
+              ${currentDemoWord.example}
+            </div>
+          `;
+        }
+        if (statusEl) {
+          statusEl.innerHTML = `<span>✓</span> Бот определил уровень ${currentDemoWord.cefr} и создал 4 карточки FSRS`;
+        }
+
+        // Update card
+        const lemmaEl = document.getElementById('demoCardLemma');
+        const cefrEl = document.getElementById('demoCardCefr');
+        const transEl = document.getElementById('demoCardTrans');
+        const intervalEl = document.getElementById('demoCardInterval');
+        const promptEl = document.getElementById('demoCardPrompt');
+
+        if (lemmaEl) lemmaEl.textContent = currentDemoWord.lemma;
+        if (cefrEl) cefrEl.textContent = currentDemoWord.cefr;
+        if (transEl) transEl.textContent = currentDemoWord.trans;
+        if (intervalEl) intervalEl.innerHTML = `Интервал FSRS: <strong>${currentDemoWord.interval}</strong>`;
+        if (promptEl) promptEl.textContent = currentDemoWord.prompt;
+
+        // Reset flip to front
+        const card = document.getElementById('heroInteractiveCard');
+        if (card && card.classList.contains('flipped')) {
+          card.classList.remove('flipped');
+        }
+        const front = document.getElementById('heroCardFront');
+        const back = document.getElementById('heroCardBack');
+        if (front) front.style.display = 'block';
+        if (back) back.style.display = 'none';
+
+        const feedback = document.getElementById('demoRateFeedback');
+        if (feedback) feedback.style.display = 'none';
+      }, 400);
+    }
+
     function toggleHeroCardFlip() {
+      const card = document.getElementById('heroInteractiveCard');
       const front = document.getElementById('heroCardFront');
       const back = document.getElementById('heroCardBack');
-      if (!front || !back) return;
-      if (front.style.display === 'none') {
-        front.style.display = 'block';
-        back.style.display = 'none';
-      } else {
+      if (!card || !front || !back) return;
+
+      const isFlipped = card.classList.toggle('flipped');
+      if (isFlipped) {
         front.style.display = 'none';
         back.style.display = 'block';
+      } else {
+        front.style.display = 'block';
+        back.style.display = 'none';
       }
+    }
+
+    document.addEventListener('keydown', function(e) {
+      if (e.code === 'Space' && !['input', 'textarea'].includes((document.activeElement || {}).tagName?.toLowerCase())) {
+        const card = document.getElementById('heroInteractiveCard');
+        if (card) {
+          e.preventDefault();
+          toggleHeroCardFlip();
+        }
+      }
+    });
+
+    function handleDemoRate(rating) {
+      const feedback = document.getElementById('demoRateFeedback');
+      if (!feedback) return;
+
+      const intervals = {
+        1: '+10 минут (Снова)',
+        2: '+1 день (Трудно)',
+        3: '+3 дня (Хорошо)',
+        4: '+7 дней (Легко)'
+      };
+
+      feedback.style.display = 'block';
+      feedback.innerHTML = `✓ FSRS обновил интервал: <strong>${intervals[rating]}</strong> (удержание 95%)`;
+
+      setTimeout(() => {
+        toggleHeroCardFlip();
+      }, 1600);
     }
 
     function speakDemoWord(text) {

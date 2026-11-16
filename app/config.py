@@ -76,9 +76,15 @@ class Settings(BaseSettings):
     enable_tts: bool = True
     tutor_daily_limit: int = 50
 
-    # Reminders / Scheduler
+    # Reminders / Scheduler & Email Service
     review_reminder_enabled: bool = True
     default_reminder_hour: int = 19
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from_email: str = ""
+    smtp_use_tls: bool = True
 
     # Recommendations Weights
     rec_weight_source: float = 3.0

@@ -381,10 +381,10 @@ async function handleSendEmailCode(e) {
       if (codeInput) codeInput.focus();
     } else {
       let msg = res.data && res.data.detail ? res.data.detail : 'Не удалось отправить код';
-      alert('Ошибка: ' + (typeof msg === 'string' ? msg : JSON.stringify(msg)));
+      showToast('Ошибка: ' + (typeof msg === 'string' ? msg : JSON.stringify(msg)), 'error');
     }
   } catch (err) {
-    alert('Сетевая ошибка при отправке кода подтверждения');
+    showToast('Сетевая ошибка при отправке кода подтверждения', 'error');
   } finally {
     if (btn) {
       btn.disabled = false;
@@ -421,10 +421,10 @@ async function handleVerifyEmailCode(e) {
       navigate('/app');
     } else {
       let msg = res.data && res.data.detail ? res.data.detail : 'Неверный или истекший код';
-      alert('Ошибка авторизации: ' + (typeof msg === 'string' ? msg : JSON.stringify(msg)));
+      showToast('Ошибка авторизации: ' + (typeof msg === 'string' ? msg : JSON.stringify(msg)), 'error');
     }
   } catch (err) {
-    alert('Сетевая ошибка при проверке кода');
+    showToast('Сетевая ошибка при проверке кода', 'error');
   } finally {
     if (btn) {
       btn.disabled = false;
@@ -523,7 +523,7 @@ if (typeof window !== 'undefined') {
       checkAndShowOnboarding();
       navigate('/app');
     } else {
-      alert('Ошибка авторизации через Google: ' + (res.data ? res.data.detail : 'Попробуйте снова'));
+      showToast('Ошибка авторизации через Google: ' + (res.data ? res.data.detail : 'Попробуйте снова'), 'error');
     }
   };
 
@@ -539,7 +539,7 @@ if (typeof window !== 'undefined') {
       checkAndShowOnboarding();
       navigate('/app');
     } else {
-      alert('Ошибка авторизации Telegram Widget: ' + (res.data ? res.data.detail : 'Попробуйте снова'));
+      showToast('Ошибка авторизации Telegram Widget: ' + (res.data ? res.data.detail : 'Попробуйте снова'), 'error');
     }
   };
 }
@@ -1334,18 +1334,18 @@ async function handleCsvUpload(input) {
   input.value = '';
 
   if (res.ok && res.data) {
-    alert(`Импорт завершен!\nУспешно добавлено: ${res.data.imported_count} слов\nПропущено дубликатов: ${res.data.skipped_duplicates}`);
+    showToast(`Импорт завершен! Успешно: ${res.data.imported_count}, пропущено: ${res.data.skipped_duplicates}`, 'success');
     wordsState.page = 1;
     loadWordsDeck();
   } else {
-    alert('Ошибка импорта CSV: ' + (res.data ? res.data.detail : 'Проверьте формат'));
+    showToast('Ошибка импорта CSV: ' + (res.data ? res.data.detail : 'Проверьте формат'), 'error');
   }
 }
 
 async function handleCsvExport() {
   const res = await fetchAPI('/words?page=1&page_size=1000');
   if (!res.ok || !res.data || !res.data.items) {
-    alert('Не удалось сформировать экспорт');
+    showToast('Не удалось сформировать экспорт', 'error');
     return;
   }
 
@@ -1373,7 +1373,7 @@ async function handleCsvExport() {
 async function handleAnkiExport() {
   const res = await fetchAPI('/words?page=1&page_size=1000');
   if (!res.ok || !res.data || !res.data.items) {
-    alert('Не удалось сформировать экспорт для Anki');
+    showToast('Не удалось сформировать экспорт для Anki', 'error');
     return;
   }
 
@@ -2278,7 +2278,38 @@ function switchPracticeTab(tab) {
 }
 
 function loadPractice() {
+  const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+  const tab = params ? params.get('tab') : null;
+  if (tab === 'speaking' || tab === 'writing') {
+    currentPracticeTab = tab;
+  }
   switchPracticeTab(currentPracticeTab || 'writing');
+}
+
+function setWritingSamplePrompt(type) {
+  const input = document.getElementById('writingTextInput');
+  if (!input) return;
+
+  const samples = {
+    email: "Dear Mr. Johnson,\n\nI am writing to inquire about the progress of our joint quarterly review. Could you please provide an updated estimate of when the deliverables will be finalized? We would appreciate any feedback regarding the new integration timeline.\n\nBest regards,\nAlex",
+    essay: "In recent years, remote work has gained tremendous popularity across global IT companies. While some argue that working from home reduces teamwork cohesion, others believe it substantially enhances productivity and work-life balance. In my opinion, hybrid models offer the best compromise.",
+    travel: "Last summer, I had the opportunity to visit Kyoto. What struck me most was the contrast between modern bullet trains and centuries-old wooden shrines surrounded by bamboo forests. The local cuisine was exceptional, especially traditional matcha and handmade noodles."
+  };
+
+  input.value = samples[type] || '';
+  updateWritingStats();
+  input.focus();
+}
+
+function updateWritingStats() {
+  const input = document.getElementById('writingTextInput');
+  const counter = document.getElementById('writingTextCounter');
+  if (!input || !counter) return;
+
+  const text = input.value.trim();
+  const words = text ? text.split(/\s+/).length : 0;
+  const chars = input.value.length;
+  counter.textContent = `${words} слов, ${chars} символов`;
 }
 
 async function handleWritingSubmit() {
@@ -2286,7 +2317,7 @@ async function handleWritingSubmit() {
   const btn = document.getElementById('writingSubmitBtn');
 
   if (!input || !input.value.trim()) {
-    alert('Пожалуйста, введите текст для проверки.');
+    showToast('Пожалуйста, введите текст для проверки.', 'warning');
     return;
   }
 
@@ -2306,10 +2337,10 @@ async function handleWritingSubmit() {
       renderWritingResults(res.data);
     } else {
       let msg = res.data && res.data.detail ? res.data.detail : 'Ошибка при анализе текста';
-      alert('Ошибка: ' + (typeof msg === 'string' ? msg : JSON.stringify(msg)));
+      showToast('Ошибка: ' + (typeof msg === 'string' ? msg : JSON.stringify(msg)), 'error');
     }
   } catch (err) {
-    alert('Сетевая ошибка при анализе текста');
+    showToast('Сетевая ошибка при анализе текста', 'error');
   } finally {
     if (btn) {
       btn.disabled = false;
@@ -2498,6 +2529,90 @@ function appendSpeakingChatMessage(role, text, feedback, suggestion) {
 
   if (isAi && speakingChatHistoryData.length > 1) {
     speakWord(text);
+  }
+}
+
+let speechRecognitionInstance = null;
+let isVoiceRecording = false;
+
+function toggleVoiceInput() {
+  const micBtn = document.getElementById('speakingMicBtn');
+  const input = document.getElementById('speakingUserInput');
+  if (!input) return;
+
+  const SpeechRecognition = typeof window !== 'undefined' ? (window.SpeechRecognition || window.webkitSpeechRecognition) : null;
+  if (!SpeechRecognition) {
+    showToast('Ваш браузер не поддерживает распознавание речи Web Speech API. Вводите текст вручную.', 'warning');
+    return;
+  }
+
+  if (isVoiceRecording) {
+    if (speechRecognitionInstance) {
+      try { speechRecognitionInstance.stop(); } catch (e) {}
+    }
+    isVoiceRecording = false;
+    if (micBtn) {
+      micBtn.classList.remove('recording');
+      micBtn.innerHTML = '🎙️';
+      micBtn.title = 'Включить голосовой ввод (Web Speech API)';
+    }
+    return;
+  }
+
+  try {
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-US';
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = function() {
+      isVoiceRecording = true;
+      if (micBtn) {
+        micBtn.classList.add('recording');
+        micBtn.innerHTML = '🔴';
+        micBtn.title = 'Слушаю... Нажмите для остановки';
+      }
+      showToast('Слушаю речь на английском... Говорите!', 'info');
+    };
+
+    recognition.onresult = function(event) {
+      let interim = '';
+      let finalStr = '';
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          finalStr += event.results[i][0].transcript;
+        } else {
+          interim += event.results[i][0].transcript;
+        }
+      }
+      input.value = finalStr || interim;
+    };
+
+    recognition.onerror = function(event) {
+      isVoiceRecording = false;
+      if (micBtn) {
+        micBtn.classList.remove('recording');
+        micBtn.innerHTML = '🎙️';
+      }
+      if (event.error !== 'no-speech') {
+        showToast('Голосовой ввод: ' + event.error, 'warning');
+      }
+    };
+
+    recognition.onend = function() {
+      isVoiceRecording = false;
+      if (micBtn) {
+        micBtn.classList.remove('recording');
+        micBtn.innerHTML = '🎙️';
+        micBtn.title = 'Включить голосовой ввод (Web Speech API)';
+      }
+    };
+
+    speechRecognitionInstance = recognition;
+    recognition.start();
+  } catch (err) {
+    console.warn('Speech recognition startup error:', err);
+    showToast('Не удалось запустить распознавание речи', 'error');
   }
 }
 

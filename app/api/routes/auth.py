@@ -22,6 +22,7 @@ from app.services.auth import (
     verify_google_id_token,
     verify_telegram_login,
 )
+from app.services.email_service import send_verification_email
 from app.services.review_engine import ALL_CARD_TYPES
 from app.services.vocabulary import (
     get_or_create_user_by_email,
@@ -173,12 +174,20 @@ async def send_email_code(payload: EmailSendCodeRequest) -> dict:
     code = f"{random.randint(100000, 999999)}"
     _EMAIL_CODES[email] = (code, time.time() + 600.0)
 
-    return {
+    # Dispatch email (via SMTP if configured, or logged in local/dev)
+    await send_verification_email(to_email=email, code=code)
+
+    settings = get_settings()
+    res = {
         "status": "ok",
         "message": f"Код подтверждения отправлен на {email}",
-        "code": code,
-        "test_code": code,
     }
+    # In test/dev mode or when SMTP is not configured, attach test_code for convenience
+    if not settings.is_production or not settings.smtp_host:
+        res["code"] = code
+        res["test_code"] = code
+
+    return res
 
 
 @router.post("/email/verify-code", response_model=AuthTokenResponse)

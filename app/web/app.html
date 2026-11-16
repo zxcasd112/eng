@@ -508,13 +508,21 @@
 
         <!-- Section 1: Writing Review -->
         <div id="practiceWritingSection">
-          <p style="font-size: 0.9375rem; color: var(--color-text-secondary); margin-bottom: var(--space-4);">
+          <p style="font-size: 0.9375rem; color: var(--color-text-secondary); margin-bottom: var(--space-3);">
             Напишите эссе, ответ на вопрос или рабочее письмо на английском языке. Система проверит грамматику, оценит уровень CEFR и предложит более естественные формулировки.
           </p>
 
-          <textarea id="writingTextInput" class="textarea-field" style="min-height: 140px;" placeholder="Write your paragraph or short essay here in English..."></textarea>
+          <div style="display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-3); flex-wrap: wrap;">
+            <span style="font-size: 0.8125rem; color: var(--color-text-muted);">💡 Темы для тренировки:</span>
+            <button type="button" class="app-nav-pill" onclick="setWritingSamplePrompt('email')">💼 Деловое письмо</button>
+            <button type="button" class="app-nav-pill" onclick="setWritingSamplePrompt('essay')">🌍 Эссе: Remote Work</button>
+            <button type="button" class="app-nav-pill" onclick="setWritingSamplePrompt('travel')">✈️ Путешествия</button>
+          </div>
 
-          <div style="display: flex; justify-content: flex-end; margin-top: var(--space-3);">
+          <textarea id="writingTextInput" class="textarea-field" style="min-height: 140px;" placeholder="Write your paragraph or short essay here in English..." oninput="updateWritingStats()"></textarea>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-3);">
+            <span id="writingTextCounter" style="font-size: 0.8125rem; color: var(--color-text-muted);">0 слов, 0 символов</span>
             <button class="btn btn-primary" id="writingSubmitBtn" onclick="handleWritingSubmit()">
               Проверить текст ➔
             </button>
@@ -528,7 +536,7 @@
         <!-- Section 2: Speaking Dialogue -->
         <div id="practiceSpeakingSection" style="display: none;">
           <p style="font-size: 0.9375rem; color: var(--color-text-secondary); margin-bottom: var(--space-4);">
-            Отрабатывайте спонтанную речь в реалистичных диалогах с AI-собеседником.
+            Отрабатывайте спонтанную речь в реалистичных диалогах с AI-собеседником. Поддерживается голосовой ввод через микрофон и озвучивание ответов.
           </p>
 
           <!-- Scenario Chooser -->
@@ -542,9 +550,10 @@
               <!-- Chat turns injected dynamically -->
             </div>
 
-            <div style="border-top: 1px solid var(--color-border); padding: var(--space-3); display: flex; gap: var(--space-2); background: var(--color-surface-subtle);">
+            <div style="border-top: 1px solid var(--color-border); padding: var(--space-3); display: flex; gap: var(--space-2); background: var(--color-surface-subtle); align-items: center;">
+              <button id="speakingMicBtn" class="btn btn-secondary" type="button" onclick="toggleVoiceInput()" title="Голосовой ввод речи (Web Speech API)" style="padding: 0 14px; font-size: 1.125rem; height: 38px;" aria-label="Включить микрофон">🎙️</button>
               <input type="text" id="speakingUserInput" class="input-field" placeholder="Ответьте собеседнику на английском..." style="flex: 1;" onkeydown="if(event.key==='Enter')handleSendSpeakingMessage()">
-              <button class="btn btn-primary" onclick="handleSendSpeakingMessage()" id="speakingSendBtn">Отправить</button>
+              <button class="btn btn-primary" onclick="handleSendSpeakingMessage()" id="speakingSendBtn" style="height: 38px;">Отправить</button>
             </div>
           </div>
         </div>
